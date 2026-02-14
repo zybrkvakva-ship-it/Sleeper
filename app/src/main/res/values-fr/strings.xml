@@ -13,20 +13,20 @@
     <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">Mode veille</string>
     <string name="mining_block">Bloc #%d</string>
-    <string name="mining_reward">Récompense : %d pts</string>
+    <string name="mining_reward">Récompense : %d Sleep pts</string>
     <string name="mining_difficulty">Difficulté : %.1f</string>
     <string name="mining_online">En ligne : %,d</string>
     <string name="mining_energy" formatted="false">Énergie : %d/%d</string>
     <string name="mining_start">LANCER LE MINING</string>
     <string name="mining_stop">ARRÊTER</string>
-    <string name="mining_rate">%.2f pts/s</string>
+    <string name="mining_rate">%.2f Sleep pts/s</string>
     <string name="mining_uptime">%s en cours</string>
     <string name="mining_storage" formatted="false">Stockage : %d Mo x%.1f</string>
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Mining</string>
     <string name="notif_mining_title">⛏️ Mining Sleep Points</string>
-    <string name="notif_mining_text" formatted="false">Gagnés : %d pts | Uptime : %s</string>
+    <string name="notif_mining_text" formatted="false">Gagnés : %d Sleep pts | Uptime : %s</string>
     <string name="notif_human_check_title">🔔 Vérification d’activité</string>
     <string name="notif_human_check_text">Appuyez pour confirmer</string>
     
@@ -36,7 +36,7 @@
     <string name="upgrade_super">Super x10</string>
     <string name="upgrade_storage">Stockage x3</string>
     <string name="upgrade_autocheck">Vérif. auto</string>
-    <string name="upgrade_cost">%d pts</string>
+    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ QUOTIDIENNES</string>
@@ -48,7 +48,7 @@
     <!-- Leaderboard -->
     <string name="leaderboard_title">👑 TOP 100 MINEURS</string>
     <string name="leaderboard_global">MONDIAL</string>
-    <string name="leaderboard_total_points">Total sur le réseau : %,d pts</string>
+    <string name="leaderboard_total_points">Total sur le réseau : %,d Sleep pts</string>
     <string name="leaderboard_total_blocks">Blocs trouvés : %,d</string>
     
     <!-- Wallet -->

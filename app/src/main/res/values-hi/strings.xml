@@ -13,20 +13,20 @@
     <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">स्लीप मोड</string>
     <string name="mining_block">ब्लॉक #%d</string>
-    <string name="mining_reward">इनाम: %d pts</string>
+    <string name="mining_reward">इनाम: %d Sleep pts</string>
     <string name="mining_difficulty">कठिनाई: %.1f</string>
     <string name="mining_online">ऑनलाइन: %,d</string>
     <string name="mining_energy" formatted="false">ऊर्जा: %d/%d</string>
     <string name="mining_start">माइनिंग शुरू करें</string>
     <string name="mining_stop">रोकें</string>
-    <string name="mining_rate">%.2f pts/s</string>
+    <string name="mining_rate">%.2f Sleep pts/s</string>
     <string name="mining_uptime">%s अपटाइम</string>
     <string name="mining_storage" formatted="false">स्टोरेज: %dMB x%.1f</string>
     
     <!-- Notifications -->
     <string name="notif_channel_mining">माइनिंग</string>
     <string name="notif_mining_title">⛏️ Sleep Points माइन कर रहे हैं</string>
-    <string name="notif_mining_text" formatted="false">कमाए: %d pts | अपटाइम: %s</string>
+    <string name="notif_mining_text" formatted="false">कमाए: %d Sleep pts | अपटाइम: %s</string>
     <string name="notif_human_check_title">🔔 एक्टिविटी चेक</string>
     <string name="notif_human_check_text">पुष्टि के लिए टैप करें</string>
     
@@ -36,7 +36,7 @@
     <string name="upgrade_super">सुपर x10</string>
     <string name="upgrade_storage">स्टोरेज x3</string>
     <string name="upgrade_autocheck">ऑटो-चेक</string>
-    <string name="upgrade_cost">%d pts</string>
+    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ दैनिक</string>
@@ -48,7 +48,7 @@
     <!-- Leaderboard -->
     <string name="leaderboard_title">👑 टॉप 100 माइनर</string>
     <string name="leaderboard_global">ग्लोबल</string>
-    <string name="leaderboard_total_points">नेटवर्क में कुल: %,d pts</string>
+    <string name="leaderboard_total_points">नेटवर्क में कुल: %,d Sleep pts</string>
     <string name="leaderboard_total_blocks">मिले ब्लॉक: %,d</string>
     
     <!-- Wallet -->

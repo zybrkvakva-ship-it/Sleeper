@@ -13,20 +13,20 @@
     <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">休眠模式</string>
     <string name="mining_block">区块 #%d</string>
-    <string name="mining_reward">奖励：%d pts</string>
+    <string name="mining_reward">奖励：%d Sleep pts</string>
     <string name="mining_difficulty">难度：%.1f</string>
     <string name="mining_online">在线：%,d</string>
     <string name="mining_energy" formatted="false">能量：%d/%d</string>
     <string name="mining_start">开始挖矿</string>
     <string name="mining_stop">停止</string>
-    <string name="mining_rate">%.2f pts/秒</string>
+    <string name="mining_rate">%.2f Sleep pts/秒</string>
     <string name="mining_uptime">%s 运行时间</string>
     <string name="mining_storage" formatted="false">存储：%dMB x%.1f</string>
     
     <!-- Notifications -->
     <string name="notif_channel_mining">挖矿</string>
     <string name="notif_mining_title">⛏️ 挖矿 Sleep Points</string>
-    <string name="notif_mining_text" formatted="false">已赚：%d pts | 运行：%s</string>
+    <string name="notif_mining_text" formatted="false">已赚：%d Sleep pts | 运行：%s</string>
     <string name="notif_human_check_title">🔔 活跃度检查</string>
     <string name="notif_human_check_text">点击确认</string>
     
@@ -36,7 +36,7 @@
     <string name="upgrade_super">超级 x10</string>
     <string name="upgrade_storage">存储 x3</string>
     <string name="upgrade_autocheck">自动检查</string>
-    <string name="upgrade_cost">%d pts</string>
+    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ 每日</string>
@@ -48,7 +48,7 @@
     <!-- Leaderboard -->
     <string name="leaderboard_title">👑 挖矿榜 TOP 100</string>
     <string name="leaderboard_global">全球</string>
-    <string name="leaderboard_total_points">全网总计：%,d pts</string>
+    <string name="leaderboard_total_points">全网总计：%,d Sleep pts</string>
     <string name="leaderboard_total_blocks">已挖区块：%,d</string>
     
     <!-- Wallet -->

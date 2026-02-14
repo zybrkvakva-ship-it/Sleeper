@@ -13,20 +13,20 @@
     <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">Sleep Mode</string>
     <string name="mining_block">Блок #%d</string>
-    <string name="mining_reward">Награда: %d pts</string>
+    <string name="mining_reward">Награда: %d Sleep pts</string>
     <string name="mining_difficulty">Сложность: %.1f</string>
     <string name="mining_online">Онлайн: %,d</string>
     <string name="mining_energy" formatted="false">Энергия: %d/%d</string>
     <string name="mining_start">НАЧАТЬ МАЙНИНГ</string>
     <string name="mining_stop">ОСТАНОВИТЬ</string>
-    <string name="mining_rate">%.2f pts/s</string>
+    <string name="mining_rate">%.2f Sleep pts/s</string>
     <string name="mining_uptime">%s uptime</string>
     <string name="mining_storage" formatted="false">Storage: %dMB x%.1f</string>
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Майнинг</string>
     <string name="notif_mining_title">⛏️ Майним Sleep Points</string>
-    <string name="notif_mining_text" formatted="false">Заработано: %d pts | Uptime: %s</string>
+    <string name="notif_mining_text" formatted="false">Заработано: %d Sleep pts | Uptime: %s</string>
     <string name="notif_human_check_title">🔔 Проверка активности</string>
     <string name="notif_human_check_text">Тапни для подтверждения</string>
     
@@ -36,7 +36,7 @@
     <string name="upgrade_super">Супер x10</string>
     <string name="upgrade_storage">Storage x3</string>
     <string name="upgrade_autocheck">Auto-check</string>
-    <string name="upgrade_cost">%d pts</string>
+    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ ЕЖЕДНЕВНЫЕ</string>
@@ -48,7 +48,7 @@
     <!-- Leaderboard -->
     <string name="leaderboard_title">👑 TOP 100 МАЙНЕРОВ</string>
     <string name="leaderboard_global">ГЛОБАЛЬНО</string>
-    <string name="leaderboard_total_points">Всего в сети: %,d pts</string>
+    <string name="leaderboard_total_points">Всего в сети: %,d Sleep pts</string>
     <string name="leaderboard_total_blocks">Найдено блоков: %,d</string>
     
     <!-- Wallet -->

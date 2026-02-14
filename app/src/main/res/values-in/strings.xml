@@ -13,20 +13,20 @@
     <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">Mode tidur</string>
     <string name="mining_block">Blok #%d</string>
-    <string name="mining_reward">Hadiah: %d pts</string>
+    <string name="mining_reward">Hadiah: %d Sleep pts</string>
     <string name="mining_difficulty">Kesulitan: %.1f</string>
     <string name="mining_online">Daring: %,d</string>
     <string name="mining_energy" formatted="false">Energi: %d/%d</string>
     <string name="mining_start">MULAI MINING</string>
     <string name="mining_stop">BERHENTI</string>
-    <string name="mining_rate">%.2f pts/dtk</string>
+    <string name="mining_rate">%.2f Sleep pts/dtk</string>
     <string name="mining_uptime">%s uptime</string>
     <string name="mining_storage" formatted="false">Penyimpanan: %dMB x%.1f</string>
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Mining</string>
     <string name="notif_mining_title">⛏️ Mining Sleep Points</string>
-    <string name="notif_mining_text" formatted="false">Dapat: %d pts | Uptime: %s</string>
+    <string name="notif_mining_text" formatted="false">Dapat: %d Sleep pts | Uptime: %s</string>
     <string name="notif_human_check_title">🔔 Cek aktivitas</string>
     <string name="notif_human_check_text">Ketuk untuk konfirmasi</string>
     
@@ -36,7 +36,7 @@
     <string name="upgrade_super">Super x10</string>
     <string name="upgrade_storage">Penyimpanan x3</string>
     <string name="upgrade_autocheck">Cek otomatis</string>
-    <string name="upgrade_cost">%d pts</string>
+    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ HARIAN</string>
@@ -48,7 +48,7 @@
     <!-- Leaderboard -->
     <string name="leaderboard_title">👑 TOP 100 PENAMBANG</string>
     <string name="leaderboard_global">GLOBAL</string>
-    <string name="leaderboard_total_points">Total di jaringan: %,d pts</string>
+    <string name="leaderboard_total_points">Total di jaringan: %,d Sleep pts</string>
     <string name="leaderboard_total_blocks">Blok ditemukan: %,d</string>
     
     <!-- Wallet -->
