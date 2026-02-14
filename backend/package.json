@@ -1,7 +1,7 @@
 {
-  "name": "nightminer-backend",
+  "name": "sleeper-backend",
   "version": "1.0.0",
-  "description": "NightMiner Backend API - Night session processing, SLEEP distribution, leaderboard",
+  "description": "Sleeper Backend API - Night session processing, Sleep Points, leaderboard",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -10,8 +10,8 @@
     "db:migrate": "tsx src/database/migrate.ts",
     "test": "jest"
   },
-  "keywords": ["nightminer", "solana", "sleep-mining", "web3"],
-  "author": "NightMiner Team",
+  "keywords": ["sleeper", "solana", "sleep-to-earn", "web3"],
+  "author": "Sleeper",
   "license": "UNLICENSED",
   "dependencies": {
     "@solana/web3.js": "^1.87.6",
