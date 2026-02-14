@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SeekerMiner"
+rootProject.name = "Sleeper"
 include(":app")
