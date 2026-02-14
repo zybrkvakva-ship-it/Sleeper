@@ -175,7 +175,7 @@ class SolanaRpcClient(
         val walletShort = "${walletAddress.take(8)}...${walletAddress.takeLast(6)}"
         try {
             val looksLikeHex = walletAddress.length == 64 && walletAddress.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
-            DevLog.i(TAG, "[STAKING] ========== getStakedBalance ENTRY ==========")
+            DevLog.i(TAG, "[STAKING] getStakedBalance ENTRY")
             DevLog.i(TAG, "[STAKING] wallet: len=${walletAddress.length} preview=${walletAddress.take(12)}...${walletAddress.takeLast(8)} short=$walletShort")
             DevLog.i(TAG, "[STAKING] wallet looksLikeHex=$looksLikeHex (expect false for base58; if true, RPC may fail like .skr)")
             DevLog.i(TAG, "[STAKING] programId=$SKR_STAKING_PROGRAM_ID mint=$SKR_MINT")
@@ -287,7 +287,7 @@ class SolanaRpcClient(
                 repeat(SKR_DECIMALS) { divisor *= 10 }
                 val humanReadable = totalRaw / divisor
                 DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (from getProgramAccounts) totalRaw=$totalRaw human=$humanReadable accounts=${result.length()} memcmpOffset=$ownerOffsetUsed amountOffset=$amountOffsetUsed")
-                DevLog.i(TAG, "[STAKING] ========== getStakedBalance EXIT ==========")
+                DevLog.i(TAG, "[STAKING] getStakedBalance EXIT")
                 return@withContext StakedBalance(totalRaw, humanReadable)
             }
 
@@ -296,7 +296,7 @@ class SolanaRpcClient(
             val guardianDelegateBalance = getStakedBalanceViaGuardianDelegate(walletAddress)
             if (guardianDelegateBalance != null) {
                 DevLog.i(TAG, "[STAKING] Using getTokenAccountsByDelegate(Guardian, mint=SKR): raw=${guardianDelegateBalance.first} human=${guardianDelegateBalance.second}")
-                DevLog.i(TAG, "[STAKING] ========== getStakedBalance EXIT (Guardian delegate) ==========")
+                DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (Guardian delegate)")
                 return@withContext StakedBalance(guardianDelegateBalance.first, guardianDelegateBalance.second)
             }
             DevLog.i(TAG, "[STAKING] Guardian delegate returned null; running logStakingPdaDiagnostic, logStakingDiagnostics and delegate(wallet) fallback")
@@ -307,15 +307,15 @@ class SolanaRpcClient(
             val delegateBalance = getStakedBalanceViaDelegate(walletAddress)
             if (delegateBalance != null) {
                 DevLog.i(TAG, "[STAKING] Using delegate(wallet) fallback: raw=${delegateBalance.first} human=${delegateBalance.second}")
-                DevLog.i(TAG, "[STAKING] ========== getStakedBalance EXIT (delegate fallback) ==========")
+                DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (delegate fallback)")
                 return@withContext StakedBalance(delegateBalance.first, delegateBalance.second)
             }
             DevLog.w(TAG, "[STAKING] No program accounts, no Guardian delegate, no delegate(wallet); staked balance = 0")
-            DevLog.i(TAG, "[STAKING] ========== getStakedBalance EXIT (zero) ==========")
+            DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (zero)")
             return@withContext StakedBalance(0L, 0.0)
         } catch (e: Exception) {
             DevLog.e(TAG, "[STAKING] getStakedBalance exception: ${e.message}", e)
-            DevLog.i(TAG, "[STAKING] ========== getStakedBalance EXIT (exception) ==========")
+            DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (exception)")
             StakedBalance(0L, 0.0)
         }
     }
@@ -338,7 +338,7 @@ class SolanaRpcClient(
                     put(JSONObject().apply { put("encoding", "jsonParsed"); put("commitment", "confirmed") })
                 })
             }.toString()
-            DevLog.i(TAG, "$logTag ========== REQUEST ==========")
+            DevLog.i(TAG, "$logTag REQUEST")
             DevLog.i(TAG, "$logTag method=getTokenAccountsByDelegate delegate=$SKR_STAKING_PROGRAM_ID mint=$SKR_MINT encoding=jsonParsed commitment=confirmed")
             DevLog.i(TAG, "$logTag url=${rpcUrl.take(50)}... bodyLen=${body.length}")
             val request = Request.Builder()
@@ -348,7 +348,7 @@ class SolanaRpcClient(
                 .build()
             val response = client.newCall(request).execute()
             val responseBody = response.body?.string() ?: ""
-            DevLog.i(TAG, "$logTag ========== RESPONSE ==========")
+            DevLog.i(TAG, "$logTag RESPONSE")
             DevLog.i(TAG, "$logTag code=${response.code} bodyLen=${responseBody.length}")
             if (!response.isSuccessful) {
                 DevLog.w(TAG, "$logTag HTTP not successful; body(500)=${responseBody.take(500)}")
@@ -795,7 +795,7 @@ class SolanaRpcClient(
      * Пробуем: (1) base58, (2) base64 от 32 байт, (3) hex от 32 байт (64 символа) — для RPC с WrongSize.
      */
     private suspend fun querySkrViaSns(publicKeyBase58: String): List<SkrDomainInfo> = withContext(Dispatchers.IO) {
-        DevLog.d(TAG, "[SNS] ========== querySkrViaSns ENTRY ==========")
+        DevLog.d(TAG, "[SNS] querySkrViaSns ENTRY")
         DevLog.d(TAG, "[SNS] publicKeyBase58=$publicKeyBase58 length=${publicKeyBase58.length}")
         var list = querySkrViaSnsWithBytes(publicKeyBase58, snsBytes = publicKeyBase58, bytesKind = "base58")
         if (list != null) {
@@ -931,7 +931,7 @@ class SolanaRpcClient(
      */
     private suspend fun queryStandardAnsDomainsWithBase64Memcmp(ownerPubkey: String): List<SkrDomainInfo> {
         return try {
-            DevLog.d(TAG, "[M1_B64] ========== queryStandardAnsDomainsWithBase64Memcmp ENTRY ==========")
+            DevLog.d(TAG, "[M1_B64] queryStandardAnsDomainsWithBase64Memcmp ENTRY")
             val ownerBytes32 = try {
                 ownerPubkey.decodeBase58()
             } catch (e: Exception) {
@@ -999,7 +999,7 @@ class SolanaRpcClient(
      */
     private suspend fun queryStandardAnsDomains(ownerPubkey: String): List<SkrDomainInfo> {
         return try {
-            DevLog.d(TAG, "[M1_B58] ========== queryStandardAnsDomains ENTRY ==========")
+            DevLog.d(TAG, "[M1_B58] queryStandardAnsDomains ENTRY")
             DevLog.d(TAG, "[M1_B58] ownerPubkey=$ownerPubkey length=${ownerPubkey.length}")
 
             val ownerBytes32 = try {
@@ -1087,7 +1087,7 @@ class SolanaRpcClient(
      */
     private suspend fun queryStandardAnsDomainsWithBase58Memcmp(ownerPubkey: String): List<SkrDomainInfo> {
         return try {
-            DevLog.d(TAG, "[M1_ARR] ========== queryStandardAnsDomainsWithBase58Memcmp ENTRY ==========")
+            DevLog.d(TAG, "[M1_ARR] queryStandardAnsDomainsWithBase58Memcmp ENTRY")
             val ownerBytes32 = ownerPubkey.decodeBase58()
             DevLog.d(TAG, "[M1_ARR] ownerBytes32.length=${ownerBytes32.size} first4=[${ownerBytes32.take(4).joinToString(",") { (it.toInt() and 0xFF).toString() }}]")
             val ownerBytesArray = JSONArray()
@@ -1156,7 +1156,7 @@ class SolanaRpcClient(
      */
     private suspend fun queryWrappedAnsDomains(ownerPubkey: String): List<SkrDomainInfo> {
         return try {
-            DevLog.d(TAG, "[M2] ========== queryWrappedAnsDomains ENTRY ==========")
+            DevLog.d(TAG, "[M2] queryWrappedAnsDomains ENTRY")
             DevLog.d(TAG, "[M2] ownerPubkey=${ownerPubkey.take(12)}...${ownerPubkey.takeLast(8)}")
             val tokenProgramId = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
             val requestBody = JSONObject().apply {
@@ -1416,7 +1416,7 @@ class SolanaRpcClient(
      */
     private suspend fun parseAnsResultToSkrDomains(result: JSONArray, ownerPubkey: String): List<SkrDomainInfo> = withContext(Dispatchers.IO) {
         val skrDomains = mutableListOf<SkrDomainInfo>()
-        DevLog.d(TAG, "[PARSE_ANS] ========== parseAnsResultToSkrDomains ENTRY ==========")
+        DevLog.d(TAG, "[PARSE_ANS] parseAnsResultToSkrDomains ENTRY")
         DevLog.d(TAG, "[PARSE_ANS] result.length=${result.length()} ownerPubkey=${ownerPubkey.take(12)}...")
         for (i in 0 until result.length()) {
             DevLog.d(TAG, "[PARSE_ANS] ---------- Account[$i] ----------")
@@ -1455,7 +1455,7 @@ class SolanaRpcClient(
                 DevLog.d(TAG, "[PARSE_ANS] Account[$i] ❌ both parseAnsDomainName and reverse lookup returned empty")
             }
         }
-        DevLog.d(TAG, "[PARSE_ANS] ========== parseAnsResultToSkrDomains EXIT: ${skrDomains.size} .skr domains ==========")
+        DevLog.d(TAG, "[PARSE_ANS] parseAnsResultToSkrDomains EXIT: ${skrDomains.size} .skr domains")
         skrDomains
     }
 
@@ -1472,7 +1472,7 @@ class SolanaRpcClient(
      */
     private fun parseAnsDomainName(base64Data: String): String {
         return try {
-            DevLog.d(TAG, "[PARSE_NAME] ========== parseAnsDomainName ENTRY ==========")
+            DevLog.d(TAG, "[PARSE_NAME] parseAnsDomainName ENTRY")
             DevLog.d(TAG, "[PARSE_NAME] base64Data.length=${base64Data.length}")
             val decoded = Base64.decode(base64Data, Base64.NO_WRAP)
             if (decoded.isEmpty()) {

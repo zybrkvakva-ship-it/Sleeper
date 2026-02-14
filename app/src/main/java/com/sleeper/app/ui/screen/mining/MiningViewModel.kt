@@ -170,7 +170,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     fun verifyTokenForMining() {
         viewModelScope.launch {
             val walletAddr = walletManager.getSavedWalletAddress()
-            DevLog.d(TAG, "[VERIFY_MINING] ========== verifyTokenForMining() ENTRY ==========")
+            DevLog.d(TAG, "[VERIFY_MINING] verifyTokenForMining ENTRY")
             DevLog.d(TAG, "[VERIFY_MINING] walletAddress=${walletAddr ?: "null"}")
             _uiState.value = _uiState.value.copy(isVerifying = true)
             
@@ -295,7 +295,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
      * запускает проверку .skr (диагностика в логах TokenVerifier / SolanaRpcClient).
      */
     private fun checkWalletConnection() {
-        DevLog.d(TAG, "[WALLET_CHECK] ========== checkWalletConnection() ==========")
+        DevLog.d(TAG, "[WALLET_CHECK] checkWalletConnection")
         val isConnected = walletManager.isWalletConnected()
         val walletAddress = walletManager.getSavedWalletAddress()
         DevLog.d(TAG, "[WALLET_CHECK] isWalletConnected=$isConnected walletAddress=${walletAddress ?: "null"} full=$walletAddress")
@@ -335,7 +335,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     
     /** Запрашивает стейк SKR по кошельку и сохраняет в БД + обновляет UI. */
     private suspend fun refreshStake(walletAddress: String) {
-        DevLog.i(TAG, "[STAKING] ========== refreshStake ENTRY ==========")
+        DevLog.i(TAG, "[STAKING] refreshStake ENTRY")
         DevLog.i(TAG, "[STAKING] wallet length=${walletAddress.length} preview=${walletAddress.take(10)}...${walletAddress.takeLast(8)}")
         DevLog.d(TAG, "[STAKING] refreshStake ENTRY wallet=${DevLog.mask(walletAddress)}")
         DevLog.i(TAG, "[STAKING] calling rpcClient.getStakedBalance(wallet)...")
@@ -352,7 +352,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
         )
         DevLog.i(TAG, "[STAKING] UI state updated: stakedSkrHuman=${balance.humanReadable} stakeMultiplier=$mult")
         DevLog.d(TAG, "[STAKING] refreshed: raw=${balance.rawAmount} human=${balance.humanReadable} mult=$mult")
-        DevLog.i(TAG, "[STAKING] ========== refreshStake EXIT ==========")
+        DevLog.i(TAG, "[STAKING] refreshStake EXIT")
         DevLog.d(TAG, "[STAKING] refreshStake EXIT stakedSkrHuman=${balance.humanReadable} stakeMultiplier=$mult")
     }
     

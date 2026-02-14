@@ -9,4 +9,4 @@
 -dontwarn org.openjsse.**
 # Solana / MWA / OkHttp — не обфусцировать классы, используемые для RPC и кошелька
 -keep class com.solanamobile.** { *; }
--keep class com.seekerminer.app.data.network.** { *; }
+-keep class com.sleeper.app.data.network.** { *; }

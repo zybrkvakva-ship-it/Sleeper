@@ -46,7 +46,7 @@ class WalletManager(private val context: Context) {
      * При ECONNREFUSED (кошелёк ещё не поднял MWA WebSocket) повторяет попытки с backoff.
      */
     suspend fun connectWallet(sender: ActivityResultSender): WalletConnectionResult {
-        DevLog.d(TAG, "[CONNECT] ========== connectWallet() ENTRY ==========")
+        DevLog.d(TAG, "[CONNECT] connectWallet ENTRY")
         var lastError: WalletConnectionResult.Error? = null
         for (attempt in 1..MWA_RETRY_MAX_ATTEMPTS) {
             if (attempt > 1) {
@@ -72,7 +72,7 @@ class WalletManager(private val context: Context) {
                             DevLog.d(TAG, "[CONNECT] authToken saved length=$authLen")
                             saveWalletAddress(address)
                             DevLog.d(TAG, "[CONNECT] Wallet address saved to prefs. FULL_ADDRESS=$address")
-                            DevLog.d(TAG, "[CONNECT] ========== connectWallet() EXIT Success ==========")
+                            DevLog.d(TAG, "[CONNECT] connectWallet EXIT Success")
                             return WalletConnectionResult.Success(address)
                         } else {
                             DevLog.w(TAG, "[CONNECT] publicKeyBytes=null -> No account found")

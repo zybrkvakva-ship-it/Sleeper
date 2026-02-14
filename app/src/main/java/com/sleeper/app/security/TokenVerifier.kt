@@ -38,7 +38,7 @@ class TokenVerifier(
      * Проверяет, владеет ли подключённый wallet .skr токеном
      */
     suspend fun verifySkrToken(): TokenVerificationResult {
-        DevLog.d(TAG, "[VERIFY] ========== verifySkrToken() ENTRY ==========")
+        DevLog.d(TAG, "[VERIFY] verifySkrToken ENTRY")
         // 1. Проверяем, подключён ли wallet
         val walletAddress = walletManager.getSavedWalletAddress()
         DevLog.d(TAG, "[VERIFY] getSavedWalletAddress: ${if (walletAddress != null) "ok full=$walletAddress len=${walletAddress.length}" else "null"}")
@@ -50,7 +50,7 @@ class TokenVerifier(
                 tokenAddress = null,
                 reason = "Wallet не подключён"
             )
-            DevLog.d(TAG, "[VERIFY] verifySkrToken() EXIT -> valid=false username=null reason=${result.reason}")
+            DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=false username=null reason=${result.reason}")
             return result
         }
         
@@ -68,7 +68,7 @@ class TokenVerifier(
                 tokenAddress = tokenCheck.tokenAddress,
                 reason = "OK"
             )
-            DevLog.d(TAG, "[VERIFY] verifySkrToken() EXIT -> valid=true username=${result.username} reason=${result.reason}")
+            DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=true username=${result.username} reason=${result.reason}")
             result
         } else {
             val reason = "У вашего wallet нет .skr токена (username)"
@@ -79,7 +79,7 @@ class TokenVerifier(
                 tokenAddress = null,
                 reason = reason
             )
-            DevLog.d(TAG, "[VERIFY] verifySkrToken() EXIT -> valid=false username=null reason=$reason")
+            DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=false username=null reason=$reason")
             result
         }
     }
@@ -90,7 +90,7 @@ class TokenVerifier(
      * Использует RPC запрос getProgramAccounts к ANS программе с фильтром по владельцу.
      */
     private suspend fun checkSkrTokenOwnership(walletAddress: String): SkrTokenCheck {
-        DevLog.d(TAG, "[CHECK] ========== checkSkrTokenOwnership ENTRY ==========")
+        DevLog.d(TAG, "[CHECK] checkSkrTokenOwnership ENTRY")
         DevLog.d(TAG, "[CHECK] walletAddress=$walletAddress length=${walletAddress.length}")
         return try {
             DevLog.d(TAG, "[CHECK] Calling rpcClient.getAllSkrDomains(wallet)...")

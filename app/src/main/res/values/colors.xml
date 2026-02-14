@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Memhash Style Colors -->
+    <!-- Sleeper theme colors (dark, green/orange accents) -->
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
     <color name="neon_green">#00FF41</color>
