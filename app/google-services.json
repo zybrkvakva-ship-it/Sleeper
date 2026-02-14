@@ -1,0 +1,37 @@
+{
+  "_comment": "ВРЕМЕННАЯ ЗАГЛУШКА! Замените на настоящий google-services.json из Firebase Console",
+  "_instructions": [
+    "1. Перейди на https://console.firebase.google.com/",
+    "2. Создай проект 'SeekerMiner'",
+    "3. Добавь Android app с package: com.seekerminer.app",
+    "4. Скачай google-services.json",
+    "5. Замени этот файл на скачанный"
+  ],
+  "project_info": {
+    "project_number": "123456789",
+    "project_id": "seekerminer-temp",
+    "storage_bucket": "seekerminer-temp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789:android:abc123",
+        "android_client_info": {
+          "package_name": "com.seekerminer.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "TEMP_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

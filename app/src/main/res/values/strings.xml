@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SeekerMiner</string>
+    
+    <!-- Navigation -->
+    <string name="nav_mining">Mining</string>
+    <string name="nav_upgrade">Upgrade</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_leaderboard">Top</string>
+    <string name="nav_wallet">Wallet</string>
+    
+    <!-- Mining Screen -->
+    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_sleep_mode">Sleep Mode</string>
+    <string name="mining_block">Block #%d</string>
+    <string name="mining_reward">Reward: %d pts</string>
+    <string name="mining_difficulty">Difficulty: %.1f</string>
+    <string name="mining_online">Online: %,d</string>
+    <string name="mining_energy" formatted="false">Energy: %d/%d</string>
+    <string name="mining_start">START MINING</string>
+    <string name="mining_stop">STOP</string>
+    <string name="mining_rate">%.2f pts/s</string>
+    <string name="mining_uptime">%s uptime</string>
+    <string name="mining_storage" formatted="false">Storage: %dMB x%.1f</string>
+    
+    <!-- Notifications -->
+    <string name="notif_channel_mining">Mining</string>
+    <string name="notif_mining_title">⛏️ Mining SKR Points</string>
+    <string name="notif_mining_text" formatted="false">Earned: %d pts | Uptime: %s</string>
+    <string name="notif_human_check_title">🔔 Activity check</string>
+    <string name="notif_human_check_text">Tap to confirm</string>
+    
+    <!-- Upgrade Screen -->
+    <string name="upgrade_title">⚡ UPGRADES</string>
+    <string name="upgrade_turbo">Turbo x4</string>
+    <string name="upgrade_super">Super x10</string>
+    <string name="upgrade_storage">Storage x3</string>
+    <string name="upgrade_autocheck">Auto-check</string>
+    <string name="upgrade_cost">%d pts</string>
+    
+    <!-- Tasks Screen -->
+    <string name="tasks_daily">✅ DAILY</string>
+    <string name="tasks_special">🔥 SPECIAL</string>
+    <string name="tasks_invite">Invite a friend</string>
+    <string name="tasks_share">Share</string>
+    <string name="tasks_story">Watch stories</string>
+    
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">👑 TOP 100 MINERS</string>
+    <string name="leaderboard_global">GLOBAL</string>
+    <string name="leaderboard_total_points">Total in network: %,d pts</string>
+    <string name="leaderboard_total_blocks">Blocks found: %,d</string>
+    
+    <!-- Wallet -->
+    <string name="wallet_title">💰 YOUR BALANCE</string>
+    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_connect">🔗 Connect Seed Vault</string>
+    <string name="wallet_claim">⏳ Claim via %s</string>
+    
+    <!-- Privacy -->
+    <string name="privacy_title">Privacy Policy</string>
+    <string name="privacy_body">SeekerMiner collects data required for mining and reward tracking (wallet address, balance, session stats). This data may be sent to the server for balance and leaderboard sync. We do not share personal data with third parties for advertising. Using the app means you agree to this policy.</string>
+    <string name="privacy_policy_url"></string>
+    <string name="privacy_open_browser">Open in browser</string>
+    <string name="privacy_back">Back</string>
+    
+    <!-- Errors -->
+    <string name="error_not_seeker">❌ Solana Seeker only</string>
+    <string name="error_emulator">❌ Emulators not allowed</string>
+    <string name="error_rooted">❌ Root detected</string>
+    <string name="error_no_energy">⚠️ Not enough energy</string>
+</resources>

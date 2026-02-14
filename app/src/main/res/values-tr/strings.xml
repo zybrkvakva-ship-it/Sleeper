@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SeekerMiner</string>
+    
+    <!-- Navigation -->
+    <string name="nav_mining">Madencilik</string>
+    <string name="nav_upgrade">Yükseltme</string>
+    <string name="nav_tasks">Görevler</string>
+    <string name="nav_leaderboard">Sıralama</string>
+    <string name="nav_wallet">Cüzdan</string>
+    
+    <!-- Mining Screen -->
+    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_sleep_mode">Uyku modu</string>
+    <string name="mining_block">Blok #%d</string>
+    <string name="mining_reward">Ödül: %d puan</string>
+    <string name="mining_difficulty">Zorluk: %.1f</string>
+    <string name="mining_online">Çevrimiçi: %,d</string>
+    <string name="mining_energy" formatted="false">Enerji: %d/%d</string>
+    <string name="mining_start">MADENCİLİĞE BAŞLA</string>
+    <string name="mining_stop">DURDUR</string>
+    <string name="mining_rate">%.2f puan/sn</string>
+    <string name="mining_uptime">%s çalışma süresi</string>
+    <string name="mining_storage" formatted="false">Depolama: %dMB x%.1f</string>
+    
+    <!-- Notifications -->
+    <string name="notif_channel_mining">Madencilik</string>
+    <string name="notif_mining_title">⛏️ SKR Points madenciliği</string>
+    <string name="notif_mining_text" formatted="false">Kazanılan: %d puan | Süre: %s</string>
+    <string name="notif_human_check_title">🔔 Aktivite kontrolü</string>
+    <string name="notif_human_check_text">Onaylamak için dokun</string>
+    
+    <!-- Upgrade Screen -->
+    <string name="upgrade_title">⚡ YÜKSELTMELER</string>
+    <string name="upgrade_turbo">Turbo x4</string>
+    <string name="upgrade_super">Süper x10</string>
+    <string name="upgrade_storage">Depolama x3</string>
+    <string name="upgrade_autocheck">Otomatik kontrol</string>
+    <string name="upgrade_cost">%d puan</string>
+    
+    <!-- Tasks Screen -->
+    <string name="tasks_daily">✅ GÜNLÜK</string>
+    <string name="tasks_special">🔥 ÖZEL</string>
+    <string name="tasks_invite">Arkadaş davet et</string>
+    <string name="tasks_share">Paylaş</string>
+    <string name="tasks_story">Hikayeleri izle</string>
+    
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">👑 İLK 100 MADENCİ</string>
+    <string name="leaderboard_global">KÜRESEL</string>
+    <string name="leaderboard_total_points">Ağdaki toplam: %,d puan</string>
+    <string name="leaderboard_total_blocks">Bulunan blok: %,d</string>
+    
+    <!-- Wallet -->
+    <string name="wallet_title">💰 BAKİYENİZ</string>
+    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_connect">🔗 Seed Vault bağla</string>
+    <string name="wallet_claim">⏳ %s ile talep et</string>
+    
+    <!-- Privacy -->
+    <string name="privacy_title">Gizlilik politikası</string>
+    <string name="privacy_body">SeekerMiner, madencilik ve ödül takibi için veri toplar (cüzdan adresi, bakiye, oturum istatistikleri). Bu veriler bakiye ve sıralama senkronizasyonu için sunucuya gönderilebilir. Kişisel verileri reklam amaçlı üçüncü taraflarla paylaşmıyoruz. Uygulamayı kullanmak bu politikayı kabul etmektir.</string>
+    <string name="privacy_policy_url"></string>
+    <string name="privacy_open_browser">Tarayıcıda aç</string>
+    <string name="privacy_back">Geri</string>
+    
+    <!-- Errors -->
+    <string name="error_not_seeker">❌ Yalnızca Solana Seeker</string>
+    <string name="error_emulator">❌ Emülatörlere izin verilmez</string>
+    <string name="error_rooted">❌ Root tespit edildi</string>
+    <string name="error_no_energy">⚠️ Yetersiz enerji</string>
+</resources>

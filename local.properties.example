@@ -1,0 +1,14 @@
+# Copy to local.properties and fill in. local.properties is gitignored.
+# Android Studio will add sdk.dir automatically.
+#
+# Optional: mining backend API (for release/staging). Use /api/v1 base path.
+# API_BASE_URL=https://your-mining-api.example.com/api/v1
+#
+# Optional: SKR treasury wallet address for boost payments.
+# BOOST_TREASURY=YourTreasuryWalletAddress
+#
+# Release signing (for store / production). If unset, release uses debug keystore.
+# RELEASE_STORE_FILE=path/from/project/root/to/upload-keystore.jks
+# RELEASE_STORE_PASSWORD=***
+# RELEASE_KEY_ALIAS=upload
+# RELEASE_KEY_PASSWORD=***

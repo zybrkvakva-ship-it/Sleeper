@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SeekerMiner</string>
+    
+    <!-- Navigation -->
+    <string name="nav_mining">माइनिंग</string>
+    <string name="nav_upgrade">अपग्रेड</string>
+    <string name="nav_tasks">कार्य</string>
+    <string name="nav_leaderboard">टॉप</string>
+    <string name="nav_wallet">वॉलेट</string>
+    
+    <!-- Mining Screen -->
+    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_sleep_mode">स्लीप मोड</string>
+    <string name="mining_block">ब्लॉक #%d</string>
+    <string name="mining_reward">इनाम: %d pts</string>
+    <string name="mining_difficulty">कठिनाई: %.1f</string>
+    <string name="mining_online">ऑनलाइन: %,d</string>
+    <string name="mining_energy" formatted="false">ऊर्जा: %d/%d</string>
+    <string name="mining_start">माइनिंग शुरू करें</string>
+    <string name="mining_stop">रोकें</string>
+    <string name="mining_rate">%.2f pts/s</string>
+    <string name="mining_uptime">%s अपटाइम</string>
+    <string name="mining_storage" formatted="false">स्टोरेज: %dMB x%.1f</string>
+    
+    <!-- Notifications -->
+    <string name="notif_channel_mining">माइनिंग</string>
+    <string name="notif_mining_title">⛏️ SKR Points माइन कर रहे हैं</string>
+    <string name="notif_mining_text" formatted="false">कमाए: %d pts | अपटाइम: %s</string>
+    <string name="notif_human_check_title">🔔 एक्टिविटी चेक</string>
+    <string name="notif_human_check_text">पुष्टि के लिए टैप करें</string>
+    
+    <!-- Upgrade Screen -->
+    <string name="upgrade_title">⚡ अपग्रेड</string>
+    <string name="upgrade_turbo">टर्बो x4</string>
+    <string name="upgrade_super">सुपर x10</string>
+    <string name="upgrade_storage">स्टोरेज x3</string>
+    <string name="upgrade_autocheck">ऑटो-चेक</string>
+    <string name="upgrade_cost">%d pts</string>
+    
+    <!-- Tasks Screen -->
+    <string name="tasks_daily">✅ दैनिक</string>
+    <string name="tasks_special">🔥 विशेष</string>
+    <string name="tasks_invite">दोस्त को आमंत्रित करें</string>
+    <string name="tasks_share">शेयर करें</string>
+    <string name="tasks_story">स्टोरी देखें</string>
+    
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">👑 टॉप 100 माइनर</string>
+    <string name="leaderboard_global">ग्लोबल</string>
+    <string name="leaderboard_total_points">नेटवर्क में कुल: %,d pts</string>
+    <string name="leaderboard_total_blocks">मिले ब्लॉक: %,d</string>
+    
+    <!-- Wallet -->
+    <string name="wallet_title">💰 आपका बैलेंस</string>
+    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_connect">🔗 Seed Vault कनेक्ट करें</string>
+    <string name="wallet_claim">⏳ %s के ज़रिए क्लेम करें</string>
+    
+    <!-- Privacy -->
+    <string name="privacy_title">गोपनीयता नीति</string>
+    <string name="privacy_body">SeekerMiner माइनिंग और इनाम ट्रैकिंग के लिए डेटा एकत्र करता है (वॉलेट पता, बैलेंस, सत्र आंकड़े)। यह डेटा बैलेंस और लीडरबोर्ड सिंक के लिए सर्वर पर भेजा जा सकता है। हम विज्ञापन के लिए तीसरे पक्ष को व्यक्तिगत डेटा नहीं देते। ऐप इस्तेमाल करने का मतलब इस नीति से सहमति है।</string>
+    <string name="privacy_policy_url"></string>
+    <string name="privacy_open_browser">ब्राउज़र में खोलें</string>
+    <string name="privacy_back">वापस</string>
+    
+    <!-- Errors -->
+    <string name="error_not_seeker">❌ केवल Solana Seeker</string>
+    <string name="error_emulator">❌ एमुलेटर की अनुमति नहीं</string>
+    <string name="error_rooted">❌ Root पाया गया</string>
+    <string name="error_no_energy">⚠️ ऊर्जा कम है</string>
+</resources>

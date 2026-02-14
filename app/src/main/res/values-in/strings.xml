@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SeekerMiner</string>
+    
+    <!-- Navigation -->
+    <string name="nav_mining">Mining</string>
+    <string name="nav_upgrade">Upgrade</string>
+    <string name="nav_tasks">Tugas</string>
+    <string name="nav_leaderboard">Peringkat</string>
+    <string name="nav_wallet">Dompet</string>
+    
+    <!-- Mining Screen -->
+    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_sleep_mode">Mode tidur</string>
+    <string name="mining_block">Blok #%d</string>
+    <string name="mining_reward">Hadiah: %d pts</string>
+    <string name="mining_difficulty">Kesulitan: %.1f</string>
+    <string name="mining_online">Daring: %,d</string>
+    <string name="mining_energy" formatted="false">Energi: %d/%d</string>
+    <string name="mining_start">MULAI MINING</string>
+    <string name="mining_stop">BERHENTI</string>
+    <string name="mining_rate">%.2f pts/dtk</string>
+    <string name="mining_uptime">%s uptime</string>
+    <string name="mining_storage" formatted="false">Penyimpanan: %dMB x%.1f</string>
+    
+    <!-- Notifications -->
+    <string name="notif_channel_mining">Mining</string>
+    <string name="notif_mining_title">⛏️ Mining SKR Points</string>
+    <string name="notif_mining_text" formatted="false">Dapat: %d pts | Uptime: %s</string>
+    <string name="notif_human_check_title">🔔 Cek aktivitas</string>
+    <string name="notif_human_check_text">Ketuk untuk konfirmasi</string>
+    
+    <!-- Upgrade Screen -->
+    <string name="upgrade_title">⚡ UPGRADE</string>
+    <string name="upgrade_turbo">Turbo x4</string>
+    <string name="upgrade_super">Super x10</string>
+    <string name="upgrade_storage">Penyimpanan x3</string>
+    <string name="upgrade_autocheck">Cek otomatis</string>
+    <string name="upgrade_cost">%d pts</string>
+    
+    <!-- Tasks Screen -->
+    <string name="tasks_daily">✅ HARIAN</string>
+    <string name="tasks_special">🔥 KHUSUS</string>
+    <string name="tasks_invite">Ajak teman</string>
+    <string name="tasks_share">Bagikan</string>
+    <string name="tasks_story">Tonton cerita</string>
+    
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">👑 TOP 100 PENAMBANG</string>
+    <string name="leaderboard_global">GLOBAL</string>
+    <string name="leaderboard_total_points">Total di jaringan: %,d pts</string>
+    <string name="leaderboard_total_blocks">Blok ditemukan: %,d</string>
+    
+    <!-- Wallet -->
+    <string name="wallet_title">💰 SALDO ANDA</string>
+    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_connect">🔗 Hubungkan Seed Vault</string>
+    <string name="wallet_claim">⏳ Klaim via %s</string>
+    
+    <!-- Privacy -->
+    <string name="privacy_title">Kebijakan privasi</string>
+    <string name="privacy_body">SeekerMiner mengumpulkan data yang diperlukan untuk mining dan pelacakan hadiah (alamat dompet, saldo, statistik sesi). Data ini dapat dikirim ke server untuk sinkronisasi saldo dan papan peringkat. Kami tidak membagikan data pribadi ke pihak ketiga untuk iklan. Penggunaan aplikasi berarti setuju dengan kebijakan ini.</string>
+    <string name="privacy_policy_url"></string>
+    <string name="privacy_open_browser">Buka di browser</string>
+    <string name="privacy_back">Kembali</string>
+    
+    <!-- Errors -->
+    <string name="error_not_seeker">❌ Hanya Solana Seeker</string>
+    <string name="error_emulator">❌ Emulator tidak diizinkan</string>
+    <string name="error_rooted">❌ Root terdeteksi</string>
+    <string name="error_no_energy">⚠️ Energi tidak cukup</string>
+</resources>

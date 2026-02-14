@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SeekerMiner</string>
+    
+    <!-- Navigation -->
+    <string name="nav_mining">التعدين</string>
+    <string name="nav_upgrade">الترقية</string>
+    <string name="nav_tasks">المهام</string>
+    <string name="nav_leaderboard">الأعلى</string>
+    <string name="nav_wallet">المحفظة</string>
+    
+    <!-- Mining Screen -->
+    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_sleep_mode">وضع السكون</string>
+    <string name="mining_block">كتلة #%d</string>
+    <string name="mining_reward">المكافأة: %d نقطة</string>
+    <string name="mining_difficulty">الصعوبة: %.1f</string>
+    <string name="mining_online">متصل: %,d</string>
+    <string name="mining_energy" formatted="false">الطاقة: %d/%d</string>
+    <string name="mining_start">بدء التعدين</string>
+    <string name="mining_stop">إيقاف</string>
+    <string name="mining_rate">%.2f نقطة/ث</string>
+    <string name="mining_uptime">%s وقت التشغيل</string>
+    <string name="mining_storage" formatted="false">التخزين: %d ميجا x%.1f</string>
+    
+    <!-- Notifications -->
+    <string name="notif_channel_mining">التعدين</string>
+    <string name="notif_mining_title">⛏️ تعدين SKR Points</string>
+    <string name="notif_mining_text" formatted="false">مكتسب: %d نقطة | التشغيل: %s</string>
+    <string name="notif_human_check_title">🔔 التحقق من النشاط</string>
+    <string name="notif_human_check_text">اضغط للتأكيد</string>
+    
+    <!-- Upgrade Screen -->
+    <string name="upgrade_title">⚡ الترقيات</string>
+    <string name="upgrade_turbo">توربو x4</string>
+    <string name="upgrade_super">سوبر x10</string>
+    <string name="upgrade_storage">التخزين x3</string>
+    <string name="upgrade_autocheck">التحقق التلقائي</string>
+    <string name="upgrade_cost">%d نقطة</string>
+    
+    <!-- Tasks Screen -->
+    <string name="tasks_daily">✅ يومية</string>
+    <string name="tasks_special">🔥 خاصة</string>
+    <string name="tasks_invite">ادعُ صديقاً</string>
+    <string name="tasks_share">مشاركة</string>
+    <string name="tasks_story">مشاهدة القصص</string>
+    
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">👑 أفضل 100 معدّن</string>
+    <string name="leaderboard_global">عالمي</string>
+    <string name="leaderboard_total_points">المجموع في الشبكة: %,d نقطة</string>
+    <string name="leaderboard_total_blocks">الكتل المكتشفة: %,d</string>
+    
+    <!-- Wallet -->
+    <string name="wallet_title">💰 رصيدك</string>
+    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_connect">🔗 ربط Seed Vault</string>
+    <string name="wallet_claim">⏳ المطالبة عبر %s</string>
+    
+    <!-- Privacy -->
+    <string name="privacy_title">سياسة الخصوصية</string>
+    <string name="privacy_body">يجمع SeekerMiner البيانات اللازمة للتعدين وتتبع المكافآت (عنوان المحفظة، الرصيد، إحصائيات الجلسة). قد تُرسل هذه البيانات إلى الخادم لمزامنة الرصيد والتصنيف. لا نشارك البيانات الشخصية مع أطراف ثالثة للإعلان. استخدام التطبيق يعني الموافقة على هذه السياسة.</string>
+    <string name="privacy_policy_url"></string>
+    <string name="privacy_open_browser">فتح في المتصفح</string>
+    <string name="privacy_back">رجوع</string>
+    
+    <!-- Errors -->
+    <string name="error_not_seeker">❌ Solana Seeker فقط</string>
+    <string name="error_emulator">❌ المحاكيات غير مسموحة</string>
+    <string name="error_rooted">❌ تم اكتشاف Root</string>
+    <string name="error_no_energy">⚠️ طاقة غير كافية</string>
+</resources>
