@@ -40,7 +40,7 @@ fun TopBar(
             leftContent()
         } else {
             Text(
-                text = "Seeker ",
+                text = "Sleeper ",
                 style = MaterialTheme.typography.labelMedium,
                 fontSize = 14.sp,
                 color = textMuted

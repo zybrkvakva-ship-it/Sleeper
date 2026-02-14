@@ -69,7 +69,7 @@ fun WalletScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "SKR POINTS",
+                    text = "Sleep Points",
                     fontSize = 18.sp,
                     color = com.sleeper.app.ui.theme.CyberGray
                 )

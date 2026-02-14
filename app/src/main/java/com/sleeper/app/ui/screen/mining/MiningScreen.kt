@@ -572,7 +572,7 @@ fun MiningScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "SKR POINTS",
+                        text = "Sleep Points",
                         fontSize = 8.sp,
                         color = CyberGray,
                         fontWeight = FontWeight.SemiBold
