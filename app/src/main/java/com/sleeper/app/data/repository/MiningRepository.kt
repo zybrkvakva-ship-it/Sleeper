@@ -6,8 +6,6 @@ import com.sleeper.app.data.local.PendingSessionEntity
 import com.sleeper.app.data.local.SkrBoostCatalog
 import com.sleeper.app.data.local.TaskEntity
 import com.sleeper.app.data.local.TaskType
-import com.sleeper.app.data.local.UpgradeEntity
-import com.sleeper.app.data.local.UpgradeType
 import com.sleeper.app.data.local.UserStatsEntity
 import com.sleeper.app.data.network.MiningBackendApi
 import kotlinx.coroutines.delay
@@ -20,7 +18,6 @@ class MiningRepository(private val database: AppDatabase) {
     }
 
     val userStats: Flow<UserStatsEntity?> = database.userStatsDao().getUserStatsFlow()
-    val upgrades: Flow<List<UpgradeEntity>> = database.upgradeDao().getAllUpgradesFlow()
     val tasks: Flow<List<TaskEntity>> = database.taskDao().getAllTasksFlow()
     
     suspend fun initializeDefaultData() {
@@ -29,43 +26,6 @@ class MiningRepository(private val database: AppDatabase) {
         if (existingStats == null) {
             // Создаём начальную статистику
             database.userStatsDao().insert(UserStatsEntity())
-            
-            // Создаём апгрейды
-            val defaultUpgrades = listOf(
-                UpgradeEntity(
-                    id = "turbo_x4",
-                    name = "Турбо x4",
-                    description = "Ускоряет фарм в 4 раза",
-                    cost = 500,
-                    multiplier = 4.0,
-                    type = UpgradeType.SPEED
-                ),
-                UpgradeEntity(
-                    id = "super_x10",
-                    name = "Супер x10",
-                    description = "Ускоряет фарм в 10 раз",
-                    cost = 2000,
-                    multiplier = 10.0,
-                    type = UpgradeType.SPEED
-                ),
-                UpgradeEntity(
-                    id = "storage_x3",
-                    name = "Storage x3",
-                    description = "Увеличивает storage до 300MB",
-                    cost = 1000,
-                    multiplier = 3.0,
-                    type = UpgradeType.STORAGE
-                ),
-                UpgradeEntity(
-                    id = "auto_check",
-                    name = "Auto-check",
-                    description = "Автоматические human checks",
-                    cost = 1000,
-                    multiplier = 1.0,
-                    type = UpgradeType.AUTO
-                )
-            )
-            database.upgradeDao().insertAll(defaultUpgrades)
             
             // Создаём задания
             val defaultTasks = listOf(
@@ -96,46 +56,6 @@ class MiningRepository(private val database: AppDatabase) {
             )
             database.taskDao().insertAll(defaultTasks)
         }
-    }
-    
-    suspend fun purchaseUpgrade(upgradeId: String): Boolean {
-        DevLog.d(TAG, "purchaseUpgrade ENTRY upgradeId=$upgradeId")
-        val stats = database.userStatsDao().getUserStats() ?: run {
-            DevLog.w(TAG, "purchaseUpgrade no UserStats")
-            return false
-        }
-        val upgrade = database.upgradeDao().getUpgrade(upgradeId) ?: run {
-            DevLog.w(TAG, "purchaseUpgrade upgrade not found: $upgradeId")
-            return false
-        }
-        if (upgrade.isPurchased || stats.pointsBalance < upgrade.cost) {
-            DevLog.w(TAG, "purchaseUpgrade SKIP: isPurchased=${upgrade.isPurchased} balance=${stats.pointsBalance} cost=${upgrade.cost}")
-            return false
-        }
-        
-        // Списываем поинты
-        database.userStatsDao().update(
-            stats.copy(pointsBalance = stats.pointsBalance - upgrade.cost)
-        )
-        
-        // Применяем апгрейд
-        when (upgrade.type) {
-            UpgradeType.STORAGE -> {
-                database.userStatsDao().update(
-                    stats.copy(
-                        storageMB = (stats.storageMB * upgrade.multiplier).toInt(),
-                        storageMultiplier = upgrade.multiplier
-                    )
-                )
-            }
-            else -> {
-                // Для SPEED и AUTO просто помечаем купленным
-            }
-        }
-        
-        database.upgradeDao().markPurchased(upgradeId)
-        DevLog.i(TAG, "purchaseUpgrade SUCCESS upgradeId=$upgradeId newBalance=${stats.pointsBalance - upgrade.cost}")
-        return true
     }
     
     suspend fun completeTask(taskId: String): Boolean {
@@ -212,7 +132,6 @@ class MiningRepository(private val database: AppDatabase) {
         DevLog.d(TAG, "syncStake EXIT updated DB stakedSkrRaw=$stakedSkrRaw stakedSkrHuman=$stakedSkrHuman")
     }
 
-    suspend fun getUpgrade(id: String) = database.upgradeDao().getUpgrade(id)
     suspend fun getUserStats() = database.userStatsDao().getUserStats()
 
     // ---------- Очередь сессий и бэкенд (Фаза 4.3) ----------

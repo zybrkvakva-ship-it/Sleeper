@@ -30,13 +30,8 @@
     <string name="notif_human_check_title">🔔 Aktivite kontrolü</string>
     <string name="notif_human_check_text">Onaylamak için dokun</string>
     
-    <!-- Upgrade Screen -->
+    <!-- Upgrade Screen (только бусты за SKR) -->
     <string name="upgrade_title">⚡ YÜKSELTMELER</string>
-    <string name="upgrade_turbo">Turbo x4</string>
-    <string name="upgrade_super">Süper x10</string>
-    <string name="upgrade_storage">Depolama x3</string>
-    <string name="upgrade_autocheck">Otomatik kontrol</string>
-    <string name="upgrade_cost">%d puan</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ GÜNLÜK</string>

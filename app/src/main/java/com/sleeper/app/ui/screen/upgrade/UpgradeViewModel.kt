@@ -7,12 +7,9 @@ import com.sleeper.app.BuildConfig
 import com.sleeper.app.data.local.AppDatabase
 import com.sleeper.app.data.local.SkrBoostCatalog
 import com.sleeper.app.data.local.SkrBoostItem
-import com.sleeper.app.data.local.UpgradeEntity
-import com.sleeper.app.data.local.UpgradeType
 import com.sleeper.app.data.network.SolanaCluster
 import com.sleeper.app.data.network.SolanaRpcClient
 import com.sleeper.app.data.repository.MiningRepository
-import com.sleeper.app.domain.manager.StorageManager
 import com.sleeper.app.domain.manager.WalletManager
 import com.sleeper.app.domain.manager.SplTransferResult
 import com.sleeper.app.utils.DevLog
@@ -31,12 +28,8 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private val repository = MiningRepository(AppDatabase.getInstance(application))
-    private val storageManager = StorageManager(application)
     private val walletManager = WalletManager(application)
     private val rpcClient = SolanaRpcClient(SolanaCluster.MAINNET_HELIUS)
-    
-    val upgrades: StateFlow<List<UpgradeEntity>> = repository.upgrades
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     
     val userStats = repository.userStats
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
@@ -62,18 +55,6 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
             val raw = rpcClient.getAvailableSkrForPurchase(wallet)
             _availableSkrRaw.value = raw
             DevLog.d(TAG, "refreshAvailableSkr wallet=${DevLog.mask(wallet)} availableRaw=$raw")
-        }
-    }
-    
-    fun purchaseUpgrade(upgradeId: String) {
-        viewModelScope.launch {
-            val upgrade = repository.getUpgrade(upgradeId) ?: return@launch
-            val stats = repository.getUserStats() ?: return@launch
-            if (upgrade.type == UpgradeType.STORAGE) {
-                val newPlots = maxOf(1, (stats.storageMB * upgrade.multiplier / 100).toInt())
-                storageManager.allocateStorage(newPlots)
-            }
-            repository.purchaseUpgrade(upgradeId)
         }
     }
     

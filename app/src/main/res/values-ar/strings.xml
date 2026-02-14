@@ -30,13 +30,8 @@
     <string name="notif_human_check_title">🔔 التحقق من النشاط</string>
     <string name="notif_human_check_text">اضغط للتأكيد</string>
     
-    <!-- Upgrade Screen -->
+    <!-- Upgrade Screen (только бусты за SKR) -->
     <string name="upgrade_title">⚡ الترقيات</string>
-    <string name="upgrade_turbo">توربو x4</string>
-    <string name="upgrade_super">سوبر x10</string>
-    <string name="upgrade_storage">التخزين x3</string>
-    <string name="upgrade_autocheck">التحقق التلقائي</string>
-    <string name="upgrade_cost">%d نقطة</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ يومية</string>

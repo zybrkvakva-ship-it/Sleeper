@@ -30,13 +30,8 @@
     <string name="notif_human_check_title">🔔 एक्टिविटी चेक</string>
     <string name="notif_human_check_text">पुष्टि के लिए टैप करें</string>
     
-    <!-- Upgrade Screen -->
+    <!-- Upgrade Screen (только бусты за SKR) -->
     <string name="upgrade_title">⚡ अपग्रेड</string>
-    <string name="upgrade_turbo">टर्बो x4</string>
-    <string name="upgrade_super">सुपर x10</string>
-    <string name="upgrade_storage">स्टोरेज x3</string>
-    <string name="upgrade_autocheck">ऑटो-चेक</string>
-    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ दैनिक</string>

@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sleeper.app.LocalActivityResultSender
 import com.sleeper.app.data.local.SkrBoostItem
-import com.sleeper.app.data.local.UpgradeEntity
 import com.sleeper.app.ui.components.CyberCard
 import com.sleeper.app.ui.components.EnergyBar
 import com.sleeper.app.ui.theme.*
@@ -28,7 +27,6 @@ import com.sleeper.app.ui.theme.*
 fun UpgradeScreen(
     viewModel: UpgradeViewModel = viewModel()
 ) {
-    val upgrades by viewModel.upgrades.collectAsState()
     val userStats by viewModel.userStats.collectAsState()
     val availableSkrRaw by viewModel.availableSkrRaw.collectAsState()
     val purchaseMessage by viewModel.purchaseMessage.collectAsState()
@@ -76,18 +74,6 @@ fun UpgradeScreen(
                     )
                 }
             }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Upgrades list (за поинты)
-        upgrades.forEach { upgrade ->
-            UpgradeCard(
-                upgrade = upgrade,
-                canAfford = userStats?.pointsBalance ?: 0 >= upgrade.cost,
-                onPurchase = { viewModel.purchaseUpgrade(upgrade.id) }
-            )
-            Spacer(modifier = Modifier.height(12.dp))
         }
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -190,60 +176,6 @@ fun UpgradeScreen(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UpgradeCard(
-    upgrade: UpgradeEntity,
-    canAfford: Boolean,
-    onPurchase: () -> Unit
-) {
-    com.sleeper.app.ui.components.CyberCard(
-        modifier = Modifier.fillMaxWidth(),
-        strokeColor = if (upgrade.isPurchased) com.sleeper.app.ui.theme.CyberGreen else com.sleeper.app.ui.theme.Stroke,
-        cornerRadius = 12.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = upgrade.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (upgrade.isPurchased) com.sleeper.app.ui.theme.CyberGray else com.sleeper.app.ui.theme.CyberWhite
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = upgrade.description,
-                    fontSize = 14.sp,
-                    color = com.sleeper.app.ui.theme.CyberGray
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Button(
-                onClick = onPurchase,
-                enabled = !upgrade.isPurchased && canAfford,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = com.sleeper.app.ui.theme.CyberGreen,
-                    contentColor = com.sleeper.app.ui.theme.BgMain,
-                    disabledContainerColor = com.sleeper.app.ui.theme.CyberGray,
-                    disabledContentColor = com.sleeper.app.ui.theme.BgMain
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = if (upgrade.isPurchased) "✓" else "${upgrade.cost} pts",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
     }

@@ -30,13 +30,8 @@
     <string name="notif_human_check_title">🔔 Comprobación de actividad</string>
     <string name="notif_human_check_text">Toca para confirmar</string>
     
-    <!-- Upgrade Screen -->
+    <!-- Upgrade Screen (только бусты за SKR) -->
     <string name="upgrade_title">⚡ MEJORAS</string>
-    <string name="upgrade_turbo">Turbo x4</string>
-    <string name="upgrade_super">Súper x10</string>
-    <string name="upgrade_storage">Almacenamiento x3</string>
-    <string name="upgrade_autocheck">Auto-comprobar</string>
-    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ DIARIAS</string>

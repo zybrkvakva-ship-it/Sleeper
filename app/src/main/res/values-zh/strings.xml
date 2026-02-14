@@ -30,13 +30,8 @@
     <string name="notif_human_check_title">🔔 活跃度检查</string>
     <string name="notif_human_check_text">点击确认</string>
     
-    <!-- Upgrade Screen -->
+    <!-- Upgrade Screen (только бусты за SKR) -->
     <string name="upgrade_title">⚡ 升级</string>
-    <string name="upgrade_turbo">涡轮 x4</string>
-    <string name="upgrade_super">超级 x10</string>
-    <string name="upgrade_storage">存储 x3</string>
-    <string name="upgrade_autocheck">自动检查</string>
-    <string name="upgrade_cost">%d Sleep pts</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ 每日</string>

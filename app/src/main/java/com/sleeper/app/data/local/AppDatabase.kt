@@ -6,22 +6,19 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.sleeper.app.data.local.dao.PendingSessionDao
 import com.sleeper.app.data.local.dao.TaskDao
-import com.sleeper.app.data.local.dao.UpgradeDao
 import com.sleeper.app.data.local.dao.UserStatsDao
 
 @Database(
     entities = [
         UserStatsEntity::class,
-        UpgradeEntity::class,
         TaskEntity::class,
         PendingSessionEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userStatsDao(): UserStatsDao
-    abstract fun upgradeDao(): UpgradeDao
     abstract fun taskDao(): TaskDao
     abstract fun pendingSessionDao(): PendingSessionDao
     
