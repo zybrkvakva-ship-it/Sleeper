@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SeekerMiner</string>
+    <string name="app_name">Sleeper</string>
     
     <!-- Navigation -->
     <string name="nav_mining">Mining</string>
@@ -10,7 +10,7 @@
     <string name="nav_wallet">Wallet</string>
     
     <!-- Mining Screen -->
-    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">Sleep Mode</string>
     <string name="mining_block">Block #%d</string>
     <string name="mining_reward">Reward: %d pts</string>
@@ -25,7 +25,7 @@
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Mining</string>
-    <string name="notif_mining_title">⛏️ Mining SKR Points</string>
+    <string name="notif_mining_title">⛏️ Mining Sleep Points</string>
     <string name="notif_mining_text" formatted="false">Earned: %d pts | Uptime: %s</string>
     <string name="notif_human_check_title">🔔 Activity check</string>
     <string name="notif_human_check_text">Tap to confirm</string>
@@ -53,13 +53,13 @@
     
     <!-- Wallet -->
     <string name="wallet_title">💰 YOUR BALANCE</string>
-    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_points">Sleep Points: %,d</string>
     <string name="wallet_connect">🔗 Connect Seed Vault</string>
     <string name="wallet_claim">⏳ Claim via %s</string>
     
     <!-- Privacy -->
     <string name="privacy_title">Privacy Policy</string>
-    <string name="privacy_body">SeekerMiner collects data required for mining and reward tracking (wallet address, balance, session stats). This data may be sent to the server for balance and leaderboard sync. We do not share personal data with third parties for advertising. Using the app means you agree to this policy.</string>
+    <string name="privacy_body">Sleeper collects data required for mining and reward tracking (wallet address, balance, session stats). This data may be sent to the server for balance and leaderboard sync. We do not share personal data with third parties for advertising. Using the app means you agree to this policy.</string>
     <string name="privacy_policy_url"></string>
     <string name="privacy_open_browser">Open in browser</string>
     <string name="privacy_back">Back</string>

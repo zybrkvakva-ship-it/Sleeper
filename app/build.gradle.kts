@@ -22,7 +22,7 @@ fun prop(key: String): String {
 fun propQuoted(key: String): String = prop(key).let { v -> if (v.isEmpty()) "\"\"" else "\"$v\"" }
 
 android {
-    namespace = "com.seekerminer.app"
+    namespace = "com.sleeper.app"
     compileSdk = 34
 
     signingConfigs {
@@ -44,7 +44,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.seekerminer.app"
+        applicationId = "com.sleeper.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

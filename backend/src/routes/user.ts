@@ -47,7 +47,7 @@ router.post('/register', async (req, res, next) => {
 
 /**
  * GET /api/v1/user/balance?wallet=...
- * Get user points balance (SeekerMiner). Returns 0 if user not found.
+ * Get user points balance (Sleeper). Returns 0 if user not found.
  * Contract: API_MINING_CONTRACT.md
  */
 router.get('/balance', async (req, res, next) => {

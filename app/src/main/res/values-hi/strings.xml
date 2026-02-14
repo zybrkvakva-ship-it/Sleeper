@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SeekerMiner</string>
+    <string name="app_name">Sleeper</string>
     
     <!-- Navigation -->
     <string name="nav_mining">माइनिंग</string>
@@ -10,7 +10,7 @@
     <string name="nav_wallet">वॉलेट</string>
     
     <!-- Mining Screen -->
-    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">स्लीप मोड</string>
     <string name="mining_block">ब्लॉक #%d</string>
     <string name="mining_reward">इनाम: %d pts</string>
@@ -25,7 +25,7 @@
     
     <!-- Notifications -->
     <string name="notif_channel_mining">माइनिंग</string>
-    <string name="notif_mining_title">⛏️ SKR Points माइन कर रहे हैं</string>
+    <string name="notif_mining_title">⛏️ Sleep Points माइन कर रहे हैं</string>
     <string name="notif_mining_text" formatted="false">कमाए: %d pts | अपटाइम: %s</string>
     <string name="notif_human_check_title">🔔 एक्टिविटी चेक</string>
     <string name="notif_human_check_text">पुष्टि के लिए टैप करें</string>
@@ -53,13 +53,13 @@
     
     <!-- Wallet -->
     <string name="wallet_title">💰 आपका बैलेंस</string>
-    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_points">Sleep Points: %,d</string>
     <string name="wallet_connect">🔗 Seed Vault कनेक्ट करें</string>
     <string name="wallet_claim">⏳ %s के ज़रिए क्लेम करें</string>
     
     <!-- Privacy -->
     <string name="privacy_title">गोपनीयता नीति</string>
-    <string name="privacy_body">SeekerMiner माइनिंग और इनाम ट्रैकिंग के लिए डेटा एकत्र करता है (वॉलेट पता, बैलेंस, सत्र आंकड़े)। यह डेटा बैलेंस और लीडरबोर्ड सिंक के लिए सर्वर पर भेजा जा सकता है। हम विज्ञापन के लिए तीसरे पक्ष को व्यक्तिगत डेटा नहीं देते। ऐप इस्तेमाल करने का मतलब इस नीति से सहमति है।</string>
+    <string name="privacy_body">Sleeper माइनिंग और इनाम ट्रैकिंग के लिए डेटा एकत्र करता है (वॉलेट पता, बैलेंस, सत्र आंकड़े)। यह डेटा बैलेंस और लीडरबोर्ड सिंक के लिए सर्वर पर भेजा जा सकता है। हम विज्ञापन के लिए तीसरे पक्ष को व्यक्तिगत डेटा नहीं देते। ऐप इस्तेमाल करने का मतलब इस नीति से सहमति है।</string>
     <string name="privacy_policy_url"></string>
     <string name="privacy_open_browser">ब्राउज़र में खोलें</string>
     <string name="privacy_back">वापस</string>

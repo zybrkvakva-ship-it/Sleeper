@@ -6,7 +6,7 @@ const router = Router();
 /**
  * GET /api/v1/leaderboard
  * Get global leaderboard. Contract format (API_MINING_CONTRACT): top, user_rank, user_blocks, total_points, total_blocks.
- * Uses points_balance (SeekerMiner) for ranking; falls back to leaderboard view if no points_balance column.
+ * Uses points_balance (Sleeper) for ranking; falls back to leaderboard view if no points_balance column.
  */
 router.get('/', async (req, res, next) => {
   try {

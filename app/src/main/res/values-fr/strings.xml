@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SeekerMiner</string>
+    <string name="app_name">Sleeper</string>
     
     <!-- Navigation -->
     <string name="nav_mining">Mining</string>
@@ -10,7 +10,7 @@
     <string name="nav_wallet">Portefeuille</string>
     
     <!-- Mining Screen -->
-    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">Mode veille</string>
     <string name="mining_block">Bloc #%d</string>
     <string name="mining_reward">Récompense : %d pts</string>
@@ -25,7 +25,7 @@
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Mining</string>
-    <string name="notif_mining_title">⛏️ Mining SKR Points</string>
+    <string name="notif_mining_title">⛏️ Mining Sleep Points</string>
     <string name="notif_mining_text" formatted="false">Gagnés : %d pts | Uptime : %s</string>
     <string name="notif_human_check_title">🔔 Vérification d’activité</string>
     <string name="notif_human_check_text">Appuyez pour confirmer</string>
@@ -53,13 +53,13 @@
     
     <!-- Wallet -->
     <string name="wallet_title">💰 VOTRE SOLDE</string>
-    <string name="wallet_points">SKR Points : %,d</string>
+    <string name="wallet_points">Sleep Points : %,d</string>
     <string name="wallet_connect">🔗 Connecter Seed Vault</string>
     <string name="wallet_claim">⏳ Réclamer via %s</string>
     
     <!-- Privacy -->
     <string name="privacy_title">Politique de confidentialité</string>
-    <string name="privacy_body">SeekerMiner collecte les données nécessaires au mining et au suivi des récompenses (adresse du portefeuille, solde, statistiques de session). Ces données peuvent être envoyées au serveur pour synchroniser le solde et le classement. Nous ne partageons pas les données personnelles avec des tiers à des fins publicitaires. L’utilisation de l’app signifie l’acceptation de cette politique.</string>
+    <string name="privacy_body">Sleeper collecte les données nécessaires au mining et au suivi des récompenses (adresse du portefeuille, solde, statistiques de session). Ces données peuvent être envoyées au serveur pour synchroniser le solde et le classement. Nous ne partageons pas les données personnelles avec des tiers à des fins publicitaires. L’utilisation de l’app signifie l’acceptation de cette politique.</string>
     <string name="privacy_policy_url"></string>
     <string name="privacy_open_browser">Ouvrir dans le navigateur</string>
     <string name="privacy_back">Retour</string>

@@ -7,7 +7,7 @@ const router = Router();
 
 /**
  * POST /api/v1/mining/session
- * Register a mining session (SeekerMiner app). Creates user if not exists.
+ * Register a mining session (Sleeper app). Creates user if not exists.
  * Contract: API_MINING_CONTRACT.md
  */
 router.post('/session', async (req, res, next) => {

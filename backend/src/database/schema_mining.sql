@@ -1,4 +1,4 @@
--- SeekerMiner: mining sessions and points balance (API_MINING_CONTRACT)
+-- Sleeper: mining sessions and points balance (API_MINING_CONTRACT)
 -- Run after schema.sql (e.g. in migrate.ts).
 
 -- Add mining points to users (idempotent)

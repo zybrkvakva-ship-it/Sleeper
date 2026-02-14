@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SeekerMiner</string>
+    <string name="app_name">Sleeper</string>
     
     <!-- Navigation -->
     <string name="nav_mining">Minería</string>
@@ -10,7 +10,7 @@
     <string name="nav_wallet">Monedero</string>
     
     <!-- Mining Screen -->
-    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">Modo reposo</string>
     <string name="mining_block">Bloque #%d</string>
     <string name="mining_reward">Recompensa: %d pts</string>
@@ -25,7 +25,7 @@
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Minería</string>
-    <string name="notif_mining_title">⛏️ Minando SKR Points</string>
+    <string name="notif_mining_title">⛏️ Minando Sleep Points</string>
     <string name="notif_mining_text" formatted="false">Ganados: %d pts | Tiempo: %s</string>
     <string name="notif_human_check_title">🔔 Comprobación de actividad</string>
     <string name="notif_human_check_text">Toca para confirmar</string>
@@ -53,13 +53,13 @@
     
     <!-- Wallet -->
     <string name="wallet_title">💰 TU SALDO</string>
-    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_points">Sleep Points: %,d</string>
     <string name="wallet_connect">🔗 Conectar Seed Vault</string>
     <string name="wallet_claim">⏳ Reclamar vía %s</string>
     
     <!-- Privacy -->
     <string name="privacy_title">Política de privacidad</string>
-    <string name="privacy_body">SeekerMiner recopila datos necesarios para la minería y el registro de recompensas (dirección de monedero, saldo, estadísticas de sesión). Estos datos pueden enviarse al servidor para sincronizar saldo y clasificación. No compartimos datos personales con terceros con fines publicitarios. El uso de la app implica aceptar esta política.</string>
+    <string name="privacy_body">Sleeper recopila datos necesarios para la minería y el registro de recompensas (dirección de monedero, saldo, estadísticas de sesión). Estos datos pueden enviarse al servidor para sincronizar saldo y clasificación. No compartimos datos personales con terceros con fines publicitarios. El uso de la app implica aceptar esta política.</string>
     <string name="privacy_policy_url"></string>
     <string name="privacy_open_browser">Abrir en el navegador</string>
     <string name="privacy_back">Atrás</string>

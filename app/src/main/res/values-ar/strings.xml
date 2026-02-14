@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SeekerMiner</string>
+    <string name="app_name">Sleeper</string>
     
     <!-- Navigation -->
     <string name="nav_mining">التعدين</string>
@@ -10,7 +10,7 @@
     <string name="nav_wallet">المحفظة</string>
     
     <!-- Mining Screen -->
-    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">وضع السكون</string>
     <string name="mining_block">كتلة #%d</string>
     <string name="mining_reward">المكافأة: %d نقطة</string>
@@ -25,7 +25,7 @@
     
     <!-- Notifications -->
     <string name="notif_channel_mining">التعدين</string>
-    <string name="notif_mining_title">⛏️ تعدين SKR Points</string>
+    <string name="notif_mining_title">⛏️ تعدين Sleep Points</string>
     <string name="notif_mining_text" formatted="false">مكتسب: %d نقطة | التشغيل: %s</string>
     <string name="notif_human_check_title">🔔 التحقق من النشاط</string>
     <string name="notif_human_check_text">اضغط للتأكيد</string>
@@ -53,13 +53,13 @@
     
     <!-- Wallet -->
     <string name="wallet_title">💰 رصيدك</string>
-    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_points">Sleep Points: %,d</string>
     <string name="wallet_connect">🔗 ربط Seed Vault</string>
     <string name="wallet_claim">⏳ المطالبة عبر %s</string>
     
     <!-- Privacy -->
     <string name="privacy_title">سياسة الخصوصية</string>
-    <string name="privacy_body">يجمع SeekerMiner البيانات اللازمة للتعدين وتتبع المكافآت (عنوان المحفظة، الرصيد، إحصائيات الجلسة). قد تُرسل هذه البيانات إلى الخادم لمزامنة الرصيد والتصنيف. لا نشارك البيانات الشخصية مع أطراف ثالثة للإعلان. استخدام التطبيق يعني الموافقة على هذه السياسة.</string>
+    <string name="privacy_body">يجمع Sleeper البيانات اللازمة للتعدين وتتبع المكافآت (عنوان المحفظة، الرصيد، إحصائيات الجلسة). قد تُرسل هذه البيانات إلى الخادم لمزامنة الرصيد والتصنيف. لا نشارك البيانات الشخصية مع أطراف ثالثة للإعلان. استخدام التطبيق يعني الموافقة على هذه السياسة.</string>
     <string name="privacy_policy_url"></string>
     <string name="privacy_open_browser">فتح في المتصفح</string>
     <string name="privacy_back">رجوع</string>

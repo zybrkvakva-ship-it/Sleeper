@@ -20,7 +20,7 @@ async function migrate() {
     const miningPath = join(__dirname, 'schema_mining.sql');
     const schemaMining = readFileSync(miningPath, 'utf-8');
     await db.query(schemaMining);
-    logger.info('✅ schema_mining.sql applied (SeekerMiner mining sessions + points_balance)');
+    logger.info('✅ schema_mining.sql applied (Sleeper mining sessions + points_balance)');
     
     logger.info('✅ Database migrations completed successfully');
     process.exit(0);

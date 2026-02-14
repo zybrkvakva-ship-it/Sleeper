@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SeekerMiner</string>
+    <string name="app_name">Sleeper</string>
     
     <!-- Navigation -->
     <string name="nav_mining">Майнинг</string>
@@ -10,7 +10,7 @@
     <string name="nav_wallet">Кошелёк</string>
     
     <!-- Mining Screen -->
-    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">Sleep Mode</string>
     <string name="mining_block">Блок #%d</string>
     <string name="mining_reward">Награда: %d pts</string>
@@ -25,7 +25,7 @@
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Майнинг</string>
-    <string name="notif_mining_title">⛏️ Майним SKR Points</string>
+    <string name="notif_mining_title">⛏️ Майним Sleep Points</string>
     <string name="notif_mining_text" formatted="false">Заработано: %d pts | Uptime: %s</string>
     <string name="notif_human_check_title">🔔 Проверка активности</string>
     <string name="notif_human_check_text">Тапни для подтверждения</string>
@@ -53,13 +53,13 @@
     
     <!-- Wallet -->
     <string name="wallet_title">💰 ТВОЙ БАЛАНС</string>
-    <string name="wallet_points">SKR Points: %,d</string>
+    <string name="wallet_points">Sleep Points: %,d</string>
     <string name="wallet_connect">🔗 Подключить Seed Vault</string>
     <string name="wallet_claim">⏳ Claim через %s</string>
     
     <!-- Privacy -->
     <string name="privacy_title">Политика конфиденциальности</string>
-    <string name="privacy_body">Приложение SeekerMiner собирает данные, необходимые для работы майнинга и учёта наград (адрес кошелька, баланс, статистика сессий). Эти данные могут передаваться на сервер для синхронизации баланса и лидерборда. Мы не передаём персональные данные третьим сторонам в рекламных целях. Использование приложения означает согласие с этой политикой.</string>
+    <string name="privacy_body">Приложение Sleeper собирает данные, необходимые для работы майнинга и учёта наград (адрес кошелька, баланс, статистика сессий). Эти данные могут передаваться на сервер для синхронизации баланса и лидерборда. Мы не передаём персональные данные третьим сторонам в рекламных целях. Использование приложения означает согласие с этой политикой.</string>
     <string name="privacy_policy_url"></string>
     <string name="privacy_open_browser">Открыть в браузере</string>
     <string name="privacy_back">Назад</string>

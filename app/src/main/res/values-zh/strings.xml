@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SeekerMiner</string>
+    <string name="app_name">Sleeper</string>
     
     <!-- Navigation -->
     <string name="nav_mining">挖矿</string>
@@ -10,7 +10,7 @@
     <string name="nav_wallet">钱包</string>
     
     <!-- Mining Screen -->
-    <string name="mining_title">SeekerMiner v1.0</string>
+    <string name="mining_title">Sleeper v1.0</string>
     <string name="mining_sleep_mode">休眠模式</string>
     <string name="mining_block">区块 #%d</string>
     <string name="mining_reward">奖励：%d pts</string>
@@ -25,7 +25,7 @@
     
     <!-- Notifications -->
     <string name="notif_channel_mining">挖矿</string>
-    <string name="notif_mining_title">⛏️ 挖矿 SKR Points</string>
+    <string name="notif_mining_title">⛏️ 挖矿 Sleep Points</string>
     <string name="notif_mining_text" formatted="false">已赚：%d pts | 运行：%s</string>
     <string name="notif_human_check_title">🔔 活跃度检查</string>
     <string name="notif_human_check_text">点击确认</string>
@@ -53,13 +53,13 @@
     
     <!-- Wallet -->
     <string name="wallet_title">💰 我的余额</string>
-    <string name="wallet_points">SKR Points：%,d</string>
+    <string name="wallet_points">Sleep Points：%,d</string>
     <string name="wallet_connect">🔗 连接 Seed Vault</string>
     <string name="wallet_claim">⏳ 通过 %s 领取</string>
     
     <!-- Privacy -->
     <string name="privacy_title">隐私政策</string>
-    <string name="privacy_body">SeekerMiner 会收集挖矿与奖励统计所需数据（钱包地址、余额、会话统计）。这些数据可能发送至服务器以同步余额与排行榜。我们不会将个人数据用于广告或提供给第三方。使用本应用即表示同意此政策。</string>
+    <string name="privacy_body">Sleeper 会收集挖矿与奖励统计所需数据（钱包地址、余额、会话统计）。这些数据可能发送至服务器以同步余额与排行榜。我们不会将个人数据用于广告或提供给第三方。使用本应用即表示同意此政策。</string>
     <string name="privacy_policy_url"></string>
     <string name="privacy_open_browser">在浏览器中打开</string>
     <string name="privacy_back">返回</string>
