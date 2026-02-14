@@ -1,5 +1,5 @@
 /**
- * NightMiner Economy Core
+ * Sleeper Economy Core
  * Ported from Kotlin to TypeScript
  */
 

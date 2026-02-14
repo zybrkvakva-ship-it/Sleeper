@@ -1,5 +1,5 @@
 /**
- * NightMiner Economy Constants
+ * Sleeper Economy Constants
  * Ported from Kotlin EconomyModels.kt
  */
 

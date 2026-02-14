@@ -94,7 +94,7 @@ async function start() {
 
     // Start HTTP server
     server.listen(PORT, () => {
-      logger.info(`🚀 NightMiner Backend started`);
+      logger.info(`🚀 Sleeper Backend started`);
       logger.info(`📡 HTTP Server: http://localhost:${PORT}`);
       logger.info(`🔌 WebSocket Server: ws://localhost:${WS_PORT}`);
       logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

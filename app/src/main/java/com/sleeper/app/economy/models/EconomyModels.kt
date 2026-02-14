@@ -3,9 +3,9 @@ package com.sleeper.app.economy.models
 import com.sleeper.app.economy.boosts.SkrBoostLevel
 
 /**
- * Константы экономики NightMiner
+ * Константы экономики Sleeper
  * 
- * NightMiner — это mining SLEEP токенов во время сна.
+ * Sleeper — майнинг Sleep Points во время сна.
  * Пользователь кладёт телефон перед сном, и приложение считает Night Points (NP),
  * которые затем конвертируются в токены SLEEP.
  */

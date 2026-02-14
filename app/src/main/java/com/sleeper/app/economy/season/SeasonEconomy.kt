@@ -6,7 +6,7 @@ import com.sleeper.app.economy.models.EconomyConstants.SEASON_POOL
 import kotlin.math.max
 
 /**
- * Логика сезонов NightMiner
+ * Логика сезонов Sleeper
  * 
  * Сезон сжимается по мере роста количества активных устройств:
  * - 0-1k устройств → 16 недель

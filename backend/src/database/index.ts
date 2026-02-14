@@ -11,9 +11,9 @@ import { logger } from '../utils/logger';
 export const db = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'nightminer',
-  user: process.env.DB_USER || 'nightminer',
-  password: process.env.DB_PASSWORD || 'nightminer123',
+  database: process.env.DB_NAME || 'sleeper',
+  user: process.env.DB_USER || 'sleeper',
+  password: process.env.DB_PASSWORD || 'sleeper123',
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
