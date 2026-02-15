@@ -69,8 +69,8 @@ fun MiningButton(
                 )
                 else Modifier
             )
-            .height(72.dp)
-            .padding(vertical = 8.dp)
+            .height(56.dp)
+            .padding(vertical = 6.dp)
             .scale(pulseScale),
         shape = shape,
         colors = ButtonDefaults.buttonColors(

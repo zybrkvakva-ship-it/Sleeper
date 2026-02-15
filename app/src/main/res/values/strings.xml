@@ -22,6 +22,25 @@
     <string name="mining_rate">%.2f Sleep pts/s</string>
     <string name="mining_uptime">%s uptime</string>
     <string name="mining_storage" formatted="false">Storage: %dMB x%.1f</string>
+    <string name="mining_reward_label">Reward</string>
+    <string name="mining_demo">Demo</string>
+    <string name="mining_energy_hint_full">Energy will last for ~7 h</string>
+    <string name="mining_energy_hint_recovery">Full recovery ~17 h</string>
+    <string name="mining_energy_hint_rates">Energy: 1/s when mining, 25/min when idle</string>
+    <string name="mining_stake_format">Stake: %s SKR</string>
+    <string name="mining_stake_none">Stake not detected (base reward)</string>
+    <string name="mining_stake_bonus">+%d%% to reward</string>
+    <string name="mining_genesis_holder">Genesis holder</string>
+    <string name="mining_genesis_forever" formatted="false">x%s forever</string>
+    <string name="mining_low_energy_warning">Low energy. Recovery: 25/min.</string>
+    <string name="mining_boosts">Boosts</string>
+    <string name="skr_mining_authorized">MINING AUTHORIZED</string>
+    <string name="skr_required">.skr token required</string>
+    <string name="skr_required_hint">Mining requires .skr username</string>
+    <string name="skr_verify_button">Verify .skr token</string>
+    <string name="wallet_not_connected">Wallet not connected</string>
+    <string name="wallet_connect_hint">Go to WALLET and connect wallet</string>
+    <string name="sleep_points_label">Sleep Points</string>
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Mining</string>
@@ -30,27 +49,81 @@
     <string name="notif_human_check_title">🔔 Activity check</string>
     <string name="notif_human_check_text">Tap to confirm</string>
     
-    <!-- Upgrade Screen (только бусты за SKR) -->
+    <!-- Upgrade Screen -->
     <string name="upgrade_title">⚡ UPGRADES</string>
+    <string name="upgrade_screen_title">UPGRADE</string>
+    <string name="upgrade_boosts_skr">BOOSTS FOR SKR</string>
+    <string name="upgrade_available" formatted="false">Available: %s SKR</string>
+    <string name="upgrade_genesis_nft">GENESIS NFT</string>
+    <string name="upgrade_genesis_description">Genesis NFT — permanent reward boost</string>
+    <string name="upgrade_genesis_hint">+10%% reward forever after mint</string>
+    <string name="upgrade_mint_button">Mint for 275 SKR</string>
+    <string name="upgrade_genesis_forever" formatted="false">+%d%% forever</string>
+    <!-- Boost names/descriptions by id -->
+    <string name="boost_7h_name">1× boost 7 h</string>
+    <string name="boost_7h_desc">+5%% reward for 7 hours (1 blockchain tx)</string>
+    <string name="boost_7x_name">7× boost 49 h</string>
+    <string name="boost_7x_desc">+5%% for 49 h — 7 txs in 1</string>
+    <string name="boost_49x_name">49× boost 7 days</string>
+    <string name="boost_49x_desc">+10%% for 7 days — 49 txs in 1</string>
+    <string name="skr_lite_name">Lite +5%%</string>
+    <string name="skr_lite_desc">Reward boost +5%%</string>
+    <string name="skr_plus_name">Plus +10%%</string>
+    <string name="skr_plus_desc">Reward boost +10%%</string>
+    <string name="skr_pro_name">Pro +50%%</string>
+    <string name="skr_pro_desc">Reward boost +50%%</string>
+    <string name="skr_ultra_name">Ultra +100%%</string>
+    <string name="skr_ultra_desc">Doubles reward</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ DAILY</string>
     <string name="tasks_special">🔥 SPECIAL</string>
+    <string name="tasks_daily_energy">DAILY (7500 energy)</string>
+    <string name="tasks_special_energy">SPECIAL (energy doubling)</string>
     <string name="tasks_invite">Invite a friend</string>
     <string name="tasks_share">Share</string>
     <string name="tasks_story">Watch stories</string>
+    <string name="task_invite_friend">Invite a friend</string>
+    <string name="task_share_social">Share on social</string>
+    <string name="task_watch_stories">Watch stories</string>
+    <string name="task_subscribe">Subscribe to @Sleeper</string>
+    <string name="task_completed">Completed</string>
     
     <!-- Leaderboard -->
     <string name="leaderboard_title">👑 TOP 100 MINERS</string>
+    <string name="leaderboard_screen_title">TOP MINERS</string>
+    <string name="leaderboard_you">YOU</string>
+    <string name="leaderboard_blocks_format" formatted="false">%s blocks</string>
+    <string name="leaderboard_demo_data">Demo data</string>
     <string name="leaderboard_global">GLOBAL</string>
+    <string name="leaderboard_total_in_network">Total in network:</string>
+    <string name="leaderboard_blocks_found">Blocks found:</string>
     <string name="leaderboard_total_points">Total in network: %,d Sleep pts</string>
     <string name="leaderboard_total_blocks">Blocks found: %,d</string>
     
     <!-- Wallet -->
     <string name="wallet_title">💰 YOUR BALANCE</string>
+    <string name="wallet_screen_title">Wallet</string>
+    <string name="wallet_connect_button">Connect wallet</string>
+    <string name="wallet_connecting">Connecting…</string>
+    <string name="wallet_connection_error">Connection error</string>
+    <string name="wallet_connected">WALLET CONNECTED</string>
+    <string name="wallet_address" formatted="false">Address: %s…</string>
+    <string name="wallet_disconnect">Disconnect</string>
+    <string name="wallet_claim_processing">Processing…</string>
+    <string name="wallet_claim_success">Claim successful!</string>
+    <string name="wallet_claim_error">Error</string>
+    <string name="wallet_claim_pts" formatted="false">Claim %,d pts</string>
+    <string name="wallet_claim_dialog_title">🎉 Claim successful!</string>
+    <string name="wallet_claim_dialog_message">Your Sleep Points are signed by your wallet.</string>
+    <string name="wallet_claim_signature" formatted="false">Signature: %s…</string>
     <string name="wallet_points">Sleep Points: %,d</string>
     <string name="wallet_connect">🔗 Connect Seed Vault</string>
     <string name="wallet_claim">⏳ Claim via %s</string>
+    <string name="stats_total_blocks">Total blocks:</string>
+    <string name="stats_mining_time">Mining time:</string>
+    <string name="stats_storage">Storage:</string>
+    <string name="stats_min">min</string>
     
     <!-- Privacy -->
     <string name="privacy_title">Privacy Policy</string>
@@ -63,5 +136,27 @@
     <string name="error_not_seeker">❌ Solana Seeker only</string>
     <string name="error_emulator">❌ Emulators not allowed</string>
     <string name="error_rooted">❌ Root detected</string>
+    <string name="error_clone_app">❌ Clone apps not allowed</string>
     <string name="error_no_energy">⚠️ Not enough energy</string>
+    
+    <!-- Mining: extra -->
+    <string name="mining_connect_wallet_skr">Connect wallet with .skr token for mining</string>
+    <string name="mining_boost_reward_line" formatted="false">+%d%% to reward for %s</string>
+    <string name="mining_boost_one_tx">(1 blockchain transaction)</string>
+    <string name="accessibility_collapse">Collapse</string>
+    <string name="accessibility_expand">Expand</string>
+    
+    <!-- Upgrade: purchase messages -->
+    <string name="upgrade_boost_not_found">Boost not found</string>
+    <string name="upgrade_boost_activated_offline">Boost activated (on-chain not configured)</string>
+    <string name="upgrade_blockhash_failed">Failed to get blockhash</string>
+    <string name="upgrade_boost_paid_tx" formatted="false">Boost paid! Tx: %s…</string>
+    <string name="upgrade_wallet_not_found">Wallet not found</string>
+    <string name="upgrade_genesis_activated_offline">Genesis NFT activated (on-chain not configured)</string>
+    <string name="upgrade_genesis_activated">Genesis NFT activated</string>
+    <string name="upgrade_genesis_paid_tx" formatted="false">Genesis NFT paid! Tx: %s…</string>
+    
+    <!-- Wallet: errors -->
+    <string name="wallet_install_solana_wallet">Install Solana Mobile Wallet</string>
+    <string name="wallet_no_points_claim">No points to claim</string>
 </resources>

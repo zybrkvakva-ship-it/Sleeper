@@ -12,9 +12,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sleeper.app.R
 import com.sleeper.app.ui.components.CyberCard
 import com.sleeper.app.ui.theme.BgMain
 import com.sleeper.app.ui.theme.CyberGray
@@ -36,7 +38,7 @@ fun LeaderboardScreen(
             .padding(16.dp)
     ) {
         Text(
-            text = "ТОП МАЙНЕРОВ",
+            text = stringResource(R.string.leaderboard_screen_title).uppercase(),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = CyberWhite
@@ -73,13 +75,13 @@ fun LeaderboardScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "#${uiState.userRank}: ${uiState.currentUserSkrUsername ?: "ТЫ"}",
+                                text = "#${uiState.userRank}: ${uiState.currentUserSkrUsername ?: stringResource(R.string.leaderboard_you)}",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CyberYellow
                             )
                             Text(
-                                text = "${String.format("%,d", uiState.userBlocks)} блоков",
+                                text = stringResource(R.string.leaderboard_blocks_format, String.format("%,d", uiState.userBlocks)),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CyberYellow
@@ -91,7 +93,7 @@ fun LeaderboardScreen(
             
             if (uiState.isDemoData) {
                 Text(
-                    text = "Демо-данные",
+                    text = stringResource(R.string.leaderboard_demo_data),
                     fontSize = 12.sp,
                     color = CyberGray,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -107,7 +109,7 @@ fun LeaderboardScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "ГЛОБАЛЬНО",
+                        text = stringResource(R.string.leaderboard_global).uppercase(),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = CyberWhite
@@ -118,7 +120,7 @@ fun LeaderboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Всего в сети:",
+                            text = stringResource(R.string.leaderboard_total_in_network),
                             fontSize = 14.sp,
                             color = CyberGray
                         )
@@ -135,7 +137,7 @@ fun LeaderboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Найдено блоков:",
+                            text = stringResource(R.string.leaderboard_blocks_found),
                             fontSize = 14.sp,
                             color = CyberGray
                         )
@@ -196,7 +198,7 @@ private fun LeaderboardItem(entry: LeaderboardEntry) {
                 )
             }
             Text(
-                text = "${String.format("%,d", entry.blocks)} блоков",
+                text = stringResource(R.string.leaderboard_blocks_format, String.format("%,d", entry.blocks)),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = CyberGray

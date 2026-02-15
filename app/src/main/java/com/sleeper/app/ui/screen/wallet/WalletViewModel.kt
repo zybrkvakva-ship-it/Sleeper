@@ -67,7 +67,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                     DevLog.w(TAG, "connectWallet NoWalletFound")
                     _walletState.value.copy(
                         isConnecting = false,
-                        error = "Установите Solana Mobile Wallet"
+                        error = getApplication<Application>().getString(com.sleeper.app.R.string.wallet_install_solana_wallet)
                     )
                 }
                 is WalletConnectionResult.Error -> {
@@ -88,7 +88,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             if (points == 0L) {
                 DevLog.w(TAG, "claimPoints SKIP: points=0")
                 _walletState.value = _walletState.value.copy(
-                    claimStatus = ClaimStatus.Error("Нет поинтов для claim")
+                    claimStatus = ClaimStatus.Error(getApplication<Application>().getString(com.sleeper.app.R.string.wallet_no_points_claim))
                 )
                 return@launch
             }
@@ -108,7 +108,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                     }
                     is SignMessageResult.NoWalletFound -> {
                         DevLog.w(TAG, "claimPoints NoWalletFound")
-                        ClaimStatus.Error("Wallet не найден")
+                        ClaimStatus.Error(getApplication<Application>().getString(com.sleeper.app.R.string.upgrade_wallet_not_found))
                     }
                     is SignMessageResult.Error -> {
                         DevLog.e(TAG, "claimPoints Error: ${result.message}")

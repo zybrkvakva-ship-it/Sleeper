@@ -22,6 +22,9 @@ val CyberWhite = textPrimary
 val CyberGray = textMuted
 val Stroke = border
 
+/** Фон нижней навигационной панели (чуть светлее основного фона) */
+val BottomBarBackground = Color(0xFF121518)
+
 // Legacy aliases
 val Black = BgMain
 val White = CyberWhite

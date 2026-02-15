@@ -47,7 +47,7 @@ fun WalletScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "КОШЕЛЁК",
+            text = stringResource(R.string.wallet_screen_title).uppercase(),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberWhite
@@ -66,7 +66,7 @@ fun WalletScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Sleep Points",
+                    text = stringResource(R.string.sleep_points_label),
                     fontSize = 18.sp,
                     color = com.sleeper.app.ui.theme.CyberGray
                 )
@@ -85,7 +85,7 @@ fun WalletScreen(
         // Wallet Connection Section
         if (walletState.connectedAddress == null) {
             com.sleeper.app.ui.components.CyberButton(
-                text = if (walletState.isConnecting) "Подключение..." else "Подключить кошелёк",
+                text = if (walletState.isConnecting) stringResource(R.string.wallet_connecting) else stringResource(R.string.wallet_connect_button),
                 onClick = { viewModel.connectWallet(activityResultSender) },
                 enabled = !walletState.isConnecting,
                 strokeColor = com.sleeper.app.ui.theme.CyberGreen
@@ -99,11 +99,11 @@ fun WalletScreen(
                 )
             }
             
-            // Show error if any
-            walletState.error?.let { error ->
+            // Show error if any (localized)
+            walletState.error?.let {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = error,
+                    text = stringResource(R.string.wallet_connection_error),
                     color = com.sleeper.app.ui.theme.CyberRed,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
@@ -118,14 +118,14 @@ fun WalletScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "WALLET ПОДКЛЮЧЁН",
+                        text = stringResource(R.string.wallet_connected),
                         fontSize = 16.sp,
                         color = com.sleeper.app.ui.theme.CyberGreen,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Адрес: ${walletState.connectedAddress?.take(16) ?: ""}...",
+                        text = stringResource(R.string.wallet_address, walletState.connectedAddress?.take(16) ?: ""),
                         fontSize = 14.sp,
                         color = com.sleeper.app.ui.theme.CyberWhite
                     )
@@ -133,7 +133,7 @@ fun WalletScreen(
                     TextButton(
                         onClick = { viewModel.disconnectWallet(activityResultSender) }
                     ) {
-                        Text("Отключить", color = com.sleeper.app.ui.theme.CyberRed)
+                        Text(stringResource(R.string.wallet_disconnect), color = com.sleeper.app.ui.theme.CyberRed)
                     }
                 }
             }
@@ -142,10 +142,10 @@ fun WalletScreen(
             
             com.sleeper.app.ui.components.CyberButton(
                 text = when (val s = walletState.claimStatus) {
-                    is ClaimStatus.Processing -> "Обработка..."
-                    is ClaimStatus.Success -> "Claim успешен!"
-                    is ClaimStatus.Error -> "Ошибка"
-                    else -> "Claim ${String.format("%,d", userStats?.pointsBalance ?: 0)} pts"
+                    is ClaimStatus.Processing -> stringResource(R.string.wallet_claim_processing)
+                    is ClaimStatus.Success -> stringResource(R.string.wallet_claim_success)
+                    is ClaimStatus.Error -> stringResource(R.string.wallet_claim_error)
+                    else -> stringResource(R.string.wallet_claim_pts, userStats?.pointsBalance ?: 0)
                 },
                 onClick = { viewModel.claimPoints(activityResultSender) },
                 enabled = walletState.claimStatus !is ClaimStatus.Processing &&
@@ -156,13 +156,13 @@ fun WalletScreen(
             if (walletState.claimStatus is ClaimStatus.Success) {
                 AlertDialog(
                     onDismissRequest = { viewModel.clearClaimStatus() },
-                    title = { Text("🎉 Claim Успешен!") },
+                    title = { Text(stringResource(R.string.wallet_claim_dialog_title)) },
                     text = {
                         Column {
-                            Text("Ваши Sleep Points подписаны wallet'ом!")
+                            Text(stringResource(R.string.wallet_claim_dialog_message))
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Signature: ${(walletState.claimStatus as ClaimStatus.Success).signature.take(16)}...",
+                                stringResource(R.string.wallet_claim_signature, (walletState.claimStatus as ClaimStatus.Success).signature.take(16)),
                                 fontSize = 12.sp,
                                 color = com.sleeper.app.ui.theme.CyberGray
                             )
@@ -185,11 +185,11 @@ fun WalletScreen(
             cornerRadius = 12.dp
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                StatRow("Всего блоков:", "${userStats?.totalBlocksMined ?: 0}")
+                StatRow(stringResource(R.string.stats_total_blocks), "${userStats?.totalBlocksMined ?: 0}")
                 Spacer(modifier = Modifier.height(8.dp))
-                StatRow("Время майнинга:", "${userStats?.uptimeMinutes ?: 0} мин")
+                StatRow(stringResource(R.string.stats_mining_time), "${userStats?.uptimeMinutes ?: 0} ${stringResource(R.string.stats_min)}")
                 Spacer(modifier = Modifier.height(8.dp))
-                StatRow("Storage:", "${userStats?.storageMB ?: 0} MB")
+                StatRow(stringResource(R.string.stats_storage), "${userStats?.storageMB ?: 0} MB")
             }
         }
 

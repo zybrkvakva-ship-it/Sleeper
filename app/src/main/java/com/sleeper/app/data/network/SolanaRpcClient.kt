@@ -7,6 +7,7 @@ import com.sleeper.app.utils.Base58
 import com.sleeper.app.utils.decodeBase58
 import com.sleeper.app.utils.SolanaPda
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -14,6 +15,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /**
@@ -103,6 +105,28 @@ class SolanaRpcClient(
                 ((data[amountOffset + 6].toLong() and 0xFF) shl 48) or
                 ((data[amountOffset + 7].toLong() and 0xFF) shl 56)
         }
+
+        /** Размер данных аккаунта Guardian (169 байт) — для точечного getProgramAccounts. */
+        private const val STAKING_GUARDIAN_DATA_SIZE = 169
+
+        /** TTL кэша .skr и стейка (2 мин), чтобы не дёргать RPC при повторных действиях. */
+        private const val CACHE_TTL_MS = 2 * 60 * 1000L
+        private val cacheSkr = ConcurrentHashMap<String, Pair<List<SkrDomainInfo>, Long>>()
+        private val cacheStake = ConcurrentHashMap<String, Pair<StakedBalance, Long>>()
+
+        // --- Задержки и ретраи при 429 (ужесточены после массовых 429 в проде) ---
+        /** Ретраи при 429 для ANS getProgramAccounts (base58/base64). */
+        private const val RPC_RETRY_ANS = 6
+        /** Ретраи при 429 для Guardian getProgramAccounts. */
+        private const val RPC_RETRY_STAKING = 7
+        /** Базовая задержка при 429 (мс). */
+        private const val RPC_BASE_DELAY_MS = 2200L
+        /** Макс. задержка при 429 (мс). */
+        private const val RPC_MAX_DELAY_MS = 14000L
+        /** Пауза между шагами детекции .skr (снижает вероятность 429). */
+        private const val DELAY_BETWEEN_ANS_STEPS_MS = 450L
+        /** Пауза между попытками offset cascade в стейкинге (мс). */
+        private const val DELAY_BETWEEN_STAKING_OFFSETS_MS = 280L
     }
     
     /**
@@ -163,6 +187,89 @@ class SolanaRpcClient(
     ): JSONArray? = getProgramAccountsStakingWithMemcmp(walletAddress, ownerOffset, dataSize, commitment)
 
     /**
+     * Один getProgramAccounts(Guardian) с ретраем при 429. memcmp.bytes = base58 или base64 (32 байт).
+     * @return result array или null при ошибке / пустом ответе
+     */
+    private suspend fun getProgramAccountsStakingWithRetry(
+        memcmpBytes: String,
+        ownerOffset: Int,
+        dataSize: Int?
+    ): JSONArray? = withContext(Dispatchers.IO) {
+        getProgramAccountsStakingWithRetryInternal(memcmpBytes, ownerOffset, dataSize)
+    }
+
+    private suspend fun getProgramAccountsStakingWithRetryInternal(
+        memcmpBytes: String,
+        ownerOffset: Int,
+        dataSize: Int?
+    ): JSONArray? = withContext(Dispatchers.IO) {
+        val filters = JSONArray().apply {
+            put(JSONObject().apply {
+                put("memcmp", JSONObject().apply {
+                    put("offset", ownerOffset)
+                    put("bytes", memcmpBytes)
+                })
+            })
+            if (dataSize != null) put(JSONObject().apply { put("dataSize", dataSize) })
+        }
+        val params = JSONArray().apply {
+            put(SKR_STAKING_PROGRAM_ID)
+            put(JSONObject().apply {
+                put("encoding", "base64")
+                put("commitment", "confirmed")
+                put("filters", filters)
+            })
+        }
+        val requestBody = JSONObject().apply {
+            put("jsonrpc", "2.0")
+            put("id", 1)
+            put("method", "getProgramAccounts")
+            put("params", params)
+        }.toString()
+        val request = Request.Builder()
+            .url(rpcUrl)
+            .post(requestBody.toRequestBody(JSON_MEDIA_TYPE))
+            .addHeader("Content-Type", "application/json")
+            .build()
+        val (response, responseBody) = executeRpcWithRetry(request, "STAKING_PA", RPC_RETRY_STAKING)
+        if (!response.isSuccessful) return@withContext null
+        val jsonResponse = try { JSONObject(responseBody) } catch (_: Exception) { return@withContext null }
+        if (jsonResponse.has("error")) return@withContext null
+        jsonResponse.optJSONArray("result") ?: JSONArray()
+    }
+
+    /**
+     * Выполняет RPC POST; при HTTP 429 или RPC error code 429 повторяет запрос с экспоненциальной задержкой.
+     * Использует RPC_BASE_DELAY_MS / RPC_MAX_DELAY_MS для баланса надёжность–время.
+     * @param maxRetries сколько раз повторять после 429 (для ANS=4, Staking=5)
+     */
+    private suspend fun executeRpcWithRetry(
+        request: Request,
+        logTag: String,
+        maxRetries: Int = 2
+    ): Pair<okhttp3.Response, String> = withContext(Dispatchers.IO) {
+        var attempt = 0
+        while (true) {
+            val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: "{}"
+            val isRateLimited = response.code == 429 || try {
+                val j = JSONObject(body)
+                j.has("error") && j.getJSONObject("error").optInt("code", -1) == 429
+            } catch (_: Exception) {
+                false
+            }
+            if (!isRateLimited || attempt >= maxRetries) {
+                return@withContext Pair(response, body)
+            }
+            attempt++
+            val backoffMs = minOf(RPC_BASE_DELAY_MS * (1 shl (attempt - 1)), RPC_MAX_DELAY_MS)
+            DevLog.w(TAG, "[$logTag] 429 rate limit, retry $attempt/$maxRetries in ${backoffMs}ms")
+            delay(backoffMs)
+        }
+        error("unreachable")
+    }
+
+    /**
      * Сумма застейканных SKR по кошельку (программа Solana Mobile Guardian).
      * Приоритет (см. docs/SKR_STAKING_QUICK_REFERENCE.md): стейк в program-owned аккаунтах, не в SPL delegate.
      * 1) getProgramAccounts(Guardian) с memcmp(owner=wallet) по offset 0, 8, 24, 32, 40 (+ finalized, dataSize).
@@ -174,25 +281,78 @@ class SolanaRpcClient(
     suspend fun getStakedBalance(walletAddress: String): StakedBalance = withContext(Dispatchers.IO) {
         val walletShort = "${walletAddress.take(8)}...${walletAddress.takeLast(6)}"
         try {
+            cacheStake[walletAddress]?.let { (cached, ts) ->
+                if (System.currentTimeMillis() - ts < CACHE_TTL_MS) {
+                    DevLog.i(TAG, "[STAKING] cache HIT for staked balance raw=${cached.rawAmount} human=${cached.humanReadable}")
+                    return@withContext cached
+                }
+                cacheStake.remove(walletAddress)
+            }
             val looksLikeHex = walletAddress.length == 64 && walletAddress.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
             DevLog.i(TAG, "[STAKING] getStakedBalance ENTRY")
             DevLog.i(TAG, "[STAKING] wallet: len=${walletAddress.length} preview=${walletAddress.take(12)}...${walletAddress.takeLast(8)} short=$walletShort")
             DevLog.i(TAG, "[STAKING] wallet looksLikeHex=$looksLikeHex (expect false for base58; if true, RPC may fail like .skr)")
             DevLog.i(TAG, "[STAKING] programId=$SKR_STAKING_PROGRAM_ID mint=$SKR_MINT")
-            logStakingProgramAccountsDiagnostic(walletAddress)
+            if (BuildConfig.DEBUG) logStakingProgramAccountsDiagnostic(walletAddress)
 
-            // 1) Primary: getProgramAccounts(Guardian) with memcmp(owner=wallet) — stake in program-owned accounts (Quick Reference)
             var resultArray: JSONArray? = null
             var amountOffsetUsed = STAKING_ACCOUNT_AMOUNT_OFFSET
             var ownerOffsetUsed = STAKING_ACCOUNT_OWNER_OFFSET
-            for ((ownerOff, amountOff) in STAKING_MEMCMP_OFFSET_PAIRS) {
-                val arr = getProgramAccountsStaking(walletAddress, ownerOff)
-                if (arr != null && arr.length() > 0) {
-                    resultArray = arr
-                    amountOffsetUsed = amountOff
-                    ownerOffsetUsed = ownerOff
-                    DevLog.i(TAG, "[STAKING] Found ${arr.length()} accounts with memcmp offset=$ownerOff -> using amountOffset=$amountOff")
-                    break
+
+            // 1) Быстрый путь: getProgramAccounts(Guardian, offset=41, dataSize=169) с ретраем (base58)
+            DevLog.i(TAG, "[STAKING] Priority: getProgramAccounts(Guardian, owner=41, dataSize=169) with retry")
+            resultArray = getProgramAccountsStakingWithRetry(walletAddress, 41, STAKING_GUARDIAN_DATA_SIZE)
+            if (resultArray != null && resultArray!!.length() > 0) {
+                amountOffsetUsed = 73
+                ownerOffsetUsed = 41
+                DevLog.i(TAG, "[STAKING] Found ${resultArray!!.length()} accounts (priority path)")
+            }
+            if (resultArray == null || resultArray!!.length() == 0) {
+                // 1b) Тот же запрос с memcmp base64 (RPC может требовать бинарное сравнение 32 байт)
+                delay(DELAY_BETWEEN_STAKING_OFFSETS_MS)
+                val walletBytes = try { walletAddress.decodeBase58() } catch (_: Exception) { null }
+                if (walletBytes != null && walletBytes.size == 32) {
+                    val base64Bytes = Base64.encodeToString(walletBytes, Base64.NO_WRAP)
+                    DevLog.i(TAG, "[STAKING] Trying memcmp base64 (owner=41, dataSize=169)")
+                    resultArray = getProgramAccountsStakingWithRetryInternal(base64Bytes, 41, STAKING_GUARDIAN_DATA_SIZE)
+                    if (resultArray != null && resultArray!!.length() > 0) {
+                        amountOffsetUsed = 73
+                        ownerOffsetUsed = 41
+                        DevLog.i(TAG, "[STAKING] Found ${resultArray!!.length()} accounts (base64 memcmp)")
+                    }
+                }
+            }
+            if (resultArray == null || resultArray!!.length() == 0) {
+                // 2) Лёгкие методы: getTokenAccountsByDelegate (меньше нагрузка на RPC)
+                DevLog.i(TAG, "[STAKING] No priority hit; trying getTokenAccountsByDelegate(Guardian, mint=SKR)")
+                val guardianDelegateBalance = getStakedBalanceViaGuardianDelegate(walletAddress)
+                if (guardianDelegateBalance != null) {
+                    DevLog.i(TAG, "[STAKING] Using getTokenAccountsByDelegate(Guardian, mint=SKR): raw=${guardianDelegateBalance.first} human=${guardianDelegateBalance.second}")
+                    val balance = StakedBalance(guardianDelegateBalance.first, guardianDelegateBalance.second)
+                    cacheStake[walletAddress] = Pair(balance, System.currentTimeMillis())
+                    return@withContext balance
+                }
+                val delegateBalance = getStakedBalanceViaDelegate(walletAddress)
+                if (delegateBalance != null) {
+                    DevLog.i(TAG, "[STAKING] Using delegate(wallet) fallback: raw=${delegateBalance.first} human=${delegateBalance.second}")
+                    val balance = StakedBalance(delegateBalance.first, delegateBalance.second)
+                    cacheStake[walletAddress] = Pair(balance, System.currentTimeMillis())
+                    return@withContext balance
+                }
+            }
+            if (resultArray == null || resultArray!!.length() == 0) {
+                // 3) Fallback: перебор offset/dataSize (короткие паузы 80ms)
+                DevLog.d(TAG, "[STAKING] Delegates empty; trying getProgramAccounts offset cascade")
+                for ((ownerOff, amountOff) in STAKING_MEMCMP_OFFSET_PAIRS) {
+                    val arr = getProgramAccountsStaking(walletAddress, ownerOff)
+                    if (arr != null && arr.length() > 0) {
+                        resultArray = arr
+                        amountOffsetUsed = amountOff
+                        ownerOffsetUsed = ownerOff
+                        DevLog.i(TAG, "[STAKING] Found ${arr.length()} accounts with memcmp offset=$ownerOff")
+                        break
+                    }
+                    delay(DELAY_BETWEEN_STAKING_OFFSETS_MS)
                 }
             }
             if (resultArray == null || resultArray!!.length() == 0) {
@@ -203,14 +363,13 @@ class SolanaRpcClient(
                         resultArray = arr
                         amountOffsetUsed = amountOff
                         ownerOffsetUsed = ownerOff
-                        DevLog.i(TAG, "[STAKING] Found ${arr.length()} accounts (finalized) memcmp offset=$ownerOff")
                         break
                     }
+                    delay(DELAY_BETWEEN_STAKING_OFFSETS_MS)
                 }
             }
             if (resultArray == null || resultArray!!.length() == 0) {
-                // dataSize filter excludes 2-byte account type; try Anchor-like sizes 80, 88, 96 (per official answer)
-                DevLog.d(TAG, "[STAKING] Trying memcmp + dataSize 40, 48, 56, 72, 80, 88, 96 for offsets 0, 8")
+                DevLog.d(TAG, "[STAKING] Trying memcmp + dataSize for offsets 0, 8")
                 for ((ownerOff, amountOff) in listOf(Pair(0, 32), Pair(8, 40))) {
                     for (dataSize in listOf(40, 48, 56, 72, 80, 88, 96)) {
                         val arr = getProgramAccountsStaking(walletAddress, ownerOff, dataSize = dataSize)
@@ -218,25 +377,23 @@ class SolanaRpcClient(
                             resultArray = arr
                             amountOffsetUsed = amountOff
                             ownerOffsetUsed = ownerOff
-                            DevLog.i(TAG, "[STAKING] Found ${arr.length()} accounts memcmp offset=$ownerOff dataSize=$dataSize")
                             break
                         }
                     }
                     if (resultArray != null && resultArray!!.length() > 0) break
+                    delay(DELAY_BETWEEN_STAKING_OFFSETS_MS)
                 }
             }
             if (resultArray == null || resultArray!!.length() == 0) {
-                val walletBytes = try { walletAddress.decodeBase58() } catch (_: Exception) { null }
-                if (walletBytes != null && walletBytes.size == 32) {
-                    val base64Bytes = Base64.encodeToString(walletBytes, Base64.NO_WRAP)
-                    DevLog.d(TAG, "[STAKING] Trying memcmp.bytes=base64(32) for offsets 0, 8, 32 (RPC binary match)")
+                val walletBytesLegacy = try { walletAddress.decodeBase58() } catch (_: Exception) { null }
+                if (walletBytesLegacy != null && walletBytesLegacy.size == 32) {
+                    val base64Bytes = Base64.encodeToString(walletBytesLegacy, Base64.NO_WRAP)
                     for ((ownerOff, amountOff) in listOf(Pair(0, 32), Pair(8, 40), Pair(32, 64))) {
                         val arr = getProgramAccountsStakingWithMemcmp(base64Bytes, ownerOff, dataSize = null)
                         if (arr != null && arr.length() > 0) {
                             resultArray = arr
                             amountOffsetUsed = amountOff
                             ownerOffsetUsed = ownerOff
-                            DevLog.i(TAG, "[STAKING] Found ${arr.length()} accounts with memcmp base64 offset=$ownerOff -> amountOffset=$amountOff")
                             break
                         }
                     }
@@ -288,35 +445,23 @@ class SolanaRpcClient(
                 val humanReadable = totalRaw / divisor
                 DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (from getProgramAccounts) totalRaw=$totalRaw human=$humanReadable accounts=${result.length()} memcmpOffset=$ownerOffsetUsed amountOffset=$amountOffsetUsed")
                 DevLog.i(TAG, "[STAKING] getStakedBalance EXIT")
-                return@withContext StakedBalance(totalRaw, humanReadable)
+                val balance = StakedBalance(totalRaw, humanReadable)
+                cacheStake[walletAddress] = Pair(balance, System.currentTimeMillis())
+                return@withContext balance
             }
-
-            // 2) Fallback: getTokenAccountsByDelegate(Guardian, mint=SKR) — may return 0 if RPC doesn't index delegate=programId
-            DevLog.i(TAG, "[STAKING] No program accounts for any memcmp; trying getTokenAccountsByDelegate(Guardian, mint=SKR)")
-            val guardianDelegateBalance = getStakedBalanceViaGuardianDelegate(walletAddress)
-            if (guardianDelegateBalance != null) {
-                DevLog.i(TAG, "[STAKING] Using getTokenAccountsByDelegate(Guardian, mint=SKR): raw=${guardianDelegateBalance.first} human=${guardianDelegateBalance.second}")
-                DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (Guardian delegate)")
-                return@withContext StakedBalance(guardianDelegateBalance.first, guardianDelegateBalance.second)
-            }
-            DevLog.i(TAG, "[STAKING] Guardian delegate returned null; running logStakingPdaDiagnostic, logStakingDiagnostics and delegate(wallet) fallback")
-            logStakingPdaDiagnostic(walletAddress)
-            logStakingDiagnostics(walletAddress)
-
-            // 3) Last fallback: getTokenAccountsByDelegate(wallet, mint=SKR)
-            val delegateBalance = getStakedBalanceViaDelegate(walletAddress)
-            if (delegateBalance != null) {
-                DevLog.i(TAG, "[STAKING] Using delegate(wallet) fallback: raw=${delegateBalance.first} human=${delegateBalance.second}")
-                DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (delegate fallback)")
-                return@withContext StakedBalance(delegateBalance.first, delegateBalance.second)
+            if (BuildConfig.DEBUG) {
+                logStakingPdaDiagnostic(walletAddress)
+                logStakingDiagnostics(walletAddress)
             }
             DevLog.w(TAG, "[STAKING] No program accounts, no Guardian delegate, no delegate(wallet); staked balance = 0")
             DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (zero)")
-            return@withContext StakedBalance(0L, 0.0)
+            val zeroBalance = StakedBalance(0L, 0.0)
+            cacheStake[walletAddress] = Pair(zeroBalance, System.currentTimeMillis())
+            return@withContext zeroBalance
         } catch (e: Exception) {
             DevLog.e(TAG, "[STAKING] getStakedBalance exception: ${e.message}", e)
             DevLog.i(TAG, "[STAKING] getStakedBalance EXIT (exception)")
-            StakedBalance(0L, 0.0)
+            return@withContext StakedBalance(0L, 0.0)
         }
     }
 
@@ -734,6 +879,14 @@ class SolanaRpcClient(
     suspend fun getAllSkrDomains(ownerPubkey: String): List<SkrDomainInfo> = 
         withContext(Dispatchers.IO) {
             try {
+                // Кэш: повторные запросы в течение 2 мин возвращаются без RPC
+                cacheSkr[ownerPubkey]?.let { (cached, ts) ->
+                    if (System.currentTimeMillis() - ts < CACHE_TTL_MS) {
+                        DevLog.i(TAG, "[DETECT] cache HIT for .skr domains count=${cached.size}")
+                        return@withContext cached
+                    }
+                    cacheSkr.remove(ownerPubkey)
+                }
                 DevLog.i(TAG, "########################################")
                 DevLog.i(TAG, "######## .skr DETECTION START ########")
                 DevLog.i(TAG, "########################################")
@@ -742,44 +895,48 @@ class SolanaRpcClient(
                 DevLog.i(TAG, "[DETECT] cluster=${cluster.name} rpcUrl=${rpcUrl.take(60)}...")
                 DevLog.i(TAG, "[DETECT] ANS_PROGRAM_ID=$ANS_PROGRAM_ID")
                 DevLog.i(TAG, "[DETECT] ANS_OWNER_OFFSET=$ANS_OWNER_OFFSET")
-                DevLog.i(TAG, "[DETECT] STEP 1 START: Method 1 (ANS getProgramAccounts, memcmp base58)...")
-                
-                var standardDomains = queryStandardAnsDomains(ownerPubkey)
-                DevLog.i(TAG, "[DETECT] STEP 1 END: result count=${standardDomains.size} domains=${standardDomains.map { it.domainName }}")
-                
-                if (standardDomains.isEmpty()) {
-                    DevLog.w(TAG, "[DETECT] STEP 2 START: Retry Method 1 memcmp bytes = JSON array...")
-                    standardDomains = queryStandardAnsDomainsWithBase58Memcmp(ownerPubkey)
-                    DevLog.i(TAG, "[DETECT] STEP 2 END: result count=${standardDomains.size}")
-                }
-                if (standardDomains.isEmpty()) {
-                    DevLog.w(TAG, "[DETECT] STEP 3 START: Retry Method 1 memcmp bytes = base64...")
-                    standardDomains = queryStandardAnsDomainsWithBase64Memcmp(ownerPubkey)
-                    DevLog.i(TAG, "[DETECT] STEP 3 END: result count=${standardDomains.size}")
-                }
-                
-                DevLog.i(TAG, "[DETECT] STEP 4 START: Method 2 (Name House / token accounts)...")
-                val wrappedDomains = queryWrappedAnsDomains(ownerPubkey)
-                DevLog.i(TAG, "[DETECT] STEP 4 END: wrapped count=${wrappedDomains.size} domains=${wrappedDomains.map { it.domainName }}")
-                
-                var allDomains = (standardDomains + wrappedDomains).distinctBy { it.domainName }
-                DevLog.d(TAG, "[DETECT] combined distinct count=${allDomains.size}")
+                // Оптимизация: один точечный getProgramAccounts(ANS) первым, затем SNS, wrapped — fallback (меньше RPC, быстрее).
+                // STEP 1: один getProgramAccounts(ANS) с memcmp base58 — основной сценарий
+                DevLog.i(TAG, "[DETECT] STEP 1 START: ANS getProgramAccounts (memcmp base58)...")
+                var allDomains = queryStandardAnsDomains(ownerPubkey)
+                DevLog.i(TAG, "[DETECT] STEP 1 END: ANS count=${allDomains.size}")
                 
                 if (allDomains.isEmpty()) {
-                    DevLog.w(TAG, "[DETECT] STEP 5 START: AllDomains empty — trying SNS fallback...")
-                    val snsDomains = querySkrViaSns(ownerPubkey)
-                    DevLog.i(TAG, "[DETECT] STEP 5 END: SNS count=${snsDomains.size} domains=${snsDomains.map { it.domainName }}")
+                    // STEP 1b: ANS с memcmp base64 (многие RPC ожидают 32 байта в base64, не base58)
+                    delay(DELAY_BETWEEN_ANS_STEPS_MS)
+                    DevLog.i(TAG, "[DETECT] STEP 1b START: ANS getProgramAccounts (memcmp base64)...")
+                    allDomains = queryStandardAnsDomainsWithBase64Memcmp(ownerPubkey)
+                    DevLog.i(TAG, "[DETECT] STEP 1b END: ANS count=${allDomains.size}")
+                    if (allDomains.isNotEmpty()) {
+                        DevLog.i(TAG, "[DETECT] ✅ Using .skr from ANS base64: ${allDomains.map { it.domainName }}")
+                    }
+                }
+                
+                if (allDomains.isEmpty()) {
+                    delay(DELAY_BETWEEN_ANS_STEPS_MS)
+                    // STEP 2: SNS getProgramAccounts (base58 only)
+                    DevLog.i(TAG, "[DETECT] STEP 2 START: SNS fallback (base58 only)...")
+                    val snsDomains = querySkrViaSnsWithBytes(ownerPubkey, ownerPubkey, "base58") ?: emptyList()
+                    DevLog.i(TAG, "[DETECT] STEP 2 END: SNS count=${snsDomains.size}")
                     if (snsDomains.isNotEmpty()) {
                         allDomains = snsDomains
                         DevLog.i(TAG, "[DETECT] ✅ Using .skr from SNS: ${snsDomains.map { it.domainName }}")
                     }
                 }
                 
+                if (allDomains.isEmpty()) {
+                    delay(DELAY_BETWEEN_ANS_STEPS_MS)
+                    // STEP 3: wrapped .skr через getTokenAccountsByOwner + ограниченный getAsset (fallback)
+                    DevLog.i(TAG, "[DETECT] STEP 3 START: wrapped (token accounts + limited getAsset)...")
+                    allDomains = queryWrappedAnsDomains(ownerPubkey)
+                    DevLog.i(TAG, "[DETECT] STEP 3 END: wrapped count=${allDomains.size}")
+                }
+                
                 DevLog.i(TAG, "######## .skr DETECTION END: total=${allDomains.size} ########")
                 allDomains.forEachIndexed { i, domain ->
                     DevLog.i(TAG, "   [DETECT] domain[$i]: name=${domain.domainName} pubkey=${domain.pubkey} owner=${domain.owner.take(12)}...")
                 }
-                
+                cacheSkr[ownerPubkey] = Pair(allDomains, System.currentTimeMillis())
                 allDomains
                 
             } catch (e: Exception) {
@@ -871,8 +1028,7 @@ class SolanaRpcClient(
                 .post(requestBody.toRequestBody(JSON_MEDIA_TYPE))
                 .addHeader("Content-Type", "application/json")
                 .build()
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: "{}"
+            val (response, responseBody) = executeRpcWithRetry(request, "SNS_$bytesKind", RPC_RETRY_ANS)
             DevLog.d(TAG, "[SNS_$bytesKind] response code=${response.code} bodyLen=${responseBody.length} preview=${responseBody.take(400)}")
             if (!response.isSuccessful) return@withContext null
             val json = JSONObject(responseBody)
@@ -970,8 +1126,7 @@ class SolanaRpcClient(
                 .post(requestBody.toRequestBody(JSON_MEDIA_TYPE))
                 .addHeader("Content-Type", "application/json")
                 .build()
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: "{}"
+            val (response, responseBody) = executeRpcWithRetry(request, "M1_B64", RPC_RETRY_ANS)
             DevLog.d(TAG, "[M1_B64] Response code=${response.code} bodyLen=${responseBody.length} preview=${responseBody.take(600)}")
             if (!response.isSuccessful) return emptyList()
             val jsonResponse = JSONObject(responseBody)
@@ -1042,9 +1197,8 @@ class SolanaRpcClient(
                 .post(requestBody.toRequestBody(JSON_MEDIA_TYPE))
                 .addHeader("Content-Type", "application/json")
                 .build()
-            
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: "{}"
+
+            val (response, responseBody) = executeRpcWithRetry(request, "M1_B58", RPC_RETRY_ANS)
             
             DevLog.d(TAG, "[M1_B58] Response: code=${response.code} bodyLen=${responseBody.length}")
             DevLog.d(TAG, "[M1_B58] Response body (first 800): ${responseBody.take(800)}")
@@ -1196,7 +1350,10 @@ class SolanaRpcClient(
             DevLog.i(TAG, "[M2] token accounts count=${tokenAccounts.length()}")
             val skrDomains = mutableListOf<SkrDomainInfo>()
             var nftCount = 0
+            var getAssetCalls = 0
+            val maxGetAssetForWrapped = 5
             for (i in 0 until tokenAccounts.length()) {
+                if (getAssetCalls >= maxGetAssetForWrapped) break
                 val tokenAccount = tokenAccounts.getJSONObject(i)
                 val accountData = tokenAccount.optJSONObject("account")?.optJSONObject("data")
                 val parsed = accountData?.optJSONObject("parsed")
@@ -1212,8 +1369,9 @@ class SolanaRpcClient(
                 DevLog.d(TAG, "[M2] token[$i] mint=$mint amount=$amount decimals=$decimals")
                 val isNft = amount == "1" && decimals == 0 && mint.isNotEmpty()
                 if (isNft) nftCount++
-                if (mint.isNotEmpty()) {
-                    DevLog.d(TAG, "[M2] token[$i] querying Metaplex metadata for mint=$mint...")
+                if (mint.isNotEmpty() && getAssetCalls < maxGetAssetForWrapped) {
+                    getAssetCalls++
+                    DevLog.d(TAG, "[M2] token[$i] querying Metaplex metadata for mint=$mint ($getAssetCalls/$maxGetAssetForWrapped)...")
                     val domainName = queryMetaplexMetadata(mint)
                     DevLog.d(TAG, "[M2] token[$i] metadata name='$domainName' endsWith(.skr)=${domainName.endsWith(".skr")}")
                     if (domainName.isNotEmpty() && domainName.endsWith(".skr")) {
@@ -1222,7 +1380,7 @@ class SolanaRpcClient(
                     }
                 }
             }
-            DevLog.i(TAG, "[M2] EXIT: NFTs=$nftCount .skr domains=${skrDomains.size}")
+            DevLog.i(TAG, "[M2] EXIT: NFTs=$nftCount getAssetCalls=$getAssetCalls .skr domains=${skrDomains.size}")
             skrDomains
         } catch (e: Exception) {
             DevLog.e(TAG, "[M2] ❌ Exception", e)

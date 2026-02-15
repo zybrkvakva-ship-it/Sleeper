@@ -42,7 +42,13 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
     /** Результат покупки буста/Genesis (сообщение для UI). null = нет события. */
     private val _purchaseMessage = MutableStateFlow<String?>(null)
     val purchaseMessage: StateFlow<String?> = _purchaseMessage.asStateFlow()
-    fun clearPurchaseMessage() { _purchaseMessage.value = null }
+    /** true = успех (зелёный), false = ошибка/предупреждение (жёлтый). */
+    private val _purchaseSuccess = MutableStateFlow<Boolean?>(null)
+    val purchaseSuccess: StateFlow<Boolean?> = _purchaseSuccess.asStateFlow()
+    fun clearPurchaseMessage() {
+        _purchaseMessage.value = null
+        _purchaseSuccess.value = null
+    }
     
     fun refreshAvailableSkr() {
         viewModelScope.launch {
@@ -61,9 +67,11 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
     fun purchaseSkrBoost(boostId: String, sender: ActivityResultSender?) {
         viewModelScope.launch {
             DevLog.d(TAG, "purchaseSkrBoost ENTRY boostId=$boostId sender=${sender != null}")
+            val app = getApplication<Application>()
             val boost = SkrBoostCatalog.get(boostId) ?: run {
                 DevLog.w(TAG, "purchaseSkrBoost boost not found: $boostId")
-                _purchaseMessage.value = "Буст не найден"
+                _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_boost_not_found)
+                _purchaseSuccess.value = false
                 return@launch
             }
             val treasury = BuildConfig.BOOST_TREASURY?.trim()?.takeIf { it.isNotEmpty() }
@@ -71,7 +79,8 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
                 DevLog.d(TAG, "purchaseSkrBoost offline mode: treasury=${treasury != null} sender=${sender != null}")
                 repository.purchaseSkrBoost(boostId)
                 refreshAvailableSkr()
-                _purchaseMessage.value = "Буст активирован (ончейн не настроен)"
+                _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_boost_activated_offline)
+                _purchaseSuccess.value = true
                 return@launch
             }
             val amounts = when (boostId) {
@@ -84,7 +93,8 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
             val blockhash = rpcClient.getLatestBlockhash()
             if (blockhash == null) {
                 DevLog.e(TAG, "purchaseSkrBoost getLatestBlockhash failed")
-                _purchaseMessage.value = "Не удалось получить blockhash"
+                _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_blockhash_failed)
+                _purchaseSuccess.value = false
                 return@launch
             }
             DevLog.d(TAG, "purchaseSkrBoost blockhash=${DevLog.mask(blockhash)} calling signAndSendSplTransfers...")
@@ -93,15 +103,18 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
                     repository.purchaseSkrBoost(boostId)
                     refreshAvailableSkr()
                     DevLog.i(TAG, "purchaseSkrBoost SUCCESS tx=${result.signatureBase58.take(20)}...")
-                    _purchaseMessage.value = "Буст оплачен! Tx: ${result.signatureBase58.take(16)}..."
+                    _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_boost_paid_tx, result.signatureBase58.take(16))
+                    _purchaseSuccess.value = true
                 }
                 is SplTransferResult.NoWalletFound -> {
                     DevLog.w(TAG, "purchaseSkrBoost NoWalletFound")
-                    _purchaseMessage.value = "Кошелёк не найден"
+                    _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_wallet_not_found)
+                    _purchaseSuccess.value = false
                 }
                 is SplTransferResult.Error -> {
                     DevLog.e(TAG, "purchaseSkrBoost Error: ${result.message}")
                     _purchaseMessage.value = result.message
+                    _purchaseSuccess.value = false
                 }
             }
         }
@@ -113,11 +126,13 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
     fun purchaseGenesisNft(sender: ActivityResultSender?) {
         viewModelScope.launch {
             DevLog.d(TAG, "purchaseGenesisNft ENTRY sender=${sender != null} priceRaw=$genesisNftPriceSkrRaw")
+            val app = getApplication<Application>()
             if (sender == null) {
                 DevLog.d(TAG, "purchaseGenesisNft no sender -> offline activate")
                 repository.activateGenesisNft()
                 refreshAvailableSkr()
-                _purchaseMessage.value = "Genesis NFT активирован (ончейн не настроен)"
+                _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_genesis_activated_offline)
+                _purchaseSuccess.value = true
                 return@launch
             }
             val destination = BuildConfig.BOOST_TREASURY?.trim()?.takeIf { it.isNotEmpty() }
@@ -125,13 +140,15 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
                 DevLog.d(TAG, "purchaseGenesisNft no BOOST_TREASURY -> local only")
                 repository.activateGenesisNft()
                 refreshAvailableSkr()
-                _purchaseMessage.value = "Genesis NFT активирован"
+                _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_genesis_activated)
+                _purchaseSuccess.value = true
                 return@launch
             }
             val blockhash = rpcClient.getLatestBlockhash()
             if (blockhash == null) {
                 DevLog.e(TAG, "purchaseGenesisNft getLatestBlockhash failed")
-                _purchaseMessage.value = "Не удалось получить blockhash"
+                _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_blockhash_failed)
+                _purchaseSuccess.value = false
                 return@launch
             }
             DevLog.d(TAG, "purchaseGenesisNft destination=${DevLog.mask(destination)} calling signAndSendSplTransfers...")
@@ -142,15 +159,18 @@ class UpgradeViewModel(application: Application) : AndroidViewModel(application)
                     repository.activateGenesisNft()
                     refreshAvailableSkr()
                     DevLog.i(TAG, "purchaseGenesisNft SUCCESS tx=${result.signatureBase58.take(20)}...")
-                    _purchaseMessage.value = "Genesis NFT оплачен! Tx: ${result.signatureBase58.take(16)}..."
+                    _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_genesis_paid_tx, result.signatureBase58.take(16))
+                    _purchaseSuccess.value = true
                 }
                 is SplTransferResult.NoWalletFound -> {
                     DevLog.w(TAG, "purchaseGenesisNft NoWalletFound")
-                    _purchaseMessage.value = "Кошелёк не найден"
+                    _purchaseMessage.value = app.getString(com.sleeper.app.R.string.upgrade_wallet_not_found)
+                    _purchaseSuccess.value = false
                 }
                 is SplTransferResult.Error -> {
                     DevLog.e(TAG, "purchaseGenesisNft Error: ${result.message}")
                     _purchaseMessage.value = result.message
+                    _purchaseSuccess.value = false
                 }
             }
         }

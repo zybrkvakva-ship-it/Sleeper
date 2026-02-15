@@ -4,6 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
@@ -41,7 +46,7 @@ sealed class Screen(val route: String, @StringRes val titleResId: Int, val icon:
     object Upgrade : Screen("upgrade", R.string.nav_upgrade, Icons.Default.Star)
     object Tasks : Screen("tasks", R.string.nav_tasks, Icons.Default.CheckCircle)
     object Leaderboard : Screen("leaderboard", R.string.nav_leaderboard, Icons.Default.List)
-    object Wallet : Screen("wallet", R.string.nav_wallet, Icons.Default.AccountBox)
+    object Wallet : Screen("wallet", R.string.nav_wallet, Icons.Default.AccountBalanceWallet)
 }
 
 val bottomNavItems = listOf(
@@ -66,12 +71,16 @@ fun MainNavigation() {
             )
         },
         bottomBar = {
-            Column(modifier = Modifier.background(BgMain)) {
-                HorizontalDivider(color = Stroke, thickness = 1.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(BottomBarBackground)
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = 14.dp, horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -102,7 +111,16 @@ fun MainNavigation() {
                             Icon(
                                 imageVector = screen.icon,
                                 contentDescription = stringResource(screen.titleResId),
-                                modifier = Modifier.size(26.dp),
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .then(
+                                        if (selected) Modifier.shadow(
+                                            elevation = 10.dp,
+                                            shape = CircleShape,
+                                            ambientColor = CyberGreen.copy(alpha = 0.5f),
+                                            spotColor = CyberGreen.copy(alpha = 0.4f)
+                                        ) else Modifier
+                                    ),
                                 tint = iconColor
                             )
                             Spacer(modifier = Modifier.height(4.dp))

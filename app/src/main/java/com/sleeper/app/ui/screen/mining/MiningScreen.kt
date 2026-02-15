@@ -18,11 +18,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sleeper.app.R
 import com.sleeper.app.ui.components.EnergyBar
 import kotlinx.coroutines.delay
 import com.sleeper.app.ui.components.MiningButton
@@ -53,7 +55,7 @@ fun MiningScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BgMain)
-            .padding(16.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -97,7 +99,7 @@ fun MiningScreen(
             strokeColor = Stroke
         ) {
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier = Modifier.padding(14.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -109,27 +111,27 @@ fun MiningScreen(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Block",
                                 tint = CyberGreen,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Блок #${uiState.currentBlock}",
-                            fontSize = 18.sp,
+                            text = stringResource(R.string.mining_block, uiState.currentBlock),
+                            fontSize = 16.sp,
                             color = CyberWhite,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Сложность: ${uiState.difficulty}",
+                                text = stringResource(R.string.mining_difficulty, uiState.difficulty),
                                 fontSize = 14.sp,
                                 color = CyberGray
                             )
                             if (uiState.isDemoNetworkStats) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Демо",
+                                    text = stringResource(R.string.mining_demo),
                                     fontSize = 11.sp,
                                     color = CyberGray
                                 )
@@ -139,18 +141,18 @@ fun MiningScreen(
                     
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                        text = "Награда",
+                        text = stringResource(R.string.mining_reward_label),
                         fontSize = 12.sp,
                         color = CyberGray
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "500 pts",
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             color = CyberYellow,
                             fontWeight = FontWeight.ExtraBold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Person,
@@ -167,7 +169,7 @@ fun MiningScreen(
                             if (uiState.isDemoNetworkStats) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Демо",
+                                    text = stringResource(R.string.mining_demo),
                                     fontSize = 11.sp,
                                     color = CyberGray
                                 )
@@ -178,7 +180,7 @@ fun MiningScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         
         // Энергия в карточке (Seed Vault)
         com.sleeper.app.ui.components.CyberCard(
@@ -186,22 +188,22 @@ fun MiningScreen(
             cornerRadius = 12.dp,
             strokeColor = Stroke
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 EnergyBar(
                     current = uiState.energyCurrent,
                     max = uiState.energyMax
                 )
                 Text(
                     text = if (uiState.energyCurrent >= uiState.energyMax) {
-                        "Энергии хватит на ~7 ч"
+                        stringResource(R.string.mining_energy_hint_full)
                     } else if (!uiState.isMining && uiState.energyCurrent < uiState.energyMax) {
-                        "Полное восстановление ~17 ч"
+                        stringResource(R.string.mining_energy_hint_recovery)
                     } else {
-                        "Энергия: 1/сек при майнинге, 25/мин при простое"
+                        stringResource(R.string.mining_energy_hint_rates)
                     },
                     fontSize = 12.sp,
                     color = CyberGray,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 6.dp)
                 )
             }
         }
@@ -215,22 +217,22 @@ fun MiningScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = if (uiState.stakedSkrHuman > 0) {
-                        "Стейк: ${String.format("%,.0f", uiState.stakedSkrHuman)} SKR"
+                        stringResource(R.string.mining_stake_format, String.format("%,.0f", uiState.stakedSkrHuman))
                     } else {
-                        "Стейк не обнаружен (базовая награда)"
+                        stringResource(R.string.mining_stake_none)
                     },
                     fontSize = 14.sp,
                     color = CyberWhite
                 )
                 Text(
                     text = if (uiState.stakeMultiplier > 1.0) {
-                        "+${((uiState.stakeMultiplier - 1.0) * 100).toInt()}% к награде"
+                        stringResource(R.string.mining_stake_bonus, ((uiState.stakeMultiplier - 1.0) * 100).toInt())
                     } else {
                         "x1.0"
                     },
@@ -242,6 +244,38 @@ fun MiningScreen(
         }
 
         if (uiState.hasGenesisNft) {
+            Spacer(modifier = Modifier.height(6.dp))
+            com.sleeper.app.ui.components.CyberCard(
+                modifier = Modifier.fillMaxWidth(),
+                strokeColor = CyberYellow,
+                cornerRadius = 12.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.mining_genesis_holder),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CyberYellow
+                    )
+                    Text(
+                        text = stringResource(R.string.mining_genesis_forever, String.format("%.1f", uiState.genesisNftMultiplier)),
+                        fontSize = 14.sp,
+                        color = CyberGray
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Day 3: Low energy warning (< 20%)
+        if (uiState.showLowEnergyWarning) {
             Spacer(modifier = Modifier.height(8.dp))
             com.sleeper.app.ui.components.CyberCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -252,38 +286,6 @@ fun MiningScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Genesis holder",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CyberYellow
-                    )
-                    Text(
-                        text = "x${String.format("%.1f", uiState.genesisNftMultiplier)} навсегда",
-                        fontSize = 14.sp,
-                        color = CyberGray
-                    )
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        // Day 3: Low energy warning (< 20%)
-        if (uiState.showLowEnergyWarning) {
-            Spacer(modifier = Modifier.height(12.dp))
-            com.sleeper.app.ui.components.CyberCard(
-                modifier = Modifier.fillMaxWidth(),
-                strokeColor = CyberYellow,
-                cornerRadius = 12.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -294,7 +296,7 @@ fun MiningScreen(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Низкая энергия. Восстановление: 25 ед/мин.",
+                        text = stringResource(R.string.mining_low_energy_warning),
                         fontSize = 14.sp,
                         color = CyberWhite,
                         fontWeight = FontWeight.Medium
@@ -303,7 +305,7 @@ fun MiningScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(14.dp))
         
         // .skr Token Verification Section
         if (uiState.walletConnected) {
@@ -316,7 +318,7 @@ fun MiningScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -330,7 +332,7 @@ fun MiningScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
                                 Text(
-                                    text = "MINING AUTHORIZED",
+                                    text = stringResource(R.string.skr_mining_authorized),
                                     fontSize = 7.sp,
                                     color = CyberGreen,
                                     fontWeight = FontWeight.Bold
@@ -347,7 +349,7 @@ fun MiningScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             } else {
                 // Token not verified (уменьшено в 2 раза)
                 com.sleeper.app.ui.components.CyberCard(
@@ -367,7 +369,7 @@ fun MiningScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Требуется .skr токен",
+                            text = stringResource(R.string.skr_required),
                             fontSize = 9.sp,
                             color = CyberYellow,
                             fontWeight = FontWeight.Bold,
@@ -375,21 +377,21 @@ fun MiningScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Для майнинга нужен .skr username",
+                            text = stringResource(R.string.skr_required_hint),
                             fontSize = 7.sp,
                             color = CyberWhite.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         com.sleeper.app.ui.components.CyberButton(
-                            text = "Верифицировать .skr токен",
+                            text = stringResource(R.string.skr_verify_button),
                             onClick = { viewModel.verifyTokenForMining() },
                             strokeColor = CyberYellow
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
         } else {
             com.sleeper.app.ui.components.CyberCard(
@@ -405,11 +407,11 @@ fun MiningScreen(
                         imageVector = Icons.Default.Warning,
                         contentDescription = "Warning",
                         tint = CyberRed,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Wallet не подключён",
+                        text = stringResource(R.string.wallet_not_connected),
                         fontSize = 9.sp,
                         color = CyberRed,
                         fontWeight = FontWeight.Bold,
@@ -417,7 +419,7 @@ fun MiningScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Перейди в КОШЕЛЁК и подключи кошелёк",
+                        text = stringResource(R.string.wallet_connect_hint),
                         fontSize = 7.sp,
                         color = CyberWhite.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center
@@ -425,12 +427,12 @@ fun MiningScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
         }
         
         // Mining Button (ГЛАВНАЯ КНОПКА!)
         MiningButton(
-            text = if (uiState.isMining) "ОСТАНОВИТЬ" else "НАЧАТЬ МАЙНИНГ",
+            text = if (uiState.isMining) stringResource(R.string.mining_stop) else stringResource(R.string.mining_start),
             onClick = {
                 if (uiState.isMining) {
                     viewModel.stopMining()
@@ -442,10 +444,10 @@ fun MiningScreen(
             isMining = uiState.isMining
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         
-        // Бусты (Seed Vault: сворачиваемая секция)
-        var boostsExpanded by remember { mutableStateOf(true) }
+        // Бусты (Seed Vault: сворачиваемая секция; по умолчанию свёрнуты — строка Sleep Points видна без свайпа)
+        var boostsExpanded by remember { mutableStateOf(false) }
         val firstBoost = SkrBoostCatalog.microTxBoosts.firstOrNull()
         com.sleeper.app.ui.components.CyberCard(
             modifier = Modifier
@@ -454,27 +456,27 @@ fun MiningScreen(
             cornerRadius = 12.dp,
             strokeColor = Stroke
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Бусты",
-                        fontSize = 16.sp,
+                        text = stringResource(R.string.mining_boosts),
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = CyberWhite
                     )
                     Icon(
                         imageVector = if (boostsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (boostsExpanded) "Свернуть" else "Развернуть",
+                        contentDescription = if (boostsExpanded) stringResource(R.string.accessibility_collapse) else stringResource(R.string.accessibility_expand),
                         tint = CyberGray,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
                 if (boostsExpanded && firstBoost != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -482,13 +484,13 @@ fun MiningScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "+${((firstBoost.multiplier - 1.0) * 100).toInt()}% к награде на ${firstBoost.durationDisplay()}",
+                                text = stringResource(R.string.mining_boost_reward_line, ((firstBoost.multiplier - 1.0) * 100).toInt(), firstBoost.durationDisplay()),
                                 fontSize = 14.sp,
                                 color = CyberWhite,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "(1 перевод в блокчейне)",
+                                text = stringResource(R.string.mining_boost_one_tx),
                                 fontSize = 12.sp,
                                 color = CyberGray,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -517,7 +519,7 @@ fun MiningScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         
         // Mining Stats
         if (uiState.isMining) {
@@ -529,7 +531,7 @@ fun MiningScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     StatItem(
@@ -548,9 +550,9 @@ fun MiningScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         
-        // Points Balance (окно с токенами SKR — уменьшено в 2 раза)
+        // Points Balance (нижняя строка — должна помещаться без свайпа)
         com.sleeper.app.ui.components.CyberCard(
             modifier = Modifier.fillMaxWidth(),
             strokeColor = CyberYellow,
@@ -560,7 +562,7 @@ fun MiningScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -568,27 +570,27 @@ fun MiningScreen(
                         imageVector = Icons.Default.Star,
                         contentDescription = "Points",
                         tint = CyberYellow,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Sleep Points",
-                        fontSize = 8.sp,
+                        text = stringResource(R.string.sleep_points_label),
+                        fontSize = 12.sp,
                         color = CyberGray,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = String.format("%,d", uiState.pointsBalance),
-                    fontSize = 21.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = CyberYellow
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         
         // Device Info (для отладки)
         if (uiState.deviceFingerprint.isNotEmpty()) {

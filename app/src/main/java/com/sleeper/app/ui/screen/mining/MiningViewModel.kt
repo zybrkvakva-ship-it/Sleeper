@@ -18,6 +18,8 @@ import com.sleeper.app.security.TokenVerifier
 import com.sleeper.app.service.MiningService
 import com.sleeper.app.utils.DevLog
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -197,14 +199,19 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 DevLog.i(TAG, "✅ Mining authorized for: ${tokenResult.username}")
             } else {
                 walletManager.saveSkrUsername(null)
+                val errorMsg = when (tokenResult.reasonCode) {
+                    "NO_WALLET" -> getApplication<Application>().getString(com.sleeper.app.R.string.wallet_not_connected)
+                    "NO_SKR_TOKEN" -> getApplication<Application>().getString(com.sleeper.app.R.string.skr_required_hint)
+                    else -> tokenResult.reason
+                }
                 _uiState.value = _uiState.value.copy(
                     isVerifying = false,
                     isTokenVerified = false,
                     skrUsername = null,
                     isDeviceValid = false,
-                    errorMessage = tokenResult.reason
+                    errorMessage = errorMsg
                 )
-                DevLog.w(TAG, "❌ Mining blocked: ${tokenResult.reason}")
+                DevLog.w(TAG, "❌ Mining blocked: $errorMsg")
             }
         }
     }
@@ -216,7 +223,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
             if (!_uiState.value.isTokenVerified) {
                 DevLog.w(TAG, "❌ Mining blocked: .skr token not verified. Filter logcat by 'SolanaRpcClient' or 'TokenVerifier' for detection details.")
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = "Подключите wallet с .skr токеном для майнинга"
+                    errorMessage = getApplication<Application>().getString(com.sleeper.app.R.string.mining_connect_wallet_skr)
                 )
                 return@launch
             }
@@ -313,23 +320,27 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     
     /**
      * Фоновая проверка .skr без спиннера (для диагностики и предзаполнения username).
+     * .skr и стейк запрашиваются параллельно — время = max(domains, staking), а не сумма.
      */
     private fun verifySkrTokenInBackground() {
         viewModelScope.launch {
-            val addr = walletManager.getSavedWalletAddress()
+            val addr = walletManager.getSavedWalletAddress() ?: return@launch
             DevLog.d(TAG, "[SKR_BG] verifySkrTokenInBackground ENTRY wallet=$addr")
-            val tokenResult = tokenVerifier.verifySkrToken()
-            DevLog.d(TAG, "[SKR_BG] .skr verification: valid=${tokenResult.isValid} username=${tokenResult.username} reason=${tokenResult.reason} tokenAddress=${tokenResult.tokenAddress}")
-            if (tokenResult.isValid && tokenResult.username != null) {
-                walletManager.saveSkrUsername(tokenResult.username)
-                _uiState.value = _uiState.value.copy(
-                    isTokenVerified = true,
-                    skrUsername = tokenResult.username
-                )
-                DevLog.d(TAG, "Auto-verified .skr: ${tokenResult.username}")
-                refreshStake(addr!!)
+            coroutineScope {
+                val skrDeferred = async { tokenVerifier.verifySkrToken() }
+                val stakeDeferred = async { refreshStake(addr) }
+                val tokenResult = skrDeferred.await()
+                DevLog.d(TAG, "[SKR_BG] .skr verification: valid=${tokenResult.isValid} username=${tokenResult.username} reason=${tokenResult.reason} tokenAddress=${tokenResult.tokenAddress}")
+                if (tokenResult.isValid && tokenResult.username != null) {
+                    walletManager.saveSkrUsername(tokenResult.username)
+                    _uiState.value = _uiState.value.copy(
+                        isTokenVerified = true,
+                        skrUsername = tokenResult.username
+                    )
+                    DevLog.d(TAG, "Auto-verified .skr: ${tokenResult.username}")
+                }
+                stakeDeferred.await()
             }
-            // Если не найден — не меняем состояние; пользователь может нажать «Верифицировать» и увидеть причину
         }
     }
     

@@ -11,10 +11,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sleeper.app.R
 import com.sleeper.app.data.local.TaskEntity
 import com.sleeper.app.data.local.TaskType
 import com.sleeper.app.ui.components.CyberCard
@@ -37,7 +39,7 @@ fun TasksScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "ЕЖЕДНЕВНЫЕ (7500 энергии)",
+            text = stringResource(R.string.tasks_daily_energy).uppercase(),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = CyberWhite
@@ -56,7 +58,7 @@ fun TasksScreen(
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "СПЕЦ. (удвоение энергии)",
+            text = stringResource(R.string.tasks_special_energy).uppercase(),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = CyberYellow
@@ -100,14 +102,14 @@ private fun TaskCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = task.title,
+                        text = stringResource(taskTitleResId(task.id)),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (task.isCompleted) CyberGray else CyberWhite
                     )
                     if (task.isCompleted) {
                         Text(
-                            text = "Выполнено",
+                            text = stringResource(R.string.task_completed),
                             fontSize = 12.sp,
                             color = CyberGreen
                         )
@@ -123,4 +125,12 @@ private fun TaskCard(
             )
         }
     }
+}
+
+private fun taskTitleResId(taskId: String): Int = when (taskId) {
+    "invite_friend" -> R.string.task_invite_friend
+    "share" -> R.string.task_share_social
+    "watch_story" -> R.string.task_watch_stories
+    "subscribe" -> R.string.task_subscribe
+    else -> R.string.task_invite_friend
 }

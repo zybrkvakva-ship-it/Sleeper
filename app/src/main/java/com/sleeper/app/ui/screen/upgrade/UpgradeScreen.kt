@@ -13,11 +13,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sleeper.app.LocalActivityResultSender
+import com.sleeper.app.R
 import com.sleeper.app.data.local.SkrBoostItem
 import com.sleeper.app.ui.components.CyberCard
 import com.sleeper.app.ui.components.EnergyBar
@@ -30,6 +32,7 @@ fun UpgradeScreen(
     val userStats by viewModel.userStats.collectAsState()
     val availableSkrRaw by viewModel.availableSkrRaw.collectAsState()
     val purchaseMessage by viewModel.purchaseMessage.collectAsState()
+    val purchaseSuccess by viewModel.purchaseSuccess.collectAsState()
     val activityResultSender = LocalActivityResultSender.current
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -44,7 +47,7 @@ fun UpgradeScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "АПГРЕЙД",
+            text = stringResource(R.string.upgrade_screen_title).uppercase(),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberWhite
@@ -54,7 +57,7 @@ fun UpgradeScreen(
             Text(
                 text = msg,
                 fontSize = 12.sp,
-                color = if (msg.startsWith("Буст") || msg.startsWith("Genesis")) com.sleeper.app.ui.theme.CyberGreen else com.sleeper.app.ui.theme.CyberYellow,
+                color = if (purchaseSuccess == true) com.sleeper.app.ui.theme.CyberGreen else com.sleeper.app.ui.theme.CyberYellow,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
@@ -80,14 +83,14 @@ fun UpgradeScreen(
         
         // Бусты за SKR
         Text(
-            text = "БУСТЫ ЗА SKR",
+            text = stringResource(R.string.upgrade_boosts_skr),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberGreen
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Доступно: ${String.format("%,.2f", availableSkrRaw / 1_000_000.0)} SKR",
+            text = stringResource(R.string.upgrade_available, String.format("%,.2f", availableSkrRaw / 1_000_000.0)),
             fontSize = 14.sp,
             color = com.sleeper.app.ui.theme.CyberGray
         )
@@ -95,6 +98,8 @@ fun UpgradeScreen(
         viewModel.skrBoosts.forEach { boost ->
             SkrBoostCard(
                 boost = boost,
+                name = stringResource(boostNameResId(boost.id)),
+                description = stringResource(boostDescResId(boost.id)),
                 availableSkrRaw = availableSkrRaw,
                 onPurchase = { viewModel.purchaseSkrBoost(boost.id, activityResultSender) }
             )
@@ -105,7 +110,7 @@ fun UpgradeScreen(
 
         // Genesis NFT
         Text(
-            text = "GENESIS NFT",
+            text = stringResource(R.string.upgrade_genesis_nft),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberYellow
@@ -126,13 +131,13 @@ fun UpgradeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Genesis holder",
+                        text = stringResource(R.string.mining_genesis_holder),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = com.sleeper.app.ui.theme.CyberYellow
                     )
                     Text(
-                        text = "+${((stats.genesisNftMultiplier - 1.0) * 100).toInt()}% навсегда",
+                        text = stringResource(R.string.upgrade_genesis_forever, ((stats.genesisNftMultiplier - 1.0) * 100).toInt()),
                         fontSize = 14.sp,
                         color = com.sleeper.app.ui.theme.CyberGray
                     )
@@ -146,14 +151,14 @@ fun UpgradeScreen(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "Genesis NFT — постоянный буст к награде",
+                        text = stringResource(R.string.upgrade_genesis_description),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = com.sleeper.app.ui.theme.CyberWhite
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "+10% к награде навсегда после минта",
+                        text = stringResource(R.string.upgrade_genesis_hint),
                         fontSize = 14.sp,
                         color = com.sleeper.app.ui.theme.CyberGray
                     )
@@ -170,7 +175,7 @@ fun UpgradeScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "Минт за 275 SKR",
+                            text = stringResource(R.string.upgrade_mint_button),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -184,6 +189,8 @@ fun UpgradeScreen(
 @Composable
 private fun SkrBoostCard(
     boost: SkrBoostItem,
+    name: String,
+    description: String,
     availableSkrRaw: Long,
     onPurchase: () -> Unit
 ) {
@@ -203,14 +210,14 @@ private fun SkrBoostCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = boost.name,
+                    text = name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = CyberWhite
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = boost.description,
+                    text = description,
                     fontSize = 14.sp,
                     color = CyberGray
                 )
@@ -240,4 +247,26 @@ private fun SkrBoostCard(
             }
         }
     }
+}
+
+private fun boostNameResId(boostId: String): Int = when (boostId) {
+    "boost_7h" -> R.string.boost_7h_name
+    "boost_7x" -> R.string.boost_7x_name
+    "boost_49x" -> R.string.boost_49x_name
+    "skr_lite" -> R.string.skr_lite_name
+    "skr_plus" -> R.string.skr_plus_name
+    "skr_pro" -> R.string.skr_pro_name
+    "skr_ultra" -> R.string.skr_ultra_name
+    else -> R.string.boost_7h_name
+}
+
+private fun boostDescResId(boostId: String): Int = when (boostId) {
+    "boost_7h" -> R.string.boost_7h_desc
+    "boost_7x" -> R.string.boost_7x_desc
+    "boost_49x" -> R.string.boost_49x_desc
+    "skr_lite" -> R.string.skr_lite_desc
+    "skr_plus" -> R.string.skr_plus_desc
+    "skr_pro" -> R.string.skr_pro_desc
+    "skr_ultra" -> R.string.skr_ultra_desc
+    else -> R.string.boost_7h_desc
 }

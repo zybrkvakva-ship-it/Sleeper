@@ -31,7 +31,9 @@ class TokenVerifier(
         val isValid: Boolean,
         val username: String?,
         val tokenAddress: String?,
-        val reason: String
+        val reason: String,
+        /** Код для локализации в UI: NO_WALLET, NO_SKR_TOKEN, null = использовать reason как есть */
+        val reasonCode: String? = null
     )
     
     /**
@@ -48,7 +50,8 @@ class TokenVerifier(
                 isValid = false,
                 username = null,
                 tokenAddress = null,
-                reason = "Wallet не подключён"
+                reason = "Wallet not connected",
+                reasonCode = "NO_WALLET"
             )
             DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=false username=null reason=${result.reason}")
             return result
@@ -71,13 +74,13 @@ class TokenVerifier(
             DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=true username=${result.username} reason=${result.reason}")
             result
         } else {
-            val reason = "У вашего wallet нет .skr токена (username)"
-            DevLog.w(TAG, "[VERIFY] ❌ No .skr token found for wallet. reason=$reason")
+            DevLog.w(TAG, "[VERIFY] ❌ No .skr token found for wallet.")
             val result = TokenVerificationResult(
                 isValid = false,
                 username = null,
                 tokenAddress = null,
-                reason = reason
+                reason = "No .skr token",
+                reasonCode = "NO_SKR_TOKEN"
             )
             DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=false username=null reason=$reason")
             result

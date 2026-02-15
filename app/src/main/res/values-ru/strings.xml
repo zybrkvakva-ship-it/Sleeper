@@ -22,6 +22,25 @@
     <string name="mining_rate">%.2f Sleep pts/s</string>
     <string name="mining_uptime">%s uptime</string>
     <string name="mining_storage" formatted="false">Storage: %dMB x%.1f</string>
+    <string name="mining_reward_label">Награда</string>
+    <string name="mining_demo">Демо</string>
+    <string name="mining_energy_hint_full">Энергии хватит на ~7 ч</string>
+    <string name="mining_energy_hint_recovery">Полное восстановление ~17 ч</string>
+    <string name="mining_energy_hint_rates">Энергия: 1/сек при майнинге, 25/мин при простое</string>
+    <string name="mining_stake_format">Стейк: %s SKR</string>
+    <string name="mining_stake_none">Стейк не обнаружен (базовая награда)</string>
+    <string name="mining_stake_bonus">+%d%% к награде</string>
+    <string name="mining_genesis_holder">Держатель Genesis</string>
+    <string name="mining_genesis_forever" formatted="false">x%s навсегда</string>
+    <string name="mining_low_energy_warning">Низкая энергия. Восстановление: 25 ед/мин.</string>
+    <string name="mining_boosts">Бусты</string>
+    <string name="skr_mining_authorized">МАЙНИНГ РАЗРЕШЁН</string>
+    <string name="skr_required">Требуется .skr токен</string>
+    <string name="skr_required_hint">Для майнинга нужен .skr username</string>
+    <string name="skr_verify_button">Верифицировать .skr токен</string>
+    <string name="wallet_not_connected">Wallet не подключён</string>
+    <string name="wallet_connect_hint">Перейди в КОШЕЛЁК и подключи кошелёк</string>
+    <string name="sleep_points_label">Sleep Points</string>
     
     <!-- Notifications -->
     <string name="notif_channel_mining">Майнинг</string>
@@ -30,27 +49,80 @@
     <string name="notif_human_check_title">🔔 Проверка активности</string>
     <string name="notif_human_check_text">Тапни для подтверждения</string>
     
-    <!-- Upgrade Screen (только бусты за SKR) -->
+    <!-- Upgrade Screen -->
     <string name="upgrade_title">⚡ АПГРЕЙДЫ</string>
+    <string name="upgrade_screen_title">АПГРЕЙД</string>
+    <string name="upgrade_boosts_skr">БУСТЫ ЗА SKR</string>
+    <string name="upgrade_available" formatted="false">Доступно: %s SKR</string>
+    <string name="upgrade_genesis_nft">GENESIS NFT</string>
+    <string name="upgrade_genesis_description">Genesis NFT — постоянный буст к награде</string>
+    <string name="upgrade_genesis_hint">+10%% к награде навсегда после минта</string>
+    <string name="upgrade_mint_button">Минт за 275 SKR</string>
+    <string name="upgrade_genesis_forever" formatted="false">+%d%% навсегда</string>
+    <string name="boost_7h_name">1× буст 7 ч</string>
+    <string name="boost_7h_desc">+5%% к награде на 7 часов (1 перевод в блокчейне)</string>
+    <string name="boost_7x_name">7× буст 49 ч</string>
+    <string name="boost_7x_desc">+5%% на 49 ч — 7 переводов в 1 транзакции</string>
+    <string name="boost_49x_name">49× буст 7 дней</string>
+    <string name="boost_49x_desc">+10%% на 7 дней — 49 переводов в 1 транзакции</string>
+    <string name="skr_lite_name">Lite +5%%</string>
+    <string name="skr_lite_desc">Буст награды на 5%%</string>
+    <string name="skr_plus_name">Plus +10%%</string>
+    <string name="skr_plus_desc">Буст награды на 10%%</string>
+    <string name="skr_pro_name">Pro +50%%</string>
+    <string name="skr_pro_desc">Буст награды на 50%%</string>
+    <string name="skr_ultra_name">Ultra +100%%</string>
+    <string name="skr_ultra_desc">Удваивает награду</string>
     
     <!-- Tasks Screen -->
     <string name="tasks_daily">✅ ЕЖЕДНЕВНЫЕ</string>
     <string name="tasks_special">🔥 СПЕЦ.</string>
+    <string name="tasks_daily_energy">ЕЖЕДНЕВНЫЕ (7500 энергии)</string>
+    <string name="tasks_special_energy">СПЕЦ. (удвоение энергии)</string>
     <string name="tasks_invite">Пригласи друга</string>
     <string name="tasks_share">Поделись</string>
     <string name="tasks_story">Смотри сторис</string>
+    <string name="task_invite_friend">Пригласи друга</string>
+    <string name="task_share_social">Поделись в соцсетях</string>
+    <string name="task_watch_stories">Смотри сторис</string>
+    <string name="task_subscribe">Подпишись на @Sleeper</string>
+    <string name="task_completed">Выполнено</string>
     
     <!-- Leaderboard -->
     <string name="leaderboard_title">👑 TOP 100 МАЙНЕРОВ</string>
+    <string name="leaderboard_screen_title">ТОП МАЙНЕРОВ</string>
+    <string name="leaderboard_you">ТЫ</string>
+    <string name="leaderboard_blocks_format" formatted="false">%s блоков</string>
+    <string name="leaderboard_demo_data">Демо-данные</string>
     <string name="leaderboard_global">ГЛОБАЛЬНО</string>
+    <string name="leaderboard_total_in_network">Всего в сети:</string>
+    <string name="leaderboard_blocks_found">Найдено блоков:</string>
     <string name="leaderboard_total_points">Всего в сети: %,d Sleep pts</string>
     <string name="leaderboard_total_blocks">Найдено блоков: %,d</string>
     
     <!-- Wallet -->
     <string name="wallet_title">💰 ТВОЙ БАЛАНС</string>
+    <string name="wallet_screen_title">Кошелёк</string>
+    <string name="wallet_connect_button">Подключить кошелёк</string>
+    <string name="wallet_connecting">Подключение…</string>
+    <string name="wallet_connection_error">Ошибка подключения</string>
+    <string name="wallet_connected">WALLET ПОДКЛЮЧЁН</string>
+    <string name="wallet_address" formatted="false">Адрес: %s…</string>
+    <string name="wallet_disconnect">Отключить</string>
+    <string name="wallet_claim_processing">Обработка…</string>
+    <string name="wallet_claim_success">Claim успешен!</string>
+    <string name="wallet_claim_error">Ошибка</string>
+    <string name="wallet_claim_pts" formatted="false">Claim %,d pts</string>
+    <string name="wallet_claim_dialog_title">🎉 Claim успешен!</string>
+    <string name="wallet_claim_dialog_message">Ваши Sleep Points подписаны wallet\'ом!</string>
+    <string name="wallet_claim_signature" formatted="false">Подпись: %s…</string>
     <string name="wallet_points">Sleep Points: %,d</string>
     <string name="wallet_connect">🔗 Подключить Seed Vault</string>
     <string name="wallet_claim">⏳ Claim через %s</string>
+    <string name="stats_total_blocks">Всего блоков:</string>
+    <string name="stats_mining_time">Время майнинга:</string>
+    <string name="stats_storage">Storage:</string>
+    <string name="stats_min">мин</string>
     
     <!-- Privacy -->
     <string name="privacy_title">Политика конфиденциальности</string>
@@ -63,5 +135,27 @@
     <string name="error_not_seeker">❌ Только для Solana Seeker</string>
     <string name="error_emulator">❌ Эмуляторы запрещены</string>
     <string name="error_rooted">❌ Root обнаружен</string>
+    <string name="error_clone_app">❌ Клон-приложения запрещены</string>
     <string name="error_no_energy">⚠️ Недостаточно энергии</string>
+    
+    <!-- Mining: extra -->
+    <string name="mining_connect_wallet_skr">Подключите wallet с .skr токеном для майнинга</string>
+    <string name="mining_boost_reward_line" formatted="false">+%d%% к награде на %s</string>
+    <string name="mining_boost_one_tx">(1 перевод в блокчейне)</string>
+    <string name="accessibility_collapse">Свернуть</string>
+    <string name="accessibility_expand">Развернуть</string>
+    
+    <!-- Upgrade: purchase messages -->
+    <string name="upgrade_boost_not_found">Буст не найден</string>
+    <string name="upgrade_boost_activated_offline">Буст активирован (ончейн не настроен)</string>
+    <string name="upgrade_blockhash_failed">Не удалось получить blockhash</string>
+    <string name="upgrade_boost_paid_tx" formatted="false">Буст оплачен! Tx: %s…</string>
+    <string name="upgrade_wallet_not_found">Кошелёк не найден</string>
+    <string name="upgrade_genesis_activated_offline">Genesis NFT активирован (ончейн не настроен)</string>
+    <string name="upgrade_genesis_activated">Genesis NFT активирован</string>
+    <string name="upgrade_genesis_paid_tx" formatted="false">Genesis NFT оплачен! Tx: %s…</string>
+    
+    <!-- Wallet: errors -->
+    <string name="wallet_install_solana_wallet">Установите Solana Mobile Wallet</string>
+    <string name="wallet_no_points_claim">Нет поинтов для claim</string>
 </resources>

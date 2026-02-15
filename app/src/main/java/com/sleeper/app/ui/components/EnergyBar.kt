@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sleeper.app.R
 import com.sleeper.app.ui.theme.accentGold
 import com.sleeper.app.ui.theme.accentGreen
 import com.sleeper.app.ui.theme.surface
@@ -46,7 +48,7 @@ fun EnergyBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Энергия: $current/$max",
+                text = stringResource(R.string.mining_energy, current, max),
                 style = MaterialTheme.typography.bodyMedium,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -61,20 +63,20 @@ fun EnergyBar(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(10.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .height(8.dp)
+                .clip(RoundedCornerShape(8.dp))
                 .background(surface)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedProgress)
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(
                         Brush.linearGradient(
                             colors = listOf(accentGreen, accentGold),

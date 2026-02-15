@@ -2,6 +2,7 @@ package com.sleeper.app.security
 
 import android.content.Context
 import com.sleeper.app.BuildConfig
+import com.sleeper.app.R
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.os.Build
@@ -36,7 +37,7 @@ class DeviceVerifier(private val context: Context) {
         if (!isSeekerDevice()) {
             return VerificationResult(
                 isValid = false,
-                reason = "Только для Solana Seeker телефонов",
+                reason = context.getString(R.string.error_not_seeker),
                 fingerprint = ""
             )
         }
@@ -45,7 +46,7 @@ class DeviceVerifier(private val context: Context) {
         if (isEmulator()) {
             return VerificationResult(
                 isValid = false,
-                reason = "Эмуляторы запрещены",
+                reason = context.getString(R.string.error_emulator),
                 fingerprint = ""
             )
         }
@@ -54,7 +55,7 @@ class DeviceVerifier(private val context: Context) {
         if (isRooted()) {
             return VerificationResult(
                 isValid = false,
-                reason = "Root обнаружен",
+                reason = context.getString(R.string.error_rooted),
                 fingerprint = ""
             )
         }
@@ -63,7 +64,7 @@ class DeviceVerifier(private val context: Context) {
         if (isCloneApp()) {
             return VerificationResult(
                 isValid = false,
-                reason = "Клон-приложения запрещены",
+                reason = context.getString(R.string.error_clone_app),
                 fingerprint = ""
             )
         }
