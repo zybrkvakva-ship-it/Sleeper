@@ -21,6 +21,8 @@ class DeviceVerifier(private val context: Context) {
         private const val TAG = "DeviceVerifier"
         private const val PREFS_NAME = "device_prefs"
         private const val KEY_FINGERPRINT = "device_fingerprint"
+        // Feature flag для постепенного включения device verification
+        private const val DEVICE_CHECK_ROLLOUT_PERCENTAGE = 0.1 // 10% пользователей для начала
     }
     
     data class VerificationResult(
@@ -28,6 +30,10 @@ class DeviceVerifier(private val context: Context) {
         val reason: String,
         val fingerprint: String
     )
+    
+    /**
+     * Полная проверка устройства
+     */
     
     /**
      * Полная проверка устройства
@@ -81,14 +87,24 @@ class DeviceVerifier(private val context: Context) {
     
     /**
      * Проверяет, является ли устройство Solana Seeker.
-     * В debug-сборке проверка отключена (BYPASS_DEVICE_CHECK = true).
-     * В release — проверка по model/device/manufacturer (seeker, solana, osom).
+     * Постепенное включение с feature flag для безопасности.
      */
     private fun isSeekerDevice(): Boolean {
-        if (BuildConfig.BYPASS_DEVICE_CHECK) {
+        // Для разработки всегда разрешаем
+        if (BuildConfig.DEBUG) {
             DevLog.d(TAG, "Device check bypassed (debug build)")
             return true
         }
+        
+        // Постепенное включение для production
+        val shouldEnforce = shouldEnforceDeviceCheck()
+        
+        if (!shouldEnforce) {
+            DevLog.d(TAG, "Device check soft mode - allowing device")
+            return true
+        }
+        
+        // Строгая проверка
         val model = Build.MODEL.lowercase()
         val device = Build.DEVICE.lowercase()
         val manufacturer = Build.MANUFACTURER.lowercase()
@@ -100,6 +116,23 @@ class DeviceVerifier(private val context: Context) {
         val result = isSeekerModel || isSolanaManufacturer
         DevLog.d(TAG, "Device check: model=$model, device=$device, manufacturer=$manufacturer -> $result")
         return result
+    }
+    
+    /**
+     * Определяет, следует ли применять строгую проверку устройства
+     * на основе feature flag и fingerprint'а устройства
+     */
+    private fun shouldEnforceDeviceCheck(): Boolean {
+        val fingerprint = generateDeviceFingerprint()
+        // Используем первые символы fingerprint'а для равномерного распределения
+        val hashPrefix = fingerprint.take(4).toInt(16)
+        val maxHash = 0xFFFF
+        val rolloutThreshold = (maxHash.toDouble() * DEVICE_CHECK_ROLLOUT_PERCENTAGE).toInt()
+        
+        val shouldEnforce = hashPrefix < rolloutThreshold
+        DevLog.d(TAG, "Device check rollout: hash=$hashPrefix, threshold=$rolloutThreshold, enforce=$shouldEnforce")
+        
+        return shouldEnforce
     }
     
     /**
