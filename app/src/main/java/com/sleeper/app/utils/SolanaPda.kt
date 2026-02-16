@@ -83,6 +83,15 @@ object SolanaPda {
      */
     fun findProgramAddress(seeds: List<ByteArray>, programId: ByteArray): Pair<ByteArray, Int>? {
         DevLog.d(TAG, "findProgramAddress: seedsCount=${seeds.size} programIdLen=${programId.size} trying bump 255..0")
+        
+        // Используем кэширование для оптимизации повторных вычислений
+        val cached = PdaCache.getCachedPda(seeds, programId)
+        if (cached != null) {
+            DevLog.d(TAG, "findProgramAddress: CACHED hit, found at bump=${cached.second} pdaHex=${cached.first.hex()} pdaBase58=${com.sleeper.app.utils.Base58.encode(cached.first)}")
+            return Pair(cached.first, cached.second.toInt() and 0xFF)
+        }
+        
+        // Если в кэше нет, используем стандартный алгоритм
         for (bump in 255 downTo 0) {
             val seedsWithBump = seeds + byteArrayOf(bump.toByte())
             val pda = createProgramAddress(seedsWithBump, programId)
