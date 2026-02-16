@@ -82,7 +82,7 @@ class TokenVerifier(
                 reason = "No .skr token",
                 reasonCode = "NO_SKR_TOKEN"
             )
-            DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=false username=null reason=$reason")
+            DevLog.d(TAG, "[VERIFY] verifySkrToken EXIT -> valid=false username=null reason=${result.reason}")
             result
         }
     }
