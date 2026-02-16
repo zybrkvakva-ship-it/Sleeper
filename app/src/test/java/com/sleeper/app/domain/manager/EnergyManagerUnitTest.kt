@@ -28,12 +28,17 @@ class EnergyManagerUnitTest {
     @Test
     fun `stake multiplier returns correct values`() {
         val testCases = listOf(
-            Pair(0.0, 1.0),       // No stake = 1.0x
-            Pair(500.0, 1.0),     // Below tier 1 = 1.0x
-            Pair(1000.0, 1.2),    // Tier 1 threshold = 1.2x
-            Pair(5000.0, 1.2),    // Middle of tier 1 = 1.2x
-            Pair(10000.0, 1.5),   // Tier 2 threshold = 1.5x
-            Pair(50000.0, 1.5)    // Above tier 2 = 1.5x
+            Pair(0.0, 1.0),        // 0 SKR = 1.0x
+            Pair(1000.0, 1.0),     // 1,000 SKR = 1.0x
+            Pair(4999.0, 1.0),     // 4,999 SKR = 1.0x
+            Pair(5000.0, 1.5),     // 5,000 SKR = 1.5x (Silver Tier)
+            Pair(10000.0, 1.5),    // 10,000 SKR = 1.5x (Silver Tier)
+            Pair(14999.0, 1.5),    // 14,999 SKR = 1.5x (Silver Tier)
+            Pair(15000.0, 2.5),    // 15,000 SKR = 2.5x (Gold Tier)
+            Pair(30000.0, 2.5),    // 30,000 SKR = 2.5x (Gold Tier)
+            Pair(49999.0, 2.5),    // 49,999 SKR = 2.5x (Gold Tier)
+            Pair(50000.0, 5.0),    // 50,000 SKR = 5.0x (Platinum Tier)
+            Pair(100000.0, 5.0)    // 100,000 SKR = 5.0x (Platinum Tier)
         )
 
         testCases.forEach { (stake, expected) ->
@@ -84,17 +89,25 @@ class EnergyManagerUnitTest {
     }
 
     private fun getStakeMultiplierForTest(stakedSkrHuman: Double): Double {
-        val STAKE_TIER_1_SKR = 1000.0
-        val STAKE_TIER_2_SKR = 10000.0
+        // НОВАЯ СИСТЕМА СТЕЙКИНГА
+        // Tier 1: 0 - 5,000 SKR     → 1.0x множитель
+        // Tier 2: 5,000 - 15,000 SKR → 1.5x множитель (+50%)
+        // Tier 3: 15,000 - 50,000 SKR → 2.5x множитель (+150%)
+        // Tier 4: 50,000+ SKR       → 5.0x множитель (+400%)
+        val STAKE_TIER_1_SKR = 5000.0
+        val STAKE_TIER_2_SKR = 15000.0
+        val STAKE_TIER_3_SKR = 50000.0
         val STAKE_MULT_1 = 1.0
-        val STAKE_MULT_2 = 1.2
-        val STAKE_MULT_3 = 1.5
+        val STAKE_MULT_2 = 1.5
+        val STAKE_MULT_3 = 2.5
+        val STAKE_MULT_4 = 5.0
         
         if (stakedSkrHuman <= 0) return 1.0
         return when {
-            stakedSkrHuman >= STAKE_TIER_2_SKR -> STAKE_MULT_3
-            stakedSkrHuman >= STAKE_TIER_1_SKR -> STAKE_MULT_2
-            else -> STAKE_MULT_1
+            stakedSkrHuman >= STAKE_TIER_3_SKR -> STAKE_MULT_4  // 50,000+ SKR = 5.0x
+            stakedSkrHuman >= STAKE_TIER_2_SKR -> STAKE_MULT_3  // 15,000-50,000 SKR = 2.5x
+            stakedSkrHuman >= STAKE_TIER_1_SKR -> STAKE_MULT_2  // 5,000-15,000 SKR = 1.5x
+            else -> STAKE_MULT_1                                // 0-5,000 SKR = 1.0x
         }
     }
 

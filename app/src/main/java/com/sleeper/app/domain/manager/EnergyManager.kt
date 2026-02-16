@@ -15,25 +15,32 @@ class EnergyManager(private val userStatsDao: UserStatsDao) {
         /** Полный бак = 7 часов майнинга (25_200 сек × 1/сек). */
         const val ENERGY_MAX_FULL_TANK = 25_200
         private const val BASE_POINTS_PER_SECOND = 0.2 // базовая награда
-        // Стейк SKR — множитель к награде (ступени)
-        private const val STAKE_TIER_1_SKR = 1000.0
-        private const val STAKE_TIER_2_SKR = 10000.0
+        // Стейк SKR — множитель к награде (ступени) - НОВАЯ СИСТЕМА
+        // Tier 1: 0 - 5,000 SKR     → 1.0x множитель
+        // Tier 2: 5,000 - 15,000 SKR → 1.5x множитель (+50%)
+        // Tier 3: 15,000 - 50,000 SKR → 2.5x множитель (+150%)
+        // Tier 4: 50,000+ SKR       → 5.0x множитель (+400%)
+        private const val STAKE_TIER_1_SKR = 5000.0
+        private const val STAKE_TIER_2_SKR = 15000.0
+        private const val STAKE_TIER_3_SKR = 50000.0
         private const val STAKE_MULT_1 = 1.0
-        private const val STAKE_MULT_2 = 1.2
-        private const val STAKE_MULT_3 = 1.5
+        private const val STAKE_MULT_2 = 1.5
+        private const val STAKE_MULT_3 = 2.5
+        private const val STAKE_MULT_4 = 5.0
         // Дейлики / социалки — микробуст к награде
         // Итоговый множитель: 1.0 + dailySocialBonusPercent, где bonus ∈ [0, DAILY_SOCIAL_MAX_BONUS]
         private const val DAILY_SOCIAL_CAP = 1.15          // максимальный итоговый множитель
         private const val DAILY_SOCIAL_MAX_BONUS = DAILY_SOCIAL_CAP - 1.0 // 0.15
     }
     
-    /** Множитель от стейка SKR: 0 = 1.0, 1k–10k = 1.2, 10k+ = 1.5 */
+    /** Множитель от стейка SKR: экспоненциальная система */
     private fun stakeMultiplier(stakedSkrHuman: Double): Double {
         if (stakedSkrHuman <= 0) return 1.0
         return when {
-            stakedSkrHuman >= STAKE_TIER_2_SKR -> STAKE_MULT_3
-            stakedSkrHuman >= STAKE_TIER_1_SKR -> STAKE_MULT_2
-            else -> STAKE_MULT_1
+            stakedSkrHuman >= STAKE_TIER_3_SKR -> STAKE_MULT_4  // 50,000+ SKR = 5.0x
+            stakedSkrHuman >= STAKE_TIER_2_SKR -> STAKE_MULT_3  // 15,000-50,000 SKR = 2.5x
+            stakedSkrHuman >= STAKE_TIER_1_SKR -> STAKE_MULT_2  // 5,000-15,000 SKR = 1.5x
+            else -> STAKE_MULT_1                                // 0-5,000 SKR = 1.0x
         }
     }
     
