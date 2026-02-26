@@ -24,7 +24,7 @@
     <string name="mining_storage" formatted="false">Storage: %dMB x%.1f</string>
     <string name="mining_reward_label">Reward</string>
     <string name="mining_demo">Demo</string>
-    <string name="mining_energy_hint_full">Energy will last for ~7 h</string>
+    <string name="mining_energy_hint_full">Energy will last for ~8 h</string>
     <string name="mining_energy_hint_recovery">Full recovery ~17 h</string>
     <string name="mining_energy_hint_rates">Energy: 1/s when mining, 25/min when idle</string>
     <string name="mining_stake_format">Stake: %s SKR</string>

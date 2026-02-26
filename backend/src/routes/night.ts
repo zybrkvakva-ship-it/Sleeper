@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { query, transaction } from '../database';
-import { calculateNightReward, currentWeeks } from '../economy';
+import { calculateNightReward } from '../economy';
 import { SkrBoostLevel } from '../economy/constants';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { isValidSolanaAddress, pickWallet } from '../utils/solanaAddress';
 
 const router = Router();
 
@@ -14,10 +15,13 @@ const router = Router();
  */
 router.post('/start', async (req, res, next) => {
   try {
-    const { walletAddress } = req.body;
+    const walletAddress = pickWallet(req.body);
     
     if (!walletAddress) {
-      throw new AppError(400, 'walletAddress is required');
+      throw new AppError(400, 'walletAddress (or wallet) is required');
+    }
+    if (!isValidSolanaAddress(walletAddress)) {
+      throw new AppError(400, 'invalid wallet format');
     }
     
     // Check if session already exists for today
@@ -52,17 +56,19 @@ router.post('/start', async (req, res, next) => {
  */
 router.post('/end', async (req, res, next) => {
   try {
-    const {
-      walletAddress,
-      minutesSlept,
-      storageMb,
-      movementViolations = 0,
-      screenOnCount = 0
-    } = req.body;
+    const body = (req.body || {}) as Record<string, unknown>;
+    const walletAddress = pickWallet(body);
+    const minutesSlept = pickNumber(body, ['minutesSlept', 'minutes_slept']);
+    const storageMb = pickNumber(body, ['storageMb', 'storage_mb']);
+    const movementViolations = pickNumber(body, ['movementViolations', 'movement_violations']) ?? 0;
+    const screenOnCount = pickNumber(body, ['screenOnCount', 'screen_on_count']) ?? 0;
     
     // Validate inputs
     if (!walletAddress || minutesSlept == null || storageMb == null) {
       throw new AppError(400, 'Missing required fields');
+    }
+    if (!isValidSolanaAddress(walletAddress)) {
+      throw new AppError(400, 'invalid wallet format');
     }
     
     // Calculate human factor based on violations
@@ -218,6 +224,9 @@ router.post('/end', async (req, res, next) => {
 router.get('/history/:walletAddress', async (req, res, next) => {
   try {
     const { walletAddress } = req.params;
+    if (!isValidSolanaAddress(walletAddress)) {
+      throw new AppError(400, 'invalid wallet format');
+    }
     const limit = parseInt(req.query.limit as string) || 30;
     
     const sessions = await query(
@@ -253,3 +262,15 @@ router.get('/history/:walletAddress', async (req, res, next) => {
 });
 
 export default router;
+
+function pickNumber(body: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const v = body[key];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim().length > 0) {
+      const parsed = Number(v);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}

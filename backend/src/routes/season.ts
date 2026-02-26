@@ -1,14 +1,10 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { query } from '../database';
-import { currentWeeks, poolPerNight } from '../economy';
+import { poolPerNight } from '../economy';
 
 const router = Router();
 
-/**
- * GET /api/v1/season/current
- * Get current season info
- */
-router.get('/current', async (req, res, next) => {
+async function getActiveSeason(_req: Request, res: Response, next: NextFunction) {
   try {
     const seasons = await query(
       `SELECT 
@@ -51,6 +47,18 @@ router.get('/current', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-});
+}
+
+/**
+ * GET /api/v1/season/current
+ * Get current season info
+ */
+router.get('/current', getActiveSeason);
+
+/**
+ * GET /api/v1/mining/season/active
+ * Backward-compatible alias for legacy clients/scripts.
+ */
+router.get('/active', getActiveSeason);
 
 export default router;

@@ -31,8 +31,8 @@ data class MiningUiState(
     val isDeviceValid: Boolean = false,
     val errorMessage: String = "",
     val isMining: Boolean = false,
-    val energyCurrent: Int = 25_200,
-    val energyMax: Int = 25_200,
+    val energyCurrent: Int = 28_800,
+    val energyMax: Int = 28_800,
     val showLowEnergyWarning: Boolean = false,  // Day 3: уведомление при энергии < 20%
     val pointsBalance: Long = 0,
     val currentBlock: Int = 1247,   // из БД
@@ -248,25 +248,39 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
             // Сохраняем сессию в очередь для отправки на бэкенд (при появлении сети)
             val stats = repository.getUserStats()
             val wallet = walletManager.getSavedWalletAddress()
+            val backendAuthToken = walletManager.getSavedBackendAuthToken()
             val skr = walletManager.getSavedSkrUsername()
             if (stats != null && !wallet.isNullOrBlank() && stats.miningStartTime > 0L) {
                 val stakeMult = energyManager.getStakeMultiplierForDisplay(stats.stakedSkrHuman)
                 val paidMult = energyManager.getPaidBoostMultiplierForDisplay(stats.activeSkrBoostId, stats.activeSkrBoostEndsAt)
-                val dailySocialMult = 1.0 + minOf(stats.dailySocialBonusPercent, 0.15)
                 val endedAt = System.currentTimeMillis()
+                val durationSeconds = ((endedAt - stats.miningStartTime) / 1000L).coerceAtLeast(0L)
+                val dailyBonus = minOf(stats.dailySocialBonusPercent, 0.15)
+                val dailySocialMult = 1.0 + dailyBonus
+                val humanMultiplier = calculateHumanCheckMultiplier(stats.humanChecksPassed, stats.humanChecksFailed)
+                val pointsPerSecond = energyManager.getCurrentPointsPerSecond()
                 val session = PendingSessionEntity(
                     walletAddress = wallet,
+                    authToken = backendAuthToken,
                     skrUsername = skr,
                     uptimeMinutes = stats.uptimeMinutes,
+                    durationSeconds = durationSeconds,
                     storageMB = stats.storageMB,
                     storageMultiplier = stats.storageMultiplier,
+                    stakedSkrHuman = stats.stakedSkrHuman,
                     stakeMultiplier = stakeMult,
+                    humanChecksPassed = stats.humanChecksPassed,
+                    humanChecksFailed = stats.humanChecksFailed,
+                    humanMultiplier = humanMultiplier,
+                    dailySocialBonusPercent = dailyBonus,
                     paidBoostMultiplier = paidMult,
                     dailySocialMultiplier = dailySocialMult,
+                    pointsPerSecond = pointsPerSecond,
                     pointsBalance = stats.pointsBalance,
                     sessionStartedAt = stats.miningStartTime,
                     sessionEndedAt = endedAt,
                     deviceFingerprint = stats.deviceFingerprint.ifBlank { null },
+                    hasGenesisNft = stats.hasGenesisNft,
                     genesisNftMultiplier = stats.genesisNftMultiplier,
                     activeSkrBoostId = stats.activeSkrBoostId
                 )
@@ -398,5 +412,12 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 if (balanceSynced) DevLog.d(TAG, "Backend: balance synced from server")
             } ?: DevLog.d(TAG, "syncWithBackend no wallet, skip balance sync")
         }
+    }
+
+    private fun calculateHumanCheckMultiplier(passed: Int, failed: Int): Double {
+        val total = passed + failed
+        if (total == 0) return 1.0
+        val passRate = passed.toDouble() / total
+        return 0.5 + passRate * 0.5
     }
 }

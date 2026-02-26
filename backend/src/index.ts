@@ -6,6 +6,7 @@ import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 
 import { errorHandler } from './middleware/errorHandler';
+import { createSimpleRateLimit } from './middleware/rateLimit';
 import { logger } from './utils/logger';
 import { db } from './database';
 
@@ -28,7 +29,7 @@ const PORT = parseInt(String(process.env.PORT || 3000), 10);
 const WS_PORT = parseInt(String(process.env.WS_PORT || 3001), 10);
 
 // Create Express app
-const app = express();
+export const app = express();
 
 // Middleware
 app.use(helmet());
@@ -38,6 +39,23 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const writeRouteLimiter = createSimpleRateLimit({
+  windowMs: 60_000,
+  max: 20,
+  methods: ['POST'],
+  keyFn: (req) => `${req.ip}:${req.method}:${req.path}`,
+});
+
+app.use([
+  '/api/v1/user/auth/challenge',
+  '/api/v1/user/auth/verify',
+  '/api/v1/mining/session',
+  '/api/v1/night/start',
+  '/api/v1/night/end',
+  '/api/v1/payment/activate-boost',
+  '/api/v1/payment/verify-skr',
+], writeRouteLimiter);
 
 // Request logging
 app.use((req, res, next) => {
@@ -66,6 +84,7 @@ app.use('/api/v1/leaderboard', leaderboardRouter);
 app.use('/api/v1/nft', nftRouter);
 app.use('/api/v1/payment', paymentRouter);
 app.use('/api/v1/season', seasonRouter);
+app.use('/api/v1/mining/season', seasonRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -130,5 +149,7 @@ process.on('SIGINT', () => {
   });
 });
 
-// Start the server
-start();
+// Start the server (skip in tests)
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}

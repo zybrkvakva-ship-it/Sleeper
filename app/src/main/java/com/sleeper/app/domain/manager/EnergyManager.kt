@@ -12,8 +12,8 @@ class EnergyManager(private val userStatsDao: UserStatsDao) {
         private const val TAG = "EnergyManager"
         private const val ENERGY_DRAIN_PER_SECOND = 1 // 1 энергия/сек при майнинге
         private const val ENERGY_RESTORE_PER_MINUTE = 25 // 25 энергии/мин при простое (~17h до полного бака)
-        /** Полный бак = 7 часов майнинга (25_200 сек × 1/сек). */
-        const val ENERGY_MAX_FULL_TANK = 25_200
+        /** Полный бак = 8 часов майнинга (28_800 сек × 1/сек). */
+        const val ENERGY_MAX_FULL_TANK = 28_800
         private const val BASE_POINTS_PER_SECOND = 0.2 // базовая награда
         // Стейк SKR — множитель к награде (ступени)
         private const val STAKE_TIER_1_SKR = 1000.0

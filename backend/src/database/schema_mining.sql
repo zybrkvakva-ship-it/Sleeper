@@ -31,3 +31,34 @@ CREATE TABLE IF NOT EXISTS mining_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_mining_sessions_wallet ON mining_sessions(wallet_address);
 CREATE INDEX IF NOT EXISTS idx_mining_sessions_ended ON mining_sessions(session_ended_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mining_sessions_wallet_window
+    ON mining_sessions(wallet_address, session_started_at, session_ended_at);
+
+-- Wallet auth nonce challenges (anti-replay)
+CREATE TABLE IF NOT EXISTS wallet_auth_challenges (
+    nonce UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL,
+    message TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_wallet_created
+    ON wallet_auth_challenges(wallet_address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_expires
+    ON wallet_auth_challenges(expires_at);
+
+-- Wallet auth tokens for background-safe authenticated API calls
+CREATE TABLE IF NOT EXISTS wallet_auth_tokens (
+    token UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_wallet_created
+    ON wallet_auth_tokens(wallet_address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_expires
+    ON wallet_auth_tokens(expires_at);

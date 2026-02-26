@@ -14,7 +14,7 @@ import com.sleeper.app.data.local.dao.UserStatsDao
         TaskEntity::class,
         PendingSessionEntity::class
     ],
-    version = 9,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

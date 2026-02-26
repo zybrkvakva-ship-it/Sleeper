@@ -73,10 +73,20 @@ class StorageManager(private val context: Context) {
     
     /**
      * Вычисляет множитель за storage
-     * 100MB = x1.0, 200MB = x2.0, ..., 600MB = x6.0
+     * V2.0 (aligned with backend): logarithmic x1.0..x3.0
      */
     fun calculateStorageMultiplier(storageMB: Int): Double {
-        return 1.0 + (storageMB / 100.0 - 1.0).coerceIn(0.0, 5.0)
+        val minStorage = 100.0
+        val maxStorage = 600.0
+        val minMult = 1.0
+        val maxMult = 3.0
+
+        if (storageMB <= minStorage) return minMult
+        if (storageMB >= maxStorage) return maxMult
+
+        val progress = kotlin.math.ln(storageMB - minStorage + 1.0) /
+            kotlin.math.ln(maxStorage - minStorage + 1.0)
+        return minMult + progress * (maxMult - minMult)
     }
     
     /**

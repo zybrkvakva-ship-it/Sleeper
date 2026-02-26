@@ -6,8 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "user_stats")
 data class UserStatsEntity(
     @PrimaryKey val id: Int = 1,
-    val energyCurrent: Int = 25_200, // полный бак ≈ 7 ч майнинга при 1/сек
-    val energyMax: Int = 25_200,
+    val energyCurrent: Int = 28_800, // полный бак ≈ 8 ч майнинга при 1/сек
+    val energyMax: Int = 28_800,
     val pointsBalance: Long = 0,
     val storageMB: Int = 100,
     val storageMultiplier: Double = 1.0,

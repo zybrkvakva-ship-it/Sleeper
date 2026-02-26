@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_active_at TIMESTAMP DEFAULT NOW(),
     
     -- Indexes
-    CONSTRAINT valid_wallet CHECK (length(wallet_address) = 44),
+    CONSTRAINT valid_wallet CHECK (length(wallet_address) BETWEEN 32 AND 44),
     CONSTRAINT valid_nft_number CHECK (genesis_nft_number BETWEEN 1 AND 10000)
 );
 
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS night_sessions (
     -- Constraints
     CONSTRAINT unique_wallet_night UNIQUE(wallet_address, night_date),
     CONSTRAINT valid_minutes CHECK (minutes_slept BETWEEN 0 AND 480),
-    CONSTRAINT valid_storage CHECK (storage_mb BETWEEN 0 AND 500),
+    CONSTRAINT valid_storage CHECK (storage_mb BETWEEN 0 AND 600),
     CONSTRAINT valid_human_factor CHECK (human_factor BETWEEN 0 AND 1),
     CONSTRAINT valid_boosts CHECK (
         social_boost BETWEEN 0 AND 1 AND
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at TIMESTAMP DEFAULT NOW(),
     
     CONSTRAINT valid_payment_type CHECK (payment_type IN ('GENESIS_NFT', 'SKR_BOOST')),
-    CONSTRAINT valid_tx_hash CHECK (length(tx_hash) = 88)
+    CONSTRAINT valid_tx_hash CHECK (length(tx_hash) BETWEEN 87 AND 88)
 );
 
 CREATE INDEX idx_payments_wallet ON payments(wallet_address);

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sleeper.app.data.local.AppDatabase
+import com.sleeper.app.data.network.MiningBackendApi
 import com.sleeper.app.data.repository.MiningRepository
 import com.sleeper.app.domain.manager.WalletManager
 import com.sleeper.app.domain.manager.WalletConnectionResult
@@ -39,6 +40,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
 
     private val repository = MiningRepository(AppDatabase.getInstance(application))
     private val walletManager = WalletManager(application)
+    private val backendApi = MiningBackendApi()
     
     val userStats = repository.userStats
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
@@ -58,6 +60,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             DevLog.d(TAG, "connectWallet result: ${result::class.simpleName} ${if (result is WalletConnectionResult.Success) "address=${DevLog.mask(result.address)}" else if (result is WalletConnectionResult.Error) "message=${result.message}" else ""}")
             _walletState.value = when (result) {
                 is WalletConnectionResult.Success -> {
+                    authenticateBackend(result.address, sender)
                     _walletState.value.copy(
                         isConnecting = false,
                         connectedAddress = result.address
@@ -79,6 +82,38 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
         }
+    }
+
+    private suspend fun authenticateBackend(walletAddress: String, sender: ActivityResultSender) {
+        if (!backendApi.isConfigured()) {
+            DevLog.d(TAG, "authenticateBackend skipped: API not configured")
+            return
+        }
+
+        backendApi.requestAuthChallenge(walletAddress)
+            .onSuccess { challenge ->
+                val signed = walletManager.signMessage(sender, challenge.message)
+                if (signed is SignMessageResult.Success) {
+                    backendApi.verifyAuthChallenge(walletAddress, challenge.nonce, signed.signature)
+                        .onSuccess { authToken ->
+                            walletManager.saveBackendAuthToken(authToken)
+                            DevLog.i(TAG, "Backend auth token received and saved")
+                        }
+                        .onFailure { e ->
+                            walletManager.saveBackendAuthToken(null)
+                            DevLog.e(TAG, "Backend auth verify failed: ${e.message}")
+                            _walletState.value = _walletState.value.copy(error = "Backend auth failed")
+                        }
+                } else if (signed is SignMessageResult.Error) {
+                    walletManager.saveBackendAuthToken(null)
+                    _walletState.value = _walletState.value.copy(error = signed.message)
+                }
+            }
+            .onFailure { e ->
+                walletManager.saveBackendAuthToken(null)
+                DevLog.e(TAG, "Backend auth challenge failed: ${e.message}")
+                _walletState.value = _walletState.value.copy(error = "Backend auth unavailable")
+            }
     }
     
     fun claimPoints(sender: ActivityResultSender) {

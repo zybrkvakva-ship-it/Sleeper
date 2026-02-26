@@ -27,6 +27,12 @@ data class LeaderboardApiEntry(
     val blocks: Int
 )
 
+data class AuthChallengeApiResponse(
+    val nonce: String,
+    val message: String,
+    val expiresAt: String
+)
+
 /**
  * Клиент к бэкенду майнинга (POST /mining/session, GET /user/balance, GET /leaderboard).
  * Если BuildConfig.API_BASE_URL пустой — вызовы не выполняются (no-op).
@@ -37,7 +43,7 @@ class MiningBackendApi {
         private const val TAG = "MiningBackendApi"
     }
 
-    private val baseUrl: String = BuildConfig.API_BASE_URL?.trim()?.removeSuffix("/") ?: ""
+    private val baseUrl: String = BuildConfig.API_BASE_URL.trim().removeSuffix("/")
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -59,17 +65,26 @@ class MiningBackendApi {
         }
         val body = JSONObject().apply {
             put("wallet", session.walletAddress)
+            put("auth_token", session.authToken)
             put("skr", session.skrUsername)
             put("uptime_minutes", session.uptimeMinutes)
+            put("duration_seconds", session.durationSeconds)
             put("storage_mb", session.storageMB)
             put("storage_multiplier", session.storageMultiplier)
+            put("staked_skr_human", session.stakedSkrHuman)
             put("stake_multiplier", session.stakeMultiplier)
+            put("human_checks_passed", session.humanChecksPassed)
+            put("human_checks_failed", session.humanChecksFailed)
+            put("human_multiplier", session.humanMultiplier)
+            put("daily_social_bonus_percent", session.dailySocialBonusPercent)
             put("paid_boost_multiplier", session.paidBoostMultiplier)
             put("daily_social_multiplier", session.dailySocialMultiplier)
+            put("points_per_second", session.pointsPerSecond)
             put("points_balance", session.pointsBalance)
             put("session_started_at", session.sessionStartedAt)
             put("session_ended_at", session.sessionEndedAt)
             put("device_fingerprint", session.deviceFingerprint)
+            put("has_genesis_nft", session.hasGenesisNft)
             put("genesis_nft_multiplier", session.genesisNftMultiplier)
             put("active_skr_boost_id", session.activeSkrBoostId)
         }.toString()
@@ -91,7 +106,15 @@ class MiningBackendApi {
             }
             val json = bodyStr.let { JSONObject(it) }
             val balance = json.optLong("balance", session.pointsBalance)
-            DevLog.i(TAG, "postSession SUCCESS newBalance=$balance")
+            val duplicate = json.optBoolean("duplicate", false)
+            val pointsEarned = json.optLong("points_earned", -1L)
+            val pps = json.optDouble("points_per_second", session.pointsPerSecond)
+            val ppsServer = json.optDouble("points_per_second_server", pps)
+            val multipliers = json.optJSONObject("multipliers")
+            DevLog.i(
+                TAG,
+                "postSession SUCCESS newBalance=$balance duplicate=$duplicate pointsEarned=$pointsEarned pps=$pps ppsServer=$ppsServer multipliers=${multipliers?.toString()}"
+            )
             balance
         }.onFailure { e ->
             DevLog.e(TAG, "postSession error: ${e.message} cause=${e.cause?.message}", e)
@@ -175,6 +198,64 @@ class MiningBackendApi {
         }.onFailure { e ->
             DevLog.e(TAG, "getLeaderboard error: ${e.message} cause=${e.cause?.message}", e)
             DevLog.w(TAG, "getLeaderboard error", e)
+        }
+    }
+
+    /**
+     * Request one-time auth challenge for wallet signature.
+     */
+    suspend fun requestAuthChallenge(walletAddress: String): Result<AuthChallengeApiResponse> = withContext(Dispatchers.IO) {
+        if (baseUrl.isEmpty()) {
+            return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        }
+        val body = JSONObject().apply {
+            put("walletAddress", walletAddress)
+        }.toString()
+        val request = Request.Builder()
+            .url("$baseUrl/user/auth/challenge")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${responseBody.take(400)}")
+            val json = JSONObject(responseBody)
+            AuthChallengeApiResponse(
+                nonce = json.optString("nonce"),
+                message = json.optString("message"),
+                expiresAt = json.optString("expiresAt")
+            )
+        }
+    }
+
+    /**
+     * Verify wallet signature and receive backend auth token.
+     */
+    suspend fun verifyAuthChallenge(
+        walletAddress: String,
+        nonce: String,
+        signatureHex: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        if (baseUrl.isEmpty()) {
+            return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        }
+        val body = JSONObject().apply {
+            put("walletAddress", walletAddress)
+            put("nonce", nonce)
+            put("signature", signatureHex)
+        }.toString()
+        val request = Request.Builder()
+            .url("$baseUrl/user/auth/verify")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${responseBody.take(400)}")
+            val json = JSONObject(responseBody)
+            val token = json.optString("authToken")
+            if (token.isNullOrBlank()) throw Exception("authToken is missing in response")
+            token
         }
     }
 }

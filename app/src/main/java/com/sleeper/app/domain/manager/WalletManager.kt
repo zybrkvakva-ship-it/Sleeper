@@ -17,6 +17,7 @@ class WalletManager(private val context: Context) {
         private const val APP_URI = "https://sleeper.app"
         private const val PREFS_NAME = "wallet_prefs"
         private const val KEY_AUTH_TOKEN = "auth_token"
+        private const val KEY_BACKEND_AUTH_TOKEN = "backend_auth_token"
         private const val KEY_WALLET_ADDRESS = "wallet_address"
         private const val KEY_SKR_USERNAME = "skr_username"
         /** Сообщение при временной недоступности MWA-сервера кошелька (ECONNREFUSED) */
@@ -341,6 +342,20 @@ class WalletManager(private val context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_SKR_USERNAME, null)
     }
+
+    fun saveBackendAuthToken(token: String?) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (token.isNullOrBlank()) {
+            prefs.edit().remove(KEY_BACKEND_AUTH_TOKEN).apply()
+        } else {
+            prefs.edit().putString(KEY_BACKEND_AUTH_TOKEN, token).apply()
+        }
+    }
+
+    fun getSavedBackendAuthToken(): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_BACKEND_AUTH_TOKEN, null)
+    }
     
     // Private helpers
 
@@ -394,7 +409,12 @@ class WalletManager(private val context: Context) {
     
     private fun clearSavedData() {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().remove(KEY_AUTH_TOKEN).remove(KEY_WALLET_ADDRESS).remove(KEY_SKR_USERNAME).apply()
+        prefs.edit()
+            .remove(KEY_AUTH_TOKEN)
+            .remove(KEY_BACKEND_AUTH_TOKEN)
+            .remove(KEY_WALLET_ADDRESS)
+            .remove(KEY_SKR_USERNAME)
+            .apply()
     }
     
     // Extension: ByteArray to Hex String

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { isValidSolanaAddress, pickFirstString, pickWallet } from '../utils/solanaAddress';
 
 const router = Router();
 
@@ -16,10 +17,14 @@ const router = Router();
  */
 router.post('/check-eligibility', async (req, res, next) => {
   try {
-    const { walletAddress, skrUsername } = req.body;
+    const walletAddress = pickWallet(req.body);
+    const skrUsername = pickFirstString(req.body as Record<string, unknown>, ['skrUsername', 'skr_username']);
     
     if (!walletAddress) {
-      throw new AppError(400, 'walletAddress is required');
+      throw new AppError(400, 'walletAddress (or wallet) is required');
+    }
+    if (!isValidSolanaAddress(walletAddress)) {
+      throw new AppError(400, 'invalid wallet format');
     }
     
     // Check if user exists and has .skr domain

@@ -24,7 +24,7 @@
     <string name="mining_storage" formatted="false">Storage: %dMB x%.1f</string>
     <string name="mining_reward_label">Награда</string>
     <string name="mining_demo">Демо</string>
-    <string name="mining_energy_hint_full">Энергии хватит на ~7 ч</string>
+    <string name="mining_energy_hint_full">Энергии хватит на ~8 ч</string>
     <string name="mining_energy_hint_recovery">Полное восстановление ~17 ч</string>
     <string name="mining_energy_hint_rates">Энергия: 1/сек при майнинге, 25/мин при простое</string>
     <string name="mining_stake_format">Стейк: %s SKR</string>
