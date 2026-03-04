@@ -22,7 +22,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sleeper.app.ui.theme.accentGold
 import com.sleeper.app.ui.theme.accentGreen
 import com.sleeper.app.ui.theme.background
@@ -59,7 +58,7 @@ fun MiningButton(
         },
         enabled = enabled,
         modifier = modifier
-            .fillMaxWidth(0.6f)
+            .fillMaxWidth()
             .then(
                 if (showGlow) Modifier.shadow(
                     12.dp,
@@ -83,7 +82,6 @@ fun MiningButton(
         Text(
             text = text.replaceFirstChar { it.uppercase() },
             style = MaterialTheme.typography.labelLarge,
-            fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
     }

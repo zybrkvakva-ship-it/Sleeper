@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -14,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sleeper.app.R
 import com.sleeper.app.ui.components.CyberCard
@@ -39,7 +39,7 @@ fun LeaderboardScreen(
     ) {
         Text(
             text = stringResource(R.string.leaderboard_screen_title).uppercase(),
-            fontSize = 24.sp,
+            style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = CyberWhite
         )
@@ -76,13 +76,13 @@ fun LeaderboardScreen(
                         ) {
                             Text(
                                 text = "#${uiState.userRank}: ${uiState.currentUserSkrUsername ?: stringResource(R.string.leaderboard_you)}",
-                                fontSize = 16.sp,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = CyberYellow
                             )
                             Text(
                                 text = stringResource(R.string.leaderboard_blocks_format, String.format("%,d", uiState.userBlocks)),
-                                fontSize = 16.sp,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = CyberYellow
                             )
@@ -94,7 +94,7 @@ fun LeaderboardScreen(
             if (uiState.isDemoData) {
                 Text(
                     text = stringResource(R.string.leaderboard_demo_data),
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     color = CyberGray,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -110,7 +110,7 @@ fun LeaderboardScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = stringResource(R.string.leaderboard_global).uppercase(),
-                        fontSize = 18.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = CyberWhite
                     )
@@ -121,12 +121,12 @@ fun LeaderboardScreen(
                     ) {
                         Text(
                             text = stringResource(R.string.leaderboard_total_in_network),
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = CyberGray
                         )
                         Text(
                             text = "${String.format("%,d", uiState.globalStats.totalPoints)} pts",
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = CyberGreen
                         )
@@ -138,12 +138,12 @@ fun LeaderboardScreen(
                     ) {
                         Text(
                             text = stringResource(R.string.leaderboard_blocks_found),
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = CyberGray
                         )
                         Text(
                             text = String.format("%,d", uiState.globalStats.totalBlocks),
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = CyberGreen
                         )
@@ -186,20 +186,20 @@ private fun LeaderboardItem(entry: LeaderboardEntry) {
                         3 -> "3"
                         else -> "#${entry.rank}"
                     },
-                    fontSize = 18.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = CyberWhite
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = entry.username,
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = CyberWhite
                 )
             }
             Text(
                 text = stringResource(R.string.leaderboard_blocks_format, String.format("%,d", entry.blocks)),
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = CyberGray
             )

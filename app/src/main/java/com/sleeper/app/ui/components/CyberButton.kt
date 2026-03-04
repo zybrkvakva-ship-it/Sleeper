@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sleeper.app.ui.theme.accentGreen
 import com.sleeper.app.ui.theme.background
 import com.sleeper.app.ui.theme.border
@@ -76,7 +75,6 @@ fun CyberButton(
         Text(
             text = if (primary) text.replaceFirstChar { it.uppercase() } else text,
             style = MaterialTheme.typography.labelLarge,
-            fontSize = 16.sp,
             color = when {
                 primary && enabled -> background
                 primary && !enabled -> background.copy(alpha = 0.6f)

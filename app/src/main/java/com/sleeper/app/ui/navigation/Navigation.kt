@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -45,7 +46,7 @@ sealed class Screen(val route: String, @StringRes val titleResId: Int, val icon:
     object Mining : Screen("mining", R.string.nav_mining, Icons.Default.Build)
     object Upgrade : Screen("upgrade", R.string.nav_upgrade, Icons.Default.Star)
     object Tasks : Screen("tasks", R.string.nav_tasks, Icons.Default.CheckCircle)
-    object Leaderboard : Screen("leaderboard", R.string.nav_leaderboard, Icons.Default.List)
+    object Leaderboard : Screen("leaderboard", R.string.nav_leaderboard, Icons.AutoMirrored.Filled.List)
     object Wallet : Screen("wallet", R.string.nav_wallet, Icons.Default.AccountBalanceWallet)
 }
 
@@ -127,7 +128,7 @@ fun MainNavigation() {
                             Text(
                                 text = stringResource(screen.titleResId).uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 color = textColor,
                                 maxLines = 1,
                                 textAlign = TextAlign.Center,

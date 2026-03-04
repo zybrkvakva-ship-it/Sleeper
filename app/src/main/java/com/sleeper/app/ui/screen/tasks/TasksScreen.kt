@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -14,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sleeper.app.R
 import com.sleeper.app.data.local.TaskEntity
@@ -40,7 +40,7 @@ fun TasksScreen(
     ) {
         Text(
             text = stringResource(R.string.tasks_daily_energy).uppercase(),
-            fontSize = 20.sp,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = CyberWhite
         )
@@ -59,7 +59,7 @@ fun TasksScreen(
         
         Text(
             text = stringResource(R.string.tasks_special_energy).uppercase(),
-            fontSize = 20.sp,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = CyberYellow
         )
@@ -96,21 +96,21 @@ private fun TaskCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = if (task.isCompleted) "✓" else "○",
-                    fontSize = 24.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     color = if (task.isCompleted) CyberGreen else CyberGray
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
                         text = stringResource(taskTitleResId(task.id)),
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = if (task.isCompleted) CyberGray else CyberWhite
                     )
                     if (task.isCompleted) {
                         Text(
                             text = stringResource(R.string.task_completed),
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelSmall,
                             color = CyberGreen
                         )
                     }
@@ -119,7 +119,7 @@ private fun TaskCard(
             
             Text(
                 text = "+${task.reward}",
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = CyberYellow
             )

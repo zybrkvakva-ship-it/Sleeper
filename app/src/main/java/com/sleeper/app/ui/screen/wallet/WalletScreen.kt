@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -18,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.sleeper.app.LocalActivityResultSender
@@ -48,7 +48,7 @@ fun WalletScreen(
     ) {
         Text(
             text = stringResource(R.string.wallet_screen_title).uppercase(),
-            fontSize = 24.sp,
+            style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberWhite
         )
@@ -67,13 +67,13 @@ fun WalletScreen(
             ) {
                 Text(
                     text = stringResource(R.string.sleep_points_label),
-                    fontSize = 18.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     color = com.sleeper.app.ui.theme.CyberGray
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = String.format("%,d", userStats?.pointsBalance ?: 0),
-                    fontSize = 48.sp,
+                    style = MaterialTheme.typography.numeric,
                     fontWeight = FontWeight.Bold,
                     color = com.sleeper.app.ui.theme.CyberYellow
                 )
@@ -105,7 +105,7 @@ fun WalletScreen(
                 Text(
                     text = stringResource(R.string.wallet_connection_error),
                     color = com.sleeper.app.ui.theme.CyberRed,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -119,14 +119,14 @@ fun WalletScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = stringResource(R.string.wallet_connected),
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         color = com.sleeper.app.ui.theme.CyberGreen,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.wallet_address, walletState.connectedAddress?.take(16) ?: ""),
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = com.sleeper.app.ui.theme.CyberWhite
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -141,7 +141,7 @@ fun WalletScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             com.sleeper.app.ui.components.CyberButton(
-                text = when (val s = walletState.claimStatus) {
+                text = when (walletState.claimStatus) {
                     is ClaimStatus.Processing -> stringResource(R.string.wallet_claim_processing)
                     is ClaimStatus.Success -> stringResource(R.string.wallet_claim_success)
                     is ClaimStatus.Error -> stringResource(R.string.wallet_claim_error)
@@ -163,7 +163,7 @@ fun WalletScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 stringResource(R.string.wallet_claim_signature, (walletState.claimStatus as ClaimStatus.Success).signature.take(16)),
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = com.sleeper.app.ui.theme.CyberGray
                             )
                         }
@@ -199,7 +199,7 @@ fun WalletScreen(
                 Text(
                     text = stringResource(R.string.privacy_title),
                     color = com.sleeper.app.ui.theme.CyberGray,
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
@@ -214,12 +214,12 @@ private fun StatRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
             color = com.sleeper.app.ui.theme.CyberGray
         )
         Text(
             text = value,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = com.sleeper.app.ui.theme.CyberWhite
         )

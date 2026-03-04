@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sleeper.app.R
 import com.sleeper.app.ui.theme.accentGold
 import com.sleeper.app.ui.theme.accentGreen
@@ -50,14 +49,12 @@ fun EnergyBar(
             Text(
                 text = stringResource(R.string.mining_energy, current, max),
                 style = MaterialTheme.typography.bodyMedium,
-                fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = textPrimary
             )
             Text(
                 text = "${(percentage * 100).toInt()}%",
                 style = MaterialTheme.typography.bodyMedium,
-                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = accentGreen
             )
@@ -81,7 +78,7 @@ fun EnergyBar(
                         Brush.linearGradient(
                             colors = listOf(accentGreen, accentGold),
                             start = Offset.Zero,
-                            end = Offset(Float.POSITIVE_INFINITY, 0f)
+                            end = Offset(600f, 0f)
                         )
                     )
             )

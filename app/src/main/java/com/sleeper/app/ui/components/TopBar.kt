@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sleeper.app.ui.theme.accentGreen
 import com.sleeper.app.ui.theme.background
 import com.sleeper.app.ui.theme.border
@@ -42,13 +41,11 @@ fun TopBar(
             Text(
                 text = "Sleeper ",
                 style = MaterialTheme.typography.labelMedium,
-                fontSize = 14.sp,
                 color = textMuted
             )
             Text(
                 text = ">",
                 style = MaterialTheme.typography.labelMedium,
-                fontSize = 14.sp,
                 color = accentGreen
             )
         }
@@ -63,7 +60,6 @@ fun TopBar(
             Text(
                 text = statusCenter.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                fontSize = 12.sp,
                 color = accentGreen
             )
         }
@@ -72,7 +68,6 @@ fun TopBar(
             Text(
                 text = statusRight,
                 style = MaterialTheme.typography.labelSmall,
-                fontSize = 12.sp,
                 color = textMuted
             )
         }

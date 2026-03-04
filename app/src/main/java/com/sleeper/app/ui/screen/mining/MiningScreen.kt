@@ -132,7 +132,7 @@ fun MiningScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = stringResource(R.string.mining_demo),
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = CyberGray
                                 )
                             }
@@ -170,7 +170,7 @@ fun MiningScreen(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = stringResource(R.string.mining_demo),
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = CyberGray
                                 )
                             }
@@ -333,14 +333,14 @@ fun MiningScreen(
                             Column {
                                 Text(
                                     text = stringResource(R.string.skr_mining_authorized),
-                                    fontSize = 7.sp,
+                                    fontSize = 12.sp,
                                     color = CyberGreen,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = uiState.skrUsername ?: "",
-                                    fontSize = 9.sp,
+                                    fontSize = 13.sp,
                                     color = CyberWhite,
                                     fontWeight = FontWeight.ExtraBold
                                 )
@@ -370,7 +370,7 @@ fun MiningScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.skr_required),
-                            fontSize = 9.sp,
+                            fontSize = 13.sp,
                             color = CyberYellow,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -378,7 +378,7 @@ fun MiningScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = stringResource(R.string.skr_required_hint),
-                            fontSize = 7.sp,
+                            fontSize = 12.sp,
                             color = CyberWhite.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center
                         )
@@ -412,7 +412,7 @@ fun MiningScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.wallet_not_connected),
-                        fontSize = 9.sp,
+                        fontSize = 13.sp,
                         color = CyberRed,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -420,7 +420,7 @@ fun MiningScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.wallet_connect_hint),
-                        fontSize = 7.sp,
+                        fontSize = 12.sp,
                         color = CyberWhite.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center
                     )
@@ -596,7 +596,7 @@ fun MiningScreen(
         if (uiState.deviceFingerprint.isNotEmpty()) {
             Text(
                 text = "Device: ${uiState.deviceFingerprint.take(16)}...",
-                fontSize = 10.sp,
+                fontSize = 12.sp,
                 color = CyberGray.copy(alpha = 0.5f)
             )
         }

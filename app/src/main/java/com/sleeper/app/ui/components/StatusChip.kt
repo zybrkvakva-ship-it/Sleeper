@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sleeper.app.ui.theme.accentGreen
 import com.sleeper.app.ui.theme.background
 
@@ -40,7 +39,6 @@ fun StatusChip(
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
             color = background,
             modifier = Modifier.padding(start = 4.dp)
         )

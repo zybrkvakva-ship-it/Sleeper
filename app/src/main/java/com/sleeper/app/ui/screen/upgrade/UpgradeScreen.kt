@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sleeper.app.LocalActivityResultSender
 import com.sleeper.app.R
@@ -48,7 +48,7 @@ fun UpgradeScreen(
     ) {
         Text(
             text = stringResource(R.string.upgrade_screen_title).uppercase(),
-            fontSize = 24.sp,
+            style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberWhite
         )
@@ -56,7 +56,7 @@ fun UpgradeScreen(
         purchaseMessage?.let { msg ->
             Text(
                 text = msg,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelSmall,
                 color = if (purchaseSuccess == true) com.sleeper.app.ui.theme.CyberGreen else com.sleeper.app.ui.theme.CyberYellow,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -84,14 +84,14 @@ fun UpgradeScreen(
         // Бусты за SKR
         Text(
             text = stringResource(R.string.upgrade_boosts_skr),
-            fontSize = 18.sp,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberGreen
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.upgrade_available, String.format("%,.2f", availableSkrRaw / 1_000_000.0)),
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
             color = com.sleeper.app.ui.theme.CyberGray
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -111,7 +111,7 @@ fun UpgradeScreen(
         // Genesis NFT
         Text(
             text = stringResource(R.string.upgrade_genesis_nft),
-            fontSize = 18.sp,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = com.sleeper.app.ui.theme.CyberYellow
         )
@@ -132,13 +132,13 @@ fun UpgradeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.mining_genesis_holder),
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = com.sleeper.app.ui.theme.CyberYellow
                     )
                     Text(
                         text = stringResource(R.string.upgrade_genesis_forever, ((stats.genesisNftMultiplier - 1.0) * 100).toInt()),
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = com.sleeper.app.ui.theme.CyberGray
                     )
                 }
@@ -152,14 +152,14 @@ fun UpgradeScreen(
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
                         text = stringResource(R.string.upgrade_genesis_description),
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = com.sleeper.app.ui.theme.CyberWhite
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.upgrade_genesis_hint),
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = com.sleeper.app.ui.theme.CyberGray
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -176,7 +176,7 @@ fun UpgradeScreen(
                     ) {
                         Text(
                             text = stringResource(R.string.upgrade_mint_button),
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -211,19 +211,19 @@ private fun SkrBoostCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
-                    fontSize = 18.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = CyberWhite
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = description,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = CyberGray
                 )
                 Text(
                     text = "${boost.durationDisplay()} · x${String.format("%.2f", boost.multiplier)}",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     color = CyberGray
                 )
             }
@@ -241,7 +241,7 @@ private fun SkrBoostCard(
             ) {
                 Text(
                     text = "${String.format("%.1f", priceSkrHuman)} SKR",
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
