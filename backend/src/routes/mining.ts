@@ -95,12 +95,20 @@ router.post('/session', async (req, res, next) => {
         [wallet, skr, referralCode]
       );
 
-      // Server-side staking and NFT status from DB (closes client-side exploit)
-      const userDbRow = await client.query<{ staked_skr_raw: string; has_genesis_nft: boolean }>(
-        `SELECT COALESCE(staked_skr_raw, 0) AS staked_skr_raw, COALESCE(has_genesis_nft, false) AS has_genesis_nft
+      // Server-side staking, NFT and Device NFT gate from DB
+      const userDbRow = await client.query<{ staked_skr_raw: string; has_genesis_nft: boolean; has_device_nft: boolean }>(
+        `SELECT COALESCE(staked_skr_raw, 0) AS staked_skr_raw,
+                COALESCE(has_genesis_nft, false) AS has_genesis_nft,
+                COALESCE(has_device_nft, false) AS has_device_nft
          FROM users WHERE wallet_address = $1`,
         [wallet]
       );
+
+      // Device NFT gate — block emulators and non-Seeker devices
+      if (!userDbRow.rows[0]?.has_device_nft) {
+        throw new AppError(403, 'Mining requires a verified Seeker device NFT');
+      }
+
       const stakedSkrHuman = userDbRow.rows.length > 0 ? Number(userDbRow.rows[0].staked_skr_raw) / 1_000_000 : 0;
       const stakeMultiplier = calcStakeMultiplier(stakedSkrHuman);
       const genesisNftMultiplier = userDbRow.rows.length > 0 && userDbRow.rows[0].has_genesis_nft ? 3.0 : 1.0;

@@ -122,26 +122,24 @@ export function calcStakingBoost(stakedSkrHuman: number): number {
 }
 
 /**
- * Calculate final NP with all boosts and cap
- * Formula: baseNp × min((1+social) × (1+skr+staking) × nftMult × (1+deviceNft), 6.0)
+ * Calculate final NP with all boosts and cap.
+ * Device NFT is a mining gate (access control), not a boost — excluded from formula.
+ * Formula: baseNp × min((1+social) × (1+skr+staking) × nftMult, 6.0)
  */
 export function calcFinalNp(
   baseNp: number,
   socialBoost: number,
   skrBoost: number,
   hasGenesisNft: boolean,
-  stakingBoost: number = 0,
-  hasDeviceNft: boolean = false
+  stakingBoost: number = 0
 ): {
   finalNp: number;
   nftMultiplier: number;
   stakingBoost: number;
-  deviceNftBoost: number;
   totalMultiplier: number;
 } {
   const bNft = hasGenesisNft ? 3.0 : 1.0;
-  const deviceBoost = hasDeviceNft ? DEVICE_NFT_BOOST : 0;
-  const rawMultiplier = (1.0 + socialBoost) * (1.0 + skrBoost + stakingBoost) * bNft * (1.0 + deviceBoost);
+  const rawMultiplier = (1.0 + socialBoost) * (1.0 + skrBoost + stakingBoost) * bNft;
   const cappedMultiplier = Math.min(rawMultiplier, MAX_TOTAL_MULTIPLIER);
   const finalNp = baseNp * cappedMultiplier;
 
@@ -149,7 +147,6 @@ export function calcFinalNp(
     finalNp,
     nftMultiplier: bNft,
     stakingBoost,
-    deviceNftBoost: deviceBoost,
     totalMultiplier: cappedMultiplier
   };
 }
@@ -175,14 +172,13 @@ export function calculateNightReward(ctx: NightContext): NightReward {
   const skrBoost = calcSkrBoost(ctx.skrBoostLevel);
   const stakingBoost = calcStakingBoost(ctx.stakedSkrHuman ?? 0);
 
-  // Final NP
-  const { finalNp, nftMultiplier, deviceNftBoost, totalMultiplier } = calcFinalNp(
+  // Final NP (Device NFT = gate only, not a boost)
+  const { finalNp, nftMultiplier, totalMultiplier } = calcFinalNp(
     baseNp,
     socialBoost,
     skrBoost,
     ctx.hasGenesisNft,
-    stakingBoost,
-    ctx.hasDeviceNft ?? false
+    stakingBoost
   );
 
   return {
@@ -191,10 +187,10 @@ export function calculateNightReward(ctx: NightContext): NightReward {
     skrBoost,
     stakingBoost,
     nftMultiplier,
-    deviceNftBoost,
+    deviceNftBoost: 0,
     totalMultiplier,
     finalNp,
-    sleepTokens: 0 // Calculated during distribution
+    sleepTokens: 0
   };
 }
 

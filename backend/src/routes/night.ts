@@ -24,6 +24,15 @@ router.post('/start', async (req, res, next) => {
       throw new AppError(400, 'invalid wallet format');
     }
     
+    // Device NFT gate: only real Seeker device holders can mine
+    const deviceCheck = await query<{ has_device_nft: boolean }>(
+      'SELECT COALESCE(has_device_nft, false) AS has_device_nft FROM users WHERE wallet_address = $1',
+      [walletAddress]
+    );
+    if (deviceCheck.length === 0 || !deviceCheck[0].has_device_nft) {
+      throw new AppError(403, 'Mining requires a verified Seeker device NFT');
+    }
+
     // Check if session already exists for today
     const today = new Date().toISOString().split('T')[0];
     const existing = await query(
