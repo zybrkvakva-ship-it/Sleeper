@@ -268,6 +268,29 @@ CREATE TABLE IF NOT EXISTS night_distributions (
 CREATE INDEX idx_distributions_date ON night_distributions(night_date DESC);
 
 -- ============================================================================
+-- TOKEN CLAIMS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS token_claims (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+
+    -- Claim details
+    amount BIGINT NOT NULL,
+    tx_hash VARCHAR(88) UNIQUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending, confirmed, failed
+
+    -- Metadata
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT valid_claim_status CHECK (status IN ('pending', 'confirmed', 'failed')),
+    CONSTRAINT valid_claim_amount CHECK (amount > 0)
+);
+
+CREATE INDEX idx_token_claims_wallet ON token_claims(wallet_address);
+CREATE INDEX idx_token_claims_status ON token_claims(status);
+CREATE INDEX idx_token_claims_created ON token_claims(created_at DESC);
+
+-- ============================================================================
 -- FUNCTIONS
 -- ============================================================================
 

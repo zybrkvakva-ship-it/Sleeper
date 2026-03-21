@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { createSimpleRateLimit } from './middleware/rateLimit';
 import { logger } from './utils/logger';
 import { db } from './database';
+import { connectRedis, disconnectRedis } from './redis';
 
 // Routes
 import nightRouter from './routes/night';
@@ -18,6 +19,8 @@ import leaderboardRouter from './routes/leaderboard';
 import nftRouter from './routes/nft';
 import paymentRouter from './routes/payment';
 import seasonRouter from './routes/season';
+import economyRouter from './routes/economy';
+import claimRouter from './routes/claim';
 
 // WebSocket handlers
 import { setupWebSocket } from './websocket';
@@ -33,9 +36,17 @@ export const app = express();
 
 // Middleware
 app.use(helmet());
+
+// CORS — explicit allowlist only; '*' wildcard is never used as a fallback
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : [];
+if (allowedOrigins.length === 0 && process.env.NODE_ENV === 'production') {
+  logger.warn('ALLOWED_ORIGINS not set in production — CORS will reject all cross-origin requests');
+}
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-  credentials: true
+  origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+  credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -85,6 +96,8 @@ app.use('/api/v1/nft', nftRouter);
 app.use('/api/v1/payment', paymentRouter);
 app.use('/api/v1/season', seasonRouter);
 app.use('/api/v1/mining/season', seasonRouter);
+app.use('/api/v1/economy', economyRouter);
+app.use('/api/v1/claim', claimRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -111,6 +124,9 @@ async function start() {
     await db.query('SELECT NOW()');
     logger.info('✅ Database connected');
 
+    // Connect to Redis (optional — app continues without it)
+    await connectRedis();
+
     // Start HTTP server
     server.listen(PORT, () => {
       logger.info(`🚀 Sleeper Backend started`);
@@ -131,23 +147,18 @@ async function start() {
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    db.end();
+async function gracefulShutdown(signal: string) {
+  logger.info(`${signal} received, shutting down gracefully`);
+  server.close(async () => {
+    logger.info('HTTP server closed');
+    await disconnectRedis();
+    await db.end();
     process.exit(0);
   });
-});
+}
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    db.end();
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start the server (skip in tests)
 if (process.env.NODE_ENV !== 'test') {

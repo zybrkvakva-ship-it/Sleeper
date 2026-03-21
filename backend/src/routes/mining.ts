@@ -32,6 +32,15 @@ router.post('/session', async (req, res, next) => {
       throw new AppError(401, 'auth_token (or authToken) is required');
     }
 
+    const deviceFingerprint = pickFirstString(body, ['device_fingerprint', 'deviceFingerprint']);
+    if (deviceFingerprint && deviceFingerprint.length > 500) {
+      throw new AppError(400, 'device_fingerprint must be 500 characters or less');
+    }
+    const activeSkrBoostId = pickFirstString(body, ['active_skr_boost_id', 'activeSkrBoostId']);
+    if (activeSkrBoostId && activeSkrBoostId.length > 30) {
+      throw new AppError(400, 'active_skr_boost_id must be 30 characters or less');
+    }
+
     const startTs = Math.floor(pickNumber(body, ['session_started_at', 'sessionStartedAt'], 0));
     const endTs = Math.floor(pickNumber(body, ['session_ended_at', 'sessionEndedAt'], 0));
     if (!Number.isFinite(startTs) || !Number.isFinite(endTs) || endTs <= startTs) {
@@ -152,9 +161,9 @@ router.post('/session', async (req, res, next) => {
           nextBalance,
           startTs,
           endTs,
-          pickFirstString(body, ['device_fingerprint', 'deviceFingerprint']) ?? null,
+          deviceFingerprint ?? null,
           genesisNftMultiplier,
-          pickFirstString(body, ['active_skr_boost_id', 'activeSkrBoostId']) ?? null,
+          activeSkrBoostId ?? null,
         ]
       );
       const sessionId = sessionResult.rows[0]?.id;

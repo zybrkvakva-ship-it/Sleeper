@@ -17,14 +17,17 @@ router.post('/register', async (req, res, next) => {
   try {
     const walletAddress = pickWallet(req.body);
     const skrUsername = pickFirstString(req.body as Record<string, unknown>, ['skrUsername', 'skr']);
-    
+
     if (!walletAddress) {
       throw new AppError(400, 'walletAddress (or wallet) is required');
     }
     if (!isValidSolanaAddress(walletAddress)) {
       throw new AppError(400, 'invalid wallet format');
     }
-    
+    if (skrUsername && skrUsername.length > 50) {
+      throw new AppError(400, 'skr_username must be 50 characters or less');
+    }
+
     // Generate referral code (8 chars from wallet)
     const referralCode = walletAddress.substring(0, 8);
     

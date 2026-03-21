@@ -1,17 +1,40 @@
 import { Router } from 'express';
 import { query } from '../database';
+import { adminAuth } from '../middleware/adminAuth';
+import { getRedis } from '../redis';
 
 const router = Router();
 
+const LEADERBOARD_CACHE_KEY = 'cache:leaderboard:top100';
+const LEADERBOARD_TTL_SECONDS = 60;
+
+/** Invalidate cached leaderboard (call after refresh or distribution). */
+export async function invalidateLeaderboardCache(): Promise<void> {
+  const redis = getRedis();
+  if (redis) {
+    await redis.del(LEADERBOARD_CACHE_KEY).catch(() => {});
+  }
+}
+
 /**
  * GET /api/v1/leaderboard
- * Get global leaderboard. Contract format (API_MINING_CONTRACT): top, user_rank, user_blocks, total_points, total_blocks.
- * Uses points_balance (Sleeper) for ranking; falls back to leaderboard view if no points_balance column.
+ * Get global leaderboard. Contract format: top, user_rank, user_blocks, total_points, total_blocks.
+ * Uses points_balance for ranking. Top-100 is cached in Redis for 60 seconds.
  */
 router.get('/', async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
     const wallet = (req.query.wallet as string)?.trim();
+    const redis = getRedis();
+
+    // Try Redis cache for top-100 requests (no wallet filter)
+    if (redis && !wallet && limit <= 100) {
+      const cached = await redis.get(LEADERBOARD_CACHE_KEY).catch(() => null);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return res.json(data);
+      }
+    }
 
     // Try mining leaderboard (points_balance) first
     const hasPointsBalance = await query(
@@ -20,7 +43,7 @@ router.get('/', async (req, res, next) => {
 
     if (hasPointsBalance) {
       const topRows = await query<{ rank: number; username: string; blocks: number; points_balance: string }>(
-        `SELECT 
+        `SELECT
           ROW_NUMBER() OVER (ORDER BY COALESCE(points_balance, 0) DESC)::int AS rank,
           COALESCE(skr_username, LEFT(wallet_address, 8) || '…') AS username,
           COALESCE(total_blocks_mined, 0)::int AS blocks,
@@ -58,13 +81,20 @@ router.get('/', async (req, res, next) => {
                 COALESCE(SUM(COALESCE(total_blocks_mined, 0)), 0)::bigint AS total_blocks FROM users`
       ).then((r) => r[0] || { total_points: '0', total_blocks: '0' });
 
-      return res.json({
+      const response = {
         top,
         user_rank: userRank,
         user_blocks: userBlocks,
         total_points: parseInt(totals.total_points, 10),
         total_blocks: parseInt(totals.total_blocks, 10),
-      });
+      };
+
+      // Cache top-100 (no wallet filter) for 60 seconds
+      if (redis && !wallet && limit <= 100) {
+        await redis.setex(LEADERBOARD_CACHE_KEY, LEADERBOARD_TTL_SECONDS, JSON.stringify(response)).catch(() => {});
+      }
+
+      return res.json(response);
     }
 
     // Fallback: legacy leaderboard view (total_np)
@@ -90,12 +120,12 @@ router.get('/', async (req, res, next) => {
 router.get('/rank/:walletAddress', async (req, res, next) => {
   try {
     const { walletAddress } = req.params;
-    
+
     const result = await query(
       'SELECT rank, total_np FROM leaderboard WHERE wallet_address = $1',
       [walletAddress]
     );
-    
+
     if (result.length === 0) {
       return res.json({
         success: true,
@@ -103,13 +133,13 @@ router.get('/rank/:walletAddress', async (req, res, next) => {
         message: 'User not on leaderboard yet'
       });
     }
-    
+
     res.json({
       success: true,
       rank: result[0].rank,
       totalNp: result[0].total_np
     });
-    
+
   } catch (error) {
     next(error);
   }
@@ -117,17 +147,18 @@ router.get('/rank/:walletAddress', async (req, res, next) => {
 
 /**
  * POST /api/v1/leaderboard/refresh
- * Manually refresh leaderboard (admin only in production)
+ * Manually refresh leaderboard (admin only — requires X-Admin-Secret header)
  */
-router.post('/refresh', async (req, res, next) => {
+router.post('/refresh', adminAuth, async (req, res, next) => {
   try {
     await query('SELECT refresh_leaderboard()');
-    
+    await invalidateLeaderboardCache();
+
     res.json({
       success: true,
       message: 'Leaderboard refreshed'
     });
-    
+
   } catch (error) {
     next(error);
   }

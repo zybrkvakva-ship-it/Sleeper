@@ -37,6 +37,9 @@ const activateBoostHandler = async (req: Request, res: Response, next: NextFunct
       throw new AppError(400, 'Invalid transaction hash format');
     }
 
+    if (boostId.length > 30) {
+      throw new AppError(400, 'Invalid boost_id');
+    }
     const boostConfig = getBoostConfig(boostId);
     if (!boostConfig) {
       throw new AppError(400, `Unknown boost ID: ${boostId}`);
@@ -53,7 +56,8 @@ const activateBoostHandler = async (req: Request, res: Response, next: NextFunct
       throw new AppError(404, 'Transaction not found on Solana');
     }
     if (txInfo.meta?.err) {
-      throw new AppError(400, `Transaction failed on Solana: ${JSON.stringify(txInfo.meta.err)}`);
+      logger.warn('Transaction failed on-chain', { txHash: txHash.slice(0, 16) + '...', err: txInfo.meta.err });
+      throw new AppError(400, 'Transaction failed on-chain. Please check the transaction status.');
     }
 
     const accountKeys = txInfo.transaction.message.getAccountKeys().keySegments().flat();
