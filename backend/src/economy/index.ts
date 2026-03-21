@@ -10,11 +10,19 @@ import {
   MAX_STORAGE_MB,
   MAX_SOCIAL_BOOST,
   MAX_TOTAL_MULTIPLIER,
+  DEVICE_NFT_BOOST,
   SkrBoostLevel,
   SKR_BOOST_CONFIG,
   NightContext,
   NightReward
 } from './constants';
+
+export const SKR_STAKING_BOOST_TIERS = [
+  { minStakedSkr: 1_000_000, boostAddend: 0.20 },
+  { minStakedSkr: 500_000,   boostAddend: 0.10 },
+  { minStakedSkr: 100_000,   boostAddend: 0.05 },
+  { minStakedSkr: 0,         boostAddend: 0.00 },
+];
 
 /**
  * Calculate season duration in weeks based on active devices
@@ -104,26 +112,44 @@ export function calcSkrBoost(level: SkrBoostLevel): number {
 }
 
 /**
+ * Calculate staking boost based on staked SKR amount
+ */
+export function calcStakingBoost(stakedSkrHuman: number): number {
+  for (const tier of SKR_STAKING_BOOST_TIERS) {
+    if (stakedSkrHuman >= tier.minStakedSkr) return tier.boostAddend;
+  }
+  return 0;
+}
+
+/**
  * Calculate final NP with all boosts and cap
+ * Formula: baseNp × min((1+social) × (1+skr+staking) × nftMult × (1+deviceNft), 6.0)
  */
 export function calcFinalNp(
   baseNp: number,
   socialBoost: number,
   skrBoost: number,
-  hasGenesisNft: boolean
+  hasGenesisNft: boolean,
+  stakingBoost: number = 0,
+  hasDeviceNft: boolean = false
 ): {
   finalNp: number;
   nftMultiplier: number;
+  stakingBoost: number;
+  deviceNftBoost: number;
   totalMultiplier: number;
 } {
   const bNft = hasGenesisNft ? 3.0 : 1.0;
-  const rawMultiplier = (1.0 + socialBoost) * (1.0 + skrBoost) * bNft;
+  const deviceBoost = hasDeviceNft ? DEVICE_NFT_BOOST : 0;
+  const rawMultiplier = (1.0 + socialBoost) * (1.0 + skrBoost + stakingBoost) * bNft * (1.0 + deviceBoost);
   const cappedMultiplier = Math.min(rawMultiplier, MAX_TOTAL_MULTIPLIER);
   const finalNp = baseNp * cappedMultiplier;
-  
+
   return {
     finalNp,
     nftMultiplier: bNft,
+    stakingBoost,
+    deviceNftBoost: deviceBoost,
     totalMultiplier: cappedMultiplier
   };
 }
@@ -147,20 +173,25 @@ export function calculateNightReward(ctx: NightContext): NightReward {
   // Boosts
   const socialBoost = calcSocialBoost(ctx.referralCount, ctx.dailyTasksPercent);
   const skrBoost = calcSkrBoost(ctx.skrBoostLevel);
-  
+  const stakingBoost = calcStakingBoost(ctx.stakedSkrHuman ?? 0);
+
   // Final NP
-  const { finalNp, nftMultiplier, totalMultiplier } = calcFinalNp(
+  const { finalNp, nftMultiplier, deviceNftBoost, totalMultiplier } = calcFinalNp(
     baseNp,
     socialBoost,
     skrBoost,
-    ctx.hasGenesisNft
+    ctx.hasGenesisNft,
+    stakingBoost,
+    ctx.hasDeviceNft ?? false
   );
-  
+
   return {
     baseNp,
     socialBoost,
     skrBoost,
+    stakingBoost,
     nftMultiplier,
+    deviceNftBoost,
     totalMultiplier,
     finalNp,
     sleepTokens: 0 // Calculated during distribution

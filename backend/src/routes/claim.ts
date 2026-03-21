@@ -40,10 +40,11 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       throw new AppError(400, 'Invalid wallet address format');
     }
 
-    // Validate auth token (must be a recent challenge-response token stored in DB)
+    // Validate auth token (long-lived token issued after signature verification)
     const tokenRows = await query(
-      `SELECT wallet_address FROM auth_challenges
-       WHERE wallet_address = $1 AND token = $2 AND expires_at > NOW()
+      `SELECT wallet_address FROM wallet_auth_tokens
+       WHERE wallet_address = $1 AND token = $2
+         AND revoked_at IS NULL AND expires_at > NOW()
        LIMIT 1`,
       [walletAddress, authToken]
     );

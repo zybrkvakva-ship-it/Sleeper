@@ -82,7 +82,7 @@ export async function sendSleepTokens(
   );
 
   const signature = await sendAndConfirmTransaction(connection, tx, [treasury], {
-    commitment: 'confirmed',
+    commitment: 'finalized',
   });
 
   logger.info('SLEEP tokens sent', {

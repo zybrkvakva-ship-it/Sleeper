@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { buildAuthMessage, verifySolanaSignatureHex } from '../utils/solanaAuth';
 import { isValidSolanaAddress, pickFirstString, pickWallet } from '../utils/solanaAddress';
+import { fetchStakingInfo } from '../utils/stakingInfo';
 
 const router = Router();
 const AUTH_CHALLENGE_TTL_SECONDS = parseInt(process.env.AUTH_CHALLENGE_TTL_SECONDS || '600', 10);
@@ -336,6 +337,42 @@ router.post('/apply-referral', async (req, res, next) => {
       message: 'Referral code applied successfully'
     });
     
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/v1/user/staking-info/:walletAddress
+ * Fetch on-chain SKR staking balance from Guardian program.
+ * Redis cache 5min. Side-effect: updates staked_skr_raw in users table.
+ */
+router.get('/staking-info/:walletAddress', async (req, res, next) => {
+  try {
+    const { walletAddress } = req.params;
+    if (!isValidSolanaAddress(walletAddress)) {
+      throw new AppError(400, 'Invalid wallet address format');
+    }
+
+    const info = await fetchStakingInfo(walletAddress);
+
+    // Update DB side-effect (non-fatal)
+    query(
+      `UPDATE users SET staked_skr_raw = $1, staked_skr_verified_at = NOW()
+       WHERE wallet_address = $2`,
+      [info.stakedAmountRaw.toString(), walletAddress]
+    ).catch(() => {
+      // user may not be registered — non-fatal
+    });
+
+    res.json({
+      success: true,
+      walletAddress,
+      stakedAmountHuman: info.stakedAmountHuman,
+      stakedAmountRaw: info.stakedAmountRaw.toString(),
+      accountsFound: info.accountsFound,
+      fetchedAt: info.fetchedAt,
+    });
   } catch (error) {
     next(error);
   }

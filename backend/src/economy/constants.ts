@@ -12,6 +12,7 @@ export const MAX_SLEEP_MINUTES = 480;
 export const MAX_STORAGE_MB = 500;
 export const GENESIS_NFT_PRICE = 500.0;
 export const GENESIS_NFT_LIMIT = 10_000;
+export const DEVICE_NFT_BOOST = 0.05; // +5% NP bonus for Seeker device owners
 
 export enum SkrBoostLevel {
   NONE = 'NONE',
@@ -39,13 +40,17 @@ export interface NightContext {
   dailyTasksPercent: number;
   skrBoostLevel: SkrBoostLevel;
   hasGenesisNft: boolean;
+  hasDeviceNft?: boolean;    // Seeker hardware device NFT (+5%)
+  stakedSkrHuman?: number;   // SKR staked via Guardian program
 }
 
 export interface NightReward {
   baseNp: number;
   socialBoost: number;
   skrBoost: number;
+  stakingBoost: number;
   nftMultiplier: number;
+  deviceNftBoost: number;
   totalMultiplier: number;
   finalNp: number;
   sleepTokens: number;

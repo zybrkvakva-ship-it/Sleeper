@@ -62,3 +62,9 @@ CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_wallet_created
     ON wallet_auth_tokens(wallet_address, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_expires
     ON wallet_auth_tokens(expires_at);
+
+-- Seeker device NFT and SKR staking columns (idempotent)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS has_device_nft BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_nft_verified_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS staked_skr_raw BIGINT DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS staked_skr_verified_at TIMESTAMP;

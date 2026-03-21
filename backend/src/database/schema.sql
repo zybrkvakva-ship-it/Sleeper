@@ -291,6 +291,34 @@ CREATE INDEX idx_token_claims_status ON token_claims(status);
 CREATE INDEX idx_token_claims_created ON token_claims(created_at DESC);
 
 -- ============================================================================
+-- WALLET AUTH TABLES (also in schema_mining.sql — duplicated for standalone use)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS wallet_auth_challenges (
+    nonce UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL,
+    message TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_wallet
+    ON wallet_auth_challenges(wallet_address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_expires
+    ON wallet_auth_challenges(expires_at);
+
+CREATE TABLE IF NOT EXISTS wallet_auth_tokens (
+    token UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_wallet
+    ON wallet_auth_tokens(wallet_address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_expires
+    ON wallet_auth_tokens(expires_at);
+
+-- ============================================================================
 -- FUNCTIONS
 -- ============================================================================
 

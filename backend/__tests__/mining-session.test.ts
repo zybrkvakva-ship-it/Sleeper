@@ -75,6 +75,7 @@ describe('Mining session route', () => {
           .fn()
           .mockResolvedValueOnce({ rows: [{ token: 'token-1' }] }) // validate auth token
           .mockResolvedValueOnce({ rows: [] }) // upsert user
+          .mockResolvedValueOnce({ rows: [{ staked_skr_raw: '0', has_genesis_nft: false }] }) // server-side staking/NFT
           .mockResolvedValueOnce({ rows: [] }) // existing session check
           .mockResolvedValueOnce({ rows: [{ points_balance: '100' }] }) // current balance for update
           .mockResolvedValueOnce({ rows: [{ id: 'session-1' }] }) // insert session
@@ -130,6 +131,7 @@ describe('Mining session route', () => {
           .fn()
           .mockResolvedValueOnce({ rows: [{ token: 'token-1' }] }) // validate auth token
           .mockResolvedValueOnce({ rows: [] }) // upsert user
+          .mockResolvedValueOnce({ rows: [{ staked_skr_raw: '0', has_genesis_nft: false }] }) // server-side staking/NFT
           .mockResolvedValueOnce({ rows: [{ id: 'session-dup' }] }), // existing session check
       };
       return callback(client);
@@ -166,6 +168,7 @@ describe('Mining session route', () => {
           .fn()
           .mockResolvedValueOnce({ rows: [{ token: 'token-2' }] }) // validate auth token
           .mockResolvedValueOnce({ rows: [] }) // upsert user
+          .mockResolvedValueOnce({ rows: [{ staked_skr_raw: '0', has_genesis_nft: false }] }) // server-side staking/NFT
           .mockResolvedValueOnce({ rows: [] }) // existing session check
           .mockResolvedValueOnce({ rows: [{ points_balance: '10' }] }) // current balance
           .mockResolvedValueOnce({ rows: [{ id: 'session-alias' }] }) // insert session

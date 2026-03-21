@@ -2,14 +2,12 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { query, transaction as dbTransaction } from '../database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
-import { Connection } from '@solana/web3.js';
 import { SkrBoostLevel, SKR_BOOST_CONFIG } from '../economy/constants';
 import { isValidSolanaAddress, pickWallet } from '../utils/solanaAddress';
+import { verifyTokenTransfer } from '../utils/verifyTokenTransfer';
 
 const router = Router();
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
 const TREASURY_WALLET = process.env.TREASURY_WALLET;
 const SKR_TOKEN_MINT = process.env.SKR_TOKEN_MINT;
 
@@ -48,51 +46,16 @@ const activateBoostHandler = async (req: Request, res: Response, next: NextFunct
       throw new AppError(500, 'Payment env is not configured (TREASURY_WALLET, SKR_TOKEN_MINT)');
     }
 
-    const txInfo = await connection.getTransaction(txHash, {
-      maxSupportedTransactionVersion: 0,
-      commitment: 'confirmed',
-    });
-    if (!txInfo) {
-      throw new AppError(404, 'Transaction not found on Solana');
-    }
-    if (txInfo.meta?.err) {
-      logger.warn('Transaction failed on-chain', { txHash: txHash.slice(0, 16) + '...', err: txInfo.meta.err });
-      throw new AppError(400, 'Transaction failed on-chain. Please check the transaction status.');
-    }
-
-    const accountKeys = txInfo.transaction.message.getAccountKeys().keySegments().flat();
-    const isSigner = accountKeys.some((k) => k.toBase58() === walletAddress);
-    if (!isSigner) {
-      throw new AppError(400, 'Wallet address is not a signer in the transaction');
-    }
-
-    const preByIndex = new Map<number, bigint>();
-    for (const b of txInfo.meta?.preTokenBalances || []) {
-      if (b.mint !== SKR_TOKEN_MINT || b.owner !== TREASURY_WALLET) continue;
-      preByIndex.set(b.accountIndex, BigInt(b.uiTokenAmount.amount));
-    }
-
-    let treasuryReceived = 0n;
-    for (const b of txInfo.meta?.postTokenBalances || []) {
-      if (b.mint !== SKR_TOKEN_MINT || b.owner !== TREASURY_WALLET) continue;
-      const postAmount = BigInt(b.uiTokenAmount.amount);
-      const preAmount = preByIndex.get(b.accountIndex) || 0n;
-      if (postAmount > preAmount) {
-        treasuryReceived += postAmount - preAmount;
-      }
-    }
-
     const expectedAmountRaw = BigInt(Math.floor(boostConfig.price * 1_000_000));
-    const tolerance = expectedAmountRaw / 100n; // 1%
-    const diff = treasuryReceived > expectedAmountRaw
-      ? treasuryReceived - expectedAmountRaw
-      : expectedAmountRaw - treasuryReceived;
-    if (diff > tolerance) {
-      throw new AppError(
-        400,
-        `Amount mismatch: expected ${expectedAmountRaw.toString()}, got ${treasuryReceived.toString()}`
-      );
-    }
+    const treasuryReceived = await verifyTokenTransfer({
+      txHash,
+      signerWallet: walletAddress,
+      treasuryWallet: TREASURY_WALLET!,
+      tokenMint: SKR_TOKEN_MINT!,
+      expectedAmountRaw,
+      tolerancePercent: 1,
+      commitment: 'finalized',
+    });
 
     const boostExpiresAt = new Date(Date.now() + getBoostDurationMs(boostId));
 

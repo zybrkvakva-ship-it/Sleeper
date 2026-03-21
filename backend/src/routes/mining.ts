@@ -58,33 +58,13 @@ router.post('/session', async (req, res, next) => {
 
     const storageMb = Math.max(0, Math.floor(pickNumber(body, ['storage_mb', 'storageMb'], 0)));
     const storageMultiplier = calcStorageMultiplier(storageMb);
-    const stakeMultiplier = calcStakeMultiplier(pickNumber(body, ['staked_skr_human', 'stakedSkrHuman'], 0));
     const humanMultiplier = calcHumanMultiplier(
       Math.max(0, Math.floor(pickNumber(body, ['human_checks_passed', 'humanChecksPassed'], 0))),
       Math.max(0, Math.floor(pickNumber(body, ['human_checks_failed', 'humanChecksFailed'], 0)))
     );
     const dailySocialMultiplier = 1.0 + clamp(pickNumber(body, ['daily_social_bonus_percent', 'dailySocialBonusPercent'], 0), 0.0, 0.15);
     const paidBoostMultiplier = normalizePaidBoostMultiplier(pickNumber(body, ['paid_boost_multiplier', 'paidBoostMultiplier'], 1));
-    const hasGenesisNft = pickBoolean(body, ['has_genesis_nft', 'hasGenesisNft'], false);
-    const genesisNftMultiplier = hasGenesisNft
-      ? clamp(pickNumber(body, ['genesis_nft_multiplier', 'genesisNftMultiplier'], 1.1), 1.0, 1.5)
-      : 1.0;
-
-    const pointsPerSecondServer =
-      BASE_POINTS_PER_SECOND *
-      storageMultiplier *
-      stakeMultiplier *
-      humanMultiplier *
-      dailySocialMultiplier *
-      paidBoostMultiplier *
-      genesisNftMultiplier;
-
-    const pointsPerSecondClient = clamp(pickNumber(body, ['points_per_second', 'pointsPerSecond'], 0), 0, 3.2);
-    const effectivePointsPerSecond = pointsPerSecondClient > 0
-      ? Math.min(pointsPerSecondClient, pointsPerSecondServer)
-      : pointsPerSecondServer;
-
-    const sessionPointsEarned = Math.floor(effectivePointsPerSecond * durationSeconds);
+    // stakeMultiplier and genesisNftMultiplier are computed server-side inside the transaction
 
     const txResult = await transaction(async (client) => {
       if (REQUIRE_MINING_AUTH) {
@@ -115,6 +95,32 @@ router.post('/session', async (req, res, next) => {
         [wallet, skr, referralCode]
       );
 
+      // Server-side staking and NFT status from DB (closes client-side exploit)
+      const userDbRow = await client.query<{ staked_skr_raw: string; has_genesis_nft: boolean }>(
+        `SELECT COALESCE(staked_skr_raw, 0) AS staked_skr_raw, COALESCE(has_genesis_nft, false) AS has_genesis_nft
+         FROM users WHERE wallet_address = $1`,
+        [wallet]
+      );
+      const stakedSkrHuman = userDbRow.rows.length > 0 ? Number(userDbRow.rows[0].staked_skr_raw) / 1_000_000 : 0;
+      const stakeMultiplier = calcStakeMultiplier(stakedSkrHuman);
+      const genesisNftMultiplier = userDbRow.rows.length > 0 && userDbRow.rows[0].has_genesis_nft ? 3.0 : 1.0;
+
+      const pointsPerSecondServer =
+        BASE_POINTS_PER_SECOND *
+        storageMultiplier *
+        stakeMultiplier *
+        humanMultiplier *
+        dailySocialMultiplier *
+        paidBoostMultiplier *
+        genesisNftMultiplier;
+
+      const pointsPerSecondClient = clamp(pickNumber(body, ['points_per_second', 'pointsPerSecond'], 0), 0, 3.2);
+      const effectivePointsPerSecond = pointsPerSecondClient > 0
+        ? Math.min(pointsPerSecondClient, pointsPerSecondServer)
+        : pointsPerSecondServer;
+
+      const sessionPointsEarned = Math.floor(effectivePointsPerSecond * durationSeconds);
+
       // Idempotency: if the same session window already exists, return existing row and keep balance unchanged.
       const existingSession = await client.query<{ id: string }>(
         `SELECT id FROM mining_sessions
@@ -126,6 +132,11 @@ router.post('/session', async (req, res, next) => {
         return {
           sessionId: existingSession.rows[0].id,
           duplicate: true,
+          stakeMultiplier,
+          genesisNftMultiplier,
+          sessionPointsEarned: 0,
+          effectivePointsPerSecond: 0,
+          pointsPerSecondServer,
         };
       }
 
@@ -177,6 +188,11 @@ router.post('/session', async (req, res, next) => {
       return {
         sessionId,
         duplicate: false,
+        stakeMultiplier,
+        genesisNftMultiplier,
+        sessionPointsEarned,
+        effectivePointsPerSecond,
+        pointsPerSecondServer,
       };
     });
 
@@ -196,16 +212,16 @@ router.post('/session', async (req, res, next) => {
     res.status(200).json({
       session_id: txResult.sessionId,
       balance,
-      points_earned: txResult.duplicate ? 0 : Math.max(0, sessionPointsEarned),
-      points_per_second: effectivePointsPerSecond,
-      points_per_second_server: pointsPerSecondServer,
+      points_earned: Math.max(0, txResult.sessionPointsEarned),
+      points_per_second: txResult.effectivePointsPerSecond,
+      points_per_second_server: txResult.pointsPerSecondServer,
       multipliers: {
         storage_multiplier: storageMultiplier,
-        stake_multiplier: stakeMultiplier,
+        stake_multiplier: txResult.stakeMultiplier,
         human_multiplier: humanMultiplier,
         daily_social_multiplier: dailySocialMultiplier,
         paid_boost_multiplier: paidBoostMultiplier,
-        genesis_nft_multiplier: genesisNftMultiplier,
+        genesis_nft_multiplier: txResult.genesisNftMultiplier,
       },
       duplicate: txResult.duplicate,
     });
