@@ -9,8 +9,6 @@ data class UserStatsEntity(
     val energyCurrent: Int = 28_800, // полный бак ≈ 8 ч майнинга при 1/сек
     val energyMax: Int = 28_800,
     val pointsBalance: Long = 0,
-    val storageMB: Int = 100,
-    val storageMultiplier: Double = 1.0,
     val uptimeMinutes: Long = 0,
     val totalBlocksMined: Int = 0,
     val currentBlock: Int = 1247,

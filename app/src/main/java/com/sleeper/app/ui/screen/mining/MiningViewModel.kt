@@ -11,7 +11,6 @@ import com.sleeper.app.BuildConfig
 import com.sleeper.app.data.local.PendingSessionEntity
 import com.sleeper.app.data.repository.MiningRepository
 import com.sleeper.app.domain.manager.EnergyManager
-import com.sleeper.app.domain.manager.StorageManager
 import com.sleeper.app.domain.manager.WalletManager
 import com.sleeper.app.security.DeviceVerifier
 import com.sleeper.app.security.TokenVerifier
@@ -41,8 +40,6 @@ data class MiningUiState(
     val isDemoNetworkStats: Boolean = true,  // true = заглушки, показываем «Демо» в UI
     val pointsPerSecond: Double = 0.0,
     val uptimeMinutes: Long = 0,
-    val storageMB: Int = 100,
-    val storageMultiplier: Double = 1.0,
     val deviceFingerprint: String = "",
     val skrUsername: String? = null,  // .skr token username
     val isTokenVerified: Boolean = false,  // Верифицирован ли .skr token
@@ -58,7 +55,6 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     private val database = AppDatabase.getInstance(application)
     private val repository = MiningRepository(database)
     private val energyManager = EnergyManager(database.userStatsDao())
-    private val storageManager = StorageManager(application)
     private val deviceVerifier = DeviceVerifier(application)
     private val walletManager = WalletManager(application)
     private val tokenVerifier = TokenVerifier(walletManager)
@@ -96,15 +92,6 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                         stats.copy(deviceFingerprint = result.fingerprint)
                     )
                 }
-                
-                // Проверяем/создаём storage и синхронизируем БД с реальным объёмом
-                val currentPlots = storageManager.getAllocatedPlotsCount()
-                if (currentPlots == 0) {
-                    storageManager.allocateStorage(1) // По умолчанию 1 плот (100MB)
-                }
-                val realStorageMB = storageManager.getTotalStorageMB()
-                val realMultiplier = storageManager.calculateStorageMultiplier(realStorageMB)
-                repository.syncStorage(realStorageMB, realMultiplier)
                 
                 _uiState.value = _uiState.value.copy(
                     isVerifying = false,
@@ -145,8 +132,6 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                         currentBlock = it.currentBlock,
                         pointsPerSecond = pps,
                         uptimeMinutes = it.uptimeMinutes,
-                        storageMB = it.storageMB,
-                        storageMultiplier = it.storageMultiplier,
                         stakedSkrHuman = it.stakedSkrHuman,
                         stakeMultiplier = stakeMult,
                         hasGenesisNft = it.hasGenesisNft,
@@ -265,8 +250,6 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                     skrUsername = skr,
                     uptimeMinutes = stats.uptimeMinutes,
                     durationSeconds = durationSeconds,
-                    storageMB = stats.storageMB,
-                    storageMultiplier = stats.storageMultiplier,
                     stakedSkrHuman = stats.stakedSkrHuman,
                     stakeMultiplier = stakeMult,
                     humanChecksPassed = stats.humanChecksPassed,

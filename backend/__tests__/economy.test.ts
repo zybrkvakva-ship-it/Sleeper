@@ -4,7 +4,6 @@
  */
 
 import {
-  calcStorageMultiplier,
   calcSkrBoost,
   calcSocialBoost,
   calcReferralBoost,
@@ -17,39 +16,6 @@ import {
 } from '../src/economy';
 import { SkrBoostLevel } from '../src/economy/constants';
 
-// ─── calcStorageMultiplier ────────────────────────────────────────────────────
-
-describe('calcStorageMultiplier', () => {
-  it('returns 1.0 for 0 MB', () => {
-    expect(calcStorageMultiplier(0)).toBe(1.0);
-  });
-
-  it('returns 1.0 for negative MB (clamped)', () => {
-    expect(calcStorageMultiplier(-100)).toBe(1.0);
-  });
-
-  it('returns 6.0 for 500 MB (max)', () => {
-    // 1.0 + 500/100 = 6.0
-    expect(calcStorageMultiplier(500)).toBe(6.0);
-  });
-
-  it('returns 3.5 for 250 MB', () => {
-    expect(calcStorageMultiplier(250)).toBeCloseTo(3.5, 5);
-  });
-
-  it('clamps at max (600 MB returns same as 500 MB)', () => {
-    expect(calcStorageMultiplier(600)).toBe(calcStorageMultiplier(500));
-  });
-
-  it('returns proportional values', () => {
-    const at100 = calcStorageMultiplier(100);
-    const at200 = calcStorageMultiplier(200);
-    const at300 = calcStorageMultiplier(300);
-    expect(at200).toBeGreaterThan(at100);
-    expect(at300).toBeGreaterThan(at200);
-  });
-});
-
 // ─── calcSkrBoost ────────────────────────────────────────────────────────────
 
 describe('calcSkrBoost', () => {
@@ -57,12 +23,12 @@ describe('calcSkrBoost', () => {
     expect(calcSkrBoost(SkrBoostLevel.NONE)).toBe(0.0);
   });
 
-  it('returns 0.05 for LITE', () => {
-    expect(calcSkrBoost(SkrBoostLevel.LITE)).toBe(0.05);
+  it('returns 0.10 for LITE', () => {
+    expect(calcSkrBoost(SkrBoostLevel.LITE)).toBe(0.10);
   });
 
-  it('returns 0.10 for PLUS', () => {
-    expect(calcSkrBoost(SkrBoostLevel.PLUS)).toBe(0.10);
+  it('returns 0.25 for PLUS', () => {
+    expect(calcSkrBoost(SkrBoostLevel.PLUS)).toBe(0.25);
   });
 
   it('returns 0.50 for PRO', () => {
@@ -71,6 +37,19 @@ describe('calcSkrBoost', () => {
 
   it('returns 1.0 for ULTRA', () => {
     expect(calcSkrBoost(SkrBoostLevel.ULTRA)).toBe(1.0);
+  });
+
+  it('boost hierarchy: NONE < LITE < PLUS < PRO < ULTRA', () => {
+    expect(calcSkrBoost(SkrBoostLevel.NONE)).toBeLessThan(calcSkrBoost(SkrBoostLevel.LITE));
+    expect(calcSkrBoost(SkrBoostLevel.LITE)).toBeLessThan(calcSkrBoost(SkrBoostLevel.PLUS));
+    expect(calcSkrBoost(SkrBoostLevel.PLUS)).toBeLessThan(calcSkrBoost(SkrBoostLevel.PRO));
+    expect(calcSkrBoost(SkrBoostLevel.PRO)).toBeLessThan(calcSkrBoost(SkrBoostLevel.ULTRA));
+  });
+
+  it('LITE paid boost (0.10) > free social minimum (single referral = 0.01)', () => {
+    const liteBoost = calcSkrBoost(SkrBoostLevel.LITE);
+    const singleReferralSocial = calcSocialBoost(1, 0);
+    expect(liteBoost).toBeGreaterThan(singleReferralSocial);
   });
 });
 
@@ -103,18 +82,18 @@ describe('calcSocialBoost', () => {
   });
 
   it('combines referral and task boosts', () => {
-    const result = calcSocialBoost(5, 0.10); // 5% referral + 10% tasks = 15%
-    expect(result).toBeCloseTo(0.15, 5);
+    const result = calcSocialBoost(5, 0.05); // 5% referral + 5% tasks = 10%
+    expect(result).toBeCloseTo(0.10, 5);
   });
 
-  it('caps total at MAX_SOCIAL_BOOST (0.4)', () => {
-    const result = calcSocialBoost(100, 0.30); // 20% + 30% = 50% → capped at 40%
-    expect(result).toBe(0.4);
+  it('caps total at MAX_SOCIAL_BOOST (0.20)', () => {
+    const result = calcSocialBoost(100, 0.20); // 20% + 20% → capped at 20%
+    expect(result).toBe(0.20);
   });
 
-  it('task boost is clamped at 0.30', () => {
-    const result = calcSocialBoost(0, 0.50); // task > 0.30 → clamped at 0.30
-    expect(result).toBeCloseTo(0.30, 5);
+  it('task boost is clamped at 0.20', () => {
+    const result = calcSocialBoost(0, 0.50); // task > 0.20 → clamped at 0.20
+    expect(result).toBeCloseTo(0.20, 5);
   });
 });
 
@@ -122,9 +101,9 @@ describe('calcSocialBoost', () => {
 
 describe('calcFinalNp', () => {
   it('applies formula: base × (1+social) × (1+skr) × nftMultiplier', () => {
-    const { finalNp } = calcFinalNp(100, 0.10, 0.05, false);
-    // 100 × 1.10 × 1.05 × 1.0 = 115.5
-    expect(finalNp).toBeCloseTo(115.5, 5);
+    const { finalNp } = calcFinalNp(100, 0.10, 0.10, false);
+    // 100 × 1.10 × 1.10 × 1.0 = 121
+    expect(finalNp).toBeCloseTo(121, 5);
   });
 
   it('NFT multiplier is 3.0 when hasGenesisNft = true', () => {
@@ -138,21 +117,21 @@ describe('calcFinalNp', () => {
   });
 
   it('caps total multiplier at 6.0x', () => {
-    // Max possible: (1+0.4) × (1+1.0) × 3.0 = 1.4 × 2.0 × 3.0 = 8.4 → capped at 6.0
-    const { totalMultiplier } = calcFinalNp(100, 0.4, 1.0, true);
+    // Max possible: (1+0.20) × (1+1.0) × 3.0 = 1.20 × 2.0 × 3.0 = 7.2 → capped at 6.0
+    const { totalMultiplier } = calcFinalNp(100, 0.20, 1.0, true);
     expect(totalMultiplier).toBe(6.0);
   });
 
   it('does not cap when multiplier is below 6x', () => {
-    // 1.0 × 1.05 × 1.0 = 1.05 — no cap
-    const { totalMultiplier } = calcFinalNp(100, 0, 0.05, false);
-    expect(totalMultiplier).toBeCloseTo(1.05, 5);
+    // 1.0 × 1.10 × 1.0 = 1.10 — no cap
+    const { totalMultiplier } = calcFinalNp(100, 0, 0.10, false);
+    expect(totalMultiplier).toBeCloseTo(1.10, 5);
   });
 
-  it('returns correct totalMultiplier for uncapped scenario', () => {
-    const { totalMultiplier } = calcFinalNp(100, 0.10, 0.10, false);
-    // (1+0.10) × (1+0.10) × 1.0 = 1.21
-    expect(totalMultiplier).toBeCloseTo(1.21, 5);
+  it('Genesis NFT (3x) is stronger than ULTRA SKR boost (2x)', () => {
+    const { finalNp: withNft } = calcFinalNp(100, 0, 0, true);    // 100 × 3.0
+    const { finalNp: withUltra } = calcFinalNp(100, 0, 1.0, false); // 100 × 2.0
+    expect(withNft).toBeGreaterThan(withUltra);
   });
 });
 
@@ -160,28 +139,28 @@ describe('calcFinalNp', () => {
 
 describe('calcBaseNp', () => {
   it('returns 0 for 0 minutes', () => {
-    expect(calcBaseNp(0, 300, 1.0, 1, 16)).toBe(0);
+    expect(calcBaseNp(0, 1.0, 1, 16)).toBe(0);
   });
 
   it('increases with more sleep time', () => {
-    const a = calcBaseNp(240, 300, 1.0, 1, 16);
-    const b = calcBaseNp(480, 300, 1.0, 1, 16);
+    const a = calcBaseNp(240, 1.0, 1, 16);
+    const b = calcBaseNp(480, 1.0, 1, 16);
     expect(b).toBeGreaterThan(a);
   });
 
   it('caps at MAX_SLEEP_MINUTES (480)', () => {
-    const at480 = calcBaseNp(480, 300, 1.0, 1, 16);
-    const at600 = calcBaseNp(600, 300, 1.0, 1, 16);
+    const at480 = calcBaseNp(480, 1.0, 1, 16);
+    const at600 = calcBaseNp(600, 1.0, 1, 16);
     expect(at480).toBe(at600);
   });
 
   it('human factor of 0 yields 0 NP', () => {
-    expect(calcBaseNp(480, 300, 0, 1, 16)).toBe(0);
+    expect(calcBaseNp(480, 0, 1, 16)).toBe(0);
   });
 
   it('human factor reduces NP proportionally', () => {
-    const full = calcBaseNp(480, 300, 1.0, 1, 16);
-    const half = calcBaseNp(480, 300, 0.5, 1, 16);
+    const full = calcBaseNp(480, 1.0, 1, 16);
+    const half = calcBaseNp(480, 0.5, 1, 16);
     expect(half).toBeCloseTo(full * 0.5, 5);
   });
 });

@@ -160,22 +160,12 @@ router.get('/active-boost/:walletAddress', async (req, res, next) => {
 });
 
 function getBoostConfig(boostId: string): { boost: number; price: number } | null {
-  const microBoosts: Record<string, { boost: number; price: number }> = {
-    boost_7h: { boost: 0.05, price: 1.0 },
-    boost_7x: { boost: 0.05, price: 6.0 },
-    boost_49x: { boost: 0.10, price: 49.0 },
-  };
-
   const legacyMapping: Record<string, string> = {
     skr_lite: SkrBoostLevel.LITE,
     skr_plus: SkrBoostLevel.PLUS,
     skr_pro: SkrBoostLevel.PRO,
     skr_ultra: SkrBoostLevel.ULTRA,
   };
-
-  if (microBoosts[boostId]) {
-    return microBoosts[boostId];
-  }
 
   const legacyLevel = legacyMapping[boostId];
   if (legacyLevel && SKR_BOOST_CONFIG[legacyLevel as SkrBoostLevel]) {
@@ -186,9 +176,6 @@ function getBoostConfig(boostId: string): { boost: number; price: number } | nul
 
 function getBoostDurationMs(boostId: string): number {
   const durations: Record<string, number> = {
-    boost_7h: 7 * 60 * 60 * 1000,
-    boost_7x: 49 * 60 * 60 * 1000,
-    boost_49x: 7 * 24 * 60 * 60 * 1000,
     skr_lite: 24 * 60 * 60 * 1000,
     skr_plus: 24 * 60 * 60 * 1000,
     skr_pro: 3 * 24 * 60 * 60 * 1000,

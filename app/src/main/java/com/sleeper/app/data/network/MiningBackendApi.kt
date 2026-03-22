@@ -34,7 +34,7 @@ data class AuthChallengeApiResponse(
 )
 
 /**
- * Клиент к бэкенду майнинга (POST /mining/session, GET /user/balance, GET /leaderboard).
+ * Клиент к бэкенду майнинга (POST /night/end, GET /user/balance, GET /leaderboard).
  * Если BuildConfig.API_BASE_URL пустой — вызовы не выполняются (no-op).
  */
 class MiningBackendApi {
@@ -54,11 +54,11 @@ class MiningBackendApi {
     fun isConfigured(): Boolean = baseUrl.isNotEmpty()
 
     /**
-     * Отправляет сессию на сервер. По контракту: POST /mining/session.
-     * @return Pair(success, newBalance?) — при успехе возвращается новый баланс с сервера.
+     * Отправляет сессию на сервер. По контракту: POST /night/end.
+     * @return новый баланс с сервера при успехе.
      */
     suspend fun postSession(session: PendingSessionEntity): Result<Long> = withContext(Dispatchers.IO) {
-        DevLog.d(TAG, "postSession ENTRY wallet=${DevLog.mask(session.walletAddress)} skr=${session.skrUsername} uptime=${session.uptimeMinutes} storageMB=${session.storageMB}")
+        DevLog.d(TAG, "postSession ENTRY wallet=${DevLog.mask(session.walletAddress)} skr=${session.skrUsername} uptime=${session.uptimeMinutes}")
         if (baseUrl.isEmpty()) {
             DevLog.w(TAG, "postSession SKIP: API_BASE_URL not set")
             return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
@@ -69,8 +69,6 @@ class MiningBackendApi {
             put("skr", session.skrUsername)
             put("uptime_minutes", session.uptimeMinutes)
             put("duration_seconds", session.durationSeconds)
-            put("storage_mb", session.storageMB)
-            put("storage_multiplier", session.storageMultiplier)
             put("staked_skr_human", session.stakedSkrHuman)
             put("stake_multiplier", session.stakeMultiplier)
             put("human_checks_passed", session.humanChecksPassed)
@@ -88,7 +86,7 @@ class MiningBackendApi {
             put("genesis_nft_multiplier", session.genesisNftMultiplier)
             put("active_skr_boost_id", session.activeSkrBoostId)
         }.toString()
-        val url = "$baseUrl/mining/session"
+        val url = "$baseUrl/night/end"
         DevLog.d(TAG, "postSession POST url=$url bodyLen=${body.length}")
         val request = Request.Builder()
             .url(url)

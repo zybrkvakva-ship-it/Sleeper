@@ -37,37 +37,6 @@ const val BOOST_TREASURY_DEFAULT = ""
 object SkrBoostCatalog {
     private const val SKR_6 = 1_000_000L // 1 SKR
 
-    /** Микро-транзакции: 1× (7h), 7× (49h), 49× (7 дн.) — цены 1 / 6 / 49 SKR. */
-    val microTxBoosts: List<SkrBoostItem> = listOf(
-        SkrBoostItem(
-            id = "boost_7h",
-            name = "1× буст 7 ч",
-            description = "+5% к награде на 7 часов (1 перевод в блокчейне)",
-            priceSkrRaw = 1 * SKR_6,
-            multiplier = 1.05,
-            durationDays = 0,
-            durationHours = 7
-        ),
-        SkrBoostItem(
-            id = "boost_7x",
-            name = "7× буст 49 ч",
-            description = "+5% на 49 ч — 7 переводов в 1 транзакции",
-            priceSkrRaw = 6 * SKR_6,
-            multiplier = 1.05,
-            durationDays = 0,
-            durationHours = 49
-        ),
-        SkrBoostItem(
-            id = "boost_49x",
-            name = "49× буст 7 дней",
-            description = "+10% на 7 дней — 49 переводов в 1 транзакции",
-            priceSkrRaw = 49 * SKR_6,
-            multiplier = 1.10,
-            durationDays = 0,
-            durationHours = 168
-        )
-    )
-
     /** Классические бусты (длительность в днях). */
     val legacyBoosts: List<SkrBoostItem> = listOf(
         SkrBoostItem(
@@ -104,7 +73,7 @@ object SkrBoostCatalog {
         )
     )
 
-    val all: List<SkrBoostItem> = microTxBoosts + legacyBoosts
+    val all: List<SkrBoostItem> = legacyBoosts
 
     fun get(id: String): SkrBoostItem? = all.find { it.id == id }
 }

@@ -68,12 +68,11 @@ router.post('/end', async (req, res, next) => {
     const body = (req.body || {}) as Record<string, unknown>;
     const walletAddress = pickWallet(body);
     const minutesSlept = pickNumber(body, ['minutesSlept', 'minutes_slept']);
-    const storageMb = pickNumber(body, ['storageMb', 'storage_mb']);
     const movementViolations = pickNumber(body, ['movementViolations', 'movement_violations']) ?? 0;
     const screenOnCount = pickNumber(body, ['screenOnCount', 'screen_on_count']) ?? 0;
-    
+
     // Validate inputs
-    if (!walletAddress || minutesSlept == null || storageMb == null) {
+    if (!walletAddress || minutesSlept == null) {
       throw new AppError(400, 'Missing required fields');
     }
     if (!isValidSolanaAddress(walletAddress)) {
@@ -154,7 +153,6 @@ router.post('/end', async (req, res, next) => {
     // Calculate rewards
     const reward = calculateNightReward({
       minutesSlept,
-      storageMb,
       humanFactor,
       weekIndex,
       activeDevices: season.active_devices,
@@ -170,17 +168,16 @@ router.post('/end', async (req, res, next) => {
       await client.query(
         `INSERT INTO night_sessions (
           wallet_address, night_date, week_index,
-          minutes_slept, storage_mb, human_factor, movement_violations, screen_on_count,
+          minutes_slept, human_factor, movement_violations, screen_on_count,
           referral_count, daily_tasks_percent, skr_boost_level, has_genesis_nft,
           base_np, social_boost, skr_boost, nft_multiplier, total_multiplier, final_np,
           session_ended_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())`,
         [
           walletAddress,
           todayStr,
           weekIndex,
           minutesSlept,
-          storageMb,
           humanFactor,
           movementViolations,
           screenOnCount,
@@ -239,10 +236,9 @@ router.get('/history/:walletAddress', async (req, res, next) => {
     const limit = parseInt(req.query.limit as string) || 30;
     
     const sessions = await query(
-      `SELECT 
+      `SELECT
         night_date,
         minutes_slept,
-        storage_mb,
         human_factor,
         base_np,
         social_boost,

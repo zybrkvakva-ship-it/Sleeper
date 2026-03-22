@@ -15,8 +15,6 @@ data class PendingSessionEntity(
     val skrUsername: String?,
     val uptimeMinutes: Long,
     val durationSeconds: Long,
-    val storageMB: Int,
-    val storageMultiplier: Double,
     val stakedSkrHuman: Double,
     val stakeMultiplier: Double,
     val humanChecksPassed: Int,

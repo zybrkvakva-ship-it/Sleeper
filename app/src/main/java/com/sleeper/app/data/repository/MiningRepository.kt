@@ -106,14 +106,6 @@ class MiningRepository(private val database: AppDatabase) {
         }
     }
 
-    /** Синхронизирует storage в БД с реальным объёмом (после allocate или при старте). */
-    suspend fun syncStorage(storageMB: Int, storageMultiplier: Double) {
-        val stats = database.userStatsDao().getUserStats() ?: return
-        database.userStatsDao().update(
-            stats.copy(storageMB = storageMB, storageMultiplier = storageMultiplier)
-        )
-    }
-    
     /** Синхронизирует стейк SKR в БД (после RPC getStakedBalance). */
     suspend fun syncStake(stakedSkrRaw: Long, stakedSkrHuman: Double) {
         DevLog.i(TAG, "[STAKING_REPO] syncStake ENTRY stakedSkrRaw=$stakedSkrRaw stakedSkrHuman=$stakedSkrHuman")

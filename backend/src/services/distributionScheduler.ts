@@ -88,17 +88,27 @@ export async function runDailyDistribution(): Promise<void> {
       totalNp += session.final_np;
     }
     
-    // Get pool for night
+    // Get pool for night (base)
     const activeDevices = sessions.length;
-    const poolNight = poolPerNight(activeDevices);
-    
-    logger.info(`Total NP: ${totalNp.toFixed(2)}, Pool: ${poolNight} SLEEP`);
+    const basePoolNight = poolPerNight(activeDevices);
+
+    // Add uncarried dust from previous nights
+    const dustRow = await query<{ dust: string }>(
+      `SELECT COALESCE(SUM(dust_carried), 0) AS dust
+       FROM night_distributions
+       WHERE dust_carried > 0`
+    );
+    const prevDust = parseInt(dustRow[0]?.dust ?? '0', 10);
+    const poolNight = basePoolNight + prevDust;
+
+    logger.info(`Total NP: ${totalNp.toFixed(2)}, Base pool: ${basePoolNight}, Dust carry-in: ${prevDust}, Effective pool: ${poolNight} SLEEP`);
     
     // Distribute tokens
     const rewards = distributeSleepTokens(usersNp, poolNight);
     
-    // Calculate total distributed
+    // Calculate total distributed and dust (Math.floor rounding remainder)
     const totalDistributed = Object.values(rewards).reduce((sum, tokens) => sum + tokens, 0);
+    const dustCarried = poolNight - totalDistributed;
     
     // Prepare batch arrays
     const wallets = Object.keys(rewards);
@@ -138,19 +148,19 @@ export async function runDailyDistribution(): Promise<void> {
         [wallets, tokenAmounts]
       );
 
-      // Record distribution with real season data
+      // Record distribution with real season data + dust
       await client.query(
         `INSERT INTO night_distributions (
-          night_date, total_np, pool_night, total_distributed, users_count, active_devices, season_number, week_index
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [yesterdayStr, totalNp, poolNight, totalDistributed, sessions.length, activeDevices, seasonNumber, weekIndex]
+          night_date, total_np, pool_night, total_distributed, users_count, active_devices, season_number, week_index, dust_carried
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [yesterdayStr, totalNp, poolNight, totalDistributed, sessions.length, activeDevices, seasonNumber, weekIndex, dustCarried]
       );
 
       // Refresh leaderboard materialized view
       await client.query('SELECT refresh_leaderboard()');
     });
     
-    logger.info(`✅ Distribution completed: ${totalDistributed} SLEEP to ${sessions.length} users`);
+    logger.info(`✅ Distribution completed: ${totalDistributed} SLEEP to ${sessions.length} users, dust carried: ${dustCarried}`);
 
     // Invalidate leaderboard cache so next request gets fresh data
     await invalidateLeaderboardCache();

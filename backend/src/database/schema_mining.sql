@@ -68,3 +68,24 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS has_device_nft BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS device_nft_verified_at TIMESTAMP;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS staked_skr_raw BIGINT DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS staked_skr_verified_at TIMESTAMP;
+
+-- Dust recovery: Math.floor() rounding remainder carried to next night
+ALTER TABLE night_distributions ADD COLUMN IF NOT EXISTS dust_carried BIGINT DEFAULT 0;
+
+-- Anti-abuse: device fingerprint binding + ban system
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_fingerprint_locked TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS fingerprint_locked_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS fingerprint_change_count INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP;
+
+-- One fingerprint hash → one wallet (prevents seed-phrase import onto emulators)
+CREATE TABLE IF NOT EXISTS device_fingerprint_registry (
+    fingerprint_hash CHAR(64) PRIMARY KEY,        -- SHA-256(raw fingerprint)
+    wallet_address   VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+    first_seen_at    TIMESTAMP DEFAULT NOW(),
+    last_seen_at     TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_fingerprint_registry_wallet
+    ON device_fingerprint_registry(wallet_address);

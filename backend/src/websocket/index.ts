@@ -1,13 +1,21 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { logger } from '../utils/logger';
-import { calcStorageMultiplier } from '../economy';
-import { BASE_RATE_PER_MINUTE, MAX_TOTAL_MULTIPLIER } from '../economy/constants';
+import { query } from '../database';
+import { calcStorageMultiplier, calcStakingBoost, calcFinalNp, calcSkrBoost } from '../economy';
+import { BASE_RATE_PER_MINUTE, MAX_TOTAL_MULTIPLIER, SkrBoostLevel } from '../economy/constants';
+
+interface WalletProfile {
+  hasGenesisNft: boolean;
+  stakedSkrHuman: number;
+  activeBoostLevel: SkrBoostLevel;
+}
 
 interface Client {
   ws: WebSocket;
   walletAddress?: string;
   nightId?: string;
   lastHeartbeat: number;
+  profile?: WalletProfile;
 }
 
 const clients = new Map<string, Client>();
@@ -80,13 +88,48 @@ function handleMessage(clientId: string, message: any) {
       client.ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
       break;
       
-    case 'night:register':
+    case 'night:register': {
       client.walletAddress = message.walletAddress;
       client.nightId = message.nightId;
+      // Load server-side profile (staking + NFT) — not trusted from client
+      if (message.walletAddress) {
+        try {
+          const rows = await query<{
+            has_genesis_nft: boolean;
+            staked_skr_raw: string;
+            boost_level: string | null;
+          }>(
+            `SELECT u.has_genesis_nft,
+                    COALESCE(u.staked_skr_raw, 0) AS staked_skr_raw,
+                    p.boost_level
+             FROM users u
+             LEFT JOIN payments p ON p.wallet_address = u.wallet_address
+               AND p.payment_type = 'SKR_BOOST'
+               AND p.verified = true
+               AND p.boost_expires_at > NOW()
+             WHERE u.wallet_address = $1
+             ORDER BY p.created_at DESC
+             LIMIT 1`,
+            [message.walletAddress]
+          );
+          if (rows.length > 0) {
+            client.profile = {
+              hasGenesisNft: rows[0].has_genesis_nft ?? false,
+              stakedSkrHuman: Number(rows[0].staked_skr_raw) / 1_000_000,
+              activeBoostLevel: (rows[0].boost_level as SkrBoostLevel) || SkrBoostLevel.NONE,
+            };
+          }
+        } catch (err) {
+          logger.warn('night:register profile load failed', { err });
+        }
+      }
       logger.info(`Night registered for client ${clientId}`, {
-        wallet: message.walletAddress
+        wallet: message.walletAddress,
+        hasGenesisNft: client.profile?.hasGenesisNft,
+        staked: client.profile?.stakedSkrHuman,
       });
       break;
+    }
       
     case 'night:update': {
       const {
@@ -96,8 +139,7 @@ function handleMessage(clientId: string, message: any) {
         storageMb,
         humanChecksPassed,
         humanChecksFailed,
-        paidBoostMultiplier,
-        hasGenesisNft,
+        socialBoostPercent,
       } = message as {
         wallet?: string;
         sessionId?: string;
@@ -105,8 +147,7 @@ function handleMessage(clientId: string, message: any) {
         storageMb?: number;
         humanChecksPassed?: number;
         humanChecksFailed?: number;
-        paidBoostMultiplier?: number;
-        hasGenesisNft?: boolean;
+        socialBoostPercent?: number; // 0..0.40
       };
 
       const targetWallet = wallet ?? client.walletAddress;
@@ -115,25 +156,37 @@ function handleMessage(clientId: string, message: any) {
         break;
       }
 
+      // Server-side profile (loaded on night:register, not trusted from client)
+      const profile = client.profile ?? { hasGenesisNft: false, stakedSkrHuman: 0, activeBoostLevel: SkrBoostLevel.NONE };
+
       const storageMult = calcStorageMultiplier(storageMb ?? 0);
       const passed = humanChecksPassed ?? 0;
       const failed = humanChecksFailed ?? 0;
       const totalChecks = passed + failed;
       const humanFactor = totalChecks > 0 ? 0.5 + (passed / totalChecks) * 0.5 : 1.0;
-      const nftMult = hasGenesisNft ? 3.0 : 1.0;
-      const paidMult = paidBoostMultiplier ?? 1.0;
 
-      const rawMultiplier = storageMult * humanFactor * paidMult * nftMult;
-      const effectiveMultiplier = Math.min(rawMultiplier, MAX_TOTAL_MULTIPLIER);
-      const npPerSecond = (BASE_RATE_PER_MINUTE / 60) * effectiveMultiplier;
-      const pointsEarned = Math.floor(npPerSecond * uptimeSeconds);
+      // Server-authoritative: staking + NFT
+      const stakingBoost = calcStakingBoost(profile.stakedSkrHuman);
+      const skrBoostValue = calcSkrBoost(profile.activeBoostLevel);
+      const socialBoost = Math.max(0, Math.min(socialBoostPercent ?? 0, 0.40));
+
+      const baseNpPerSecond = (BASE_RATE_PER_MINUTE / 60) * storageMult * humanFactor;
+      const { finalNp: finalNpPerSecond, totalMultiplier } = calcFinalNp(
+        baseNpPerSecond,
+        socialBoost,
+        skrBoostValue,
+        profile.hasGenesisNft,
+        stakingBoost
+      );
+
+      const pointsEarned = Math.floor(finalNpPerSecond * uptimeSeconds);
 
       sendToWallet(targetWallet, {
         type: 'night:score',
         sessionId,
         pointsEarned,
-        pointsPerSecond: Math.round(npPerSecond * 10000) / 10000,
-        effectiveMultiplier: Math.round(effectiveMultiplier * 100) / 100,
+        pointsPerSecond: Math.round(finalNpPerSecond * 10000) / 10000,
+        effectiveMultiplier: Math.round(totalMultiplier * 100) / 100,
         uptimeSeconds,
       });
       break;

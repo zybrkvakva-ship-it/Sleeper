@@ -16,21 +16,18 @@ object EconomyConstants {
     /** Максимум устройств, которые могут участвовать */
     const val MAX_DEVICES = 150_000
     
-    /** Максимальный социальный буст (40%) */
-    const val MAX_SOCIAL_BOOST = 0.4
-    
+    /** Максимальный социальный буст (20%) — намеренно слабее любого платного SKR-буста */
+    const val MAX_SOCIAL_BOOST = 0.20
+
     /** Максимальный общий мультипликатор фарма (×6) */
     const val MAX_TOTAL_MULTIPLIER = 6.0
-    
+
     /** Базовая ставка: 1 NP за минуту сна */
     const val BASE_RATE_PER_MINUTE = 1.0
-    
+
     /** Максимум минут сна для расчёта (8 часов) */
     const val MAX_SLEEP_MINUTES = 480
-    
-    /** Максимум storage для Proof-of-Storage (MB) */
-    const val MAX_STORAGE_MB = 500
-    
+
     /** Цена генезис NFT (SKR) */
     const val GENESIS_NFT_PRICE = 500.0
     
@@ -44,18 +41,16 @@ object EconomyConstants {
  * Содержит все параметры, необходимые для расчёта вознаграждения за ночь.
  * 
  * @param minutesSlept минуты сна (0-480, макс 8 часов)
- * @param storageMb выделенное хранилище для Proof-of-Storage (0-500 MB)
  * @param humanFactor коэффициент "человечности" Proof-of-Presence (0.3, 0.7, 1.0)
  * @param weekIndex текущая неделя сезона (1-16)
  * @param activeDevices количество активных устройств в сети
  * @param referralCount количество активных рефералов
- * @param dailyTasksPercent бонус процент от выполненных daily tasks (0.0-0.3)
+ * @param dailyTasksPercent бонус процент от выполненных daily tasks (0.0-0.2)
  * @param skrBoostLevel выбранный уровень платного буста за SKR
  * @param hasGenesisNft владеет ли пользователь генезис NFT
  */
 data class NightContext(
     val minutesSlept: Int,
-    val storageMb: Int,
     val humanFactor: Double,
     val weekIndex: Int,
     val activeDevices: Int,
@@ -67,9 +62,6 @@ data class NightContext(
     init {
         require(minutesSlept in 0..EconomyConstants.MAX_SLEEP_MINUTES) {
             "Minutes slept must be in range 0..${EconomyConstants.MAX_SLEEP_MINUTES}"
-        }
-        require(storageMb in 0..EconomyConstants.MAX_STORAGE_MB) {
-            "Storage MB must be in range 0..${EconomyConstants.MAX_STORAGE_MB}"
         }
         require(humanFactor in 0.0..1.0) {
             "Human factor must be in range 0.0..1.0"

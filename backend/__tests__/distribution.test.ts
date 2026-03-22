@@ -63,7 +63,9 @@ describe('runDailyDistribution', () => {
       { wallet_address: WALLET_A, final_np: 200 },
       { wallet_address: WALLET_B, final_np: 100 },
     ]);
-    // 3. Season stats query (returns active season)
+    // 3. Dust carry-over query
+    (query as jest.Mock).mockResolvedValueOnce([{ dust: '0' }]);
+    // 4. Season stats query (returns active season)
     (query as jest.Mock).mockResolvedValueOnce([{ season_number: 1, current_week: 3 }]);
 
     // transaction mock runs callback
@@ -90,7 +92,9 @@ describe('runDailyDistribution', () => {
       { wallet_address: WALLET_A, final_np: 300 },
       { wallet_address: WALLET_B, final_np: 300 },
     ]);
-    // 3. Season stats
+    // 3. Dust carry-over
+    (query as jest.Mock).mockResolvedValueOnce([{ dust: '0' }]);
+    // 4. Season stats
     (query as jest.Mock).mockResolvedValueOnce([{ season_number: 1, current_week: 1 }]);
 
     let batchUpdateCallCount = 0;
@@ -117,6 +121,7 @@ describe('runDailyDistribution', () => {
     (query as jest.Mock)
       .mockResolvedValueOnce([]) // no existing
       .mockResolvedValueOnce([{ wallet_address: WALLET_A, final_np: 500 }]) // sessions
+      .mockResolvedValueOnce([{ dust: '0' }]) // dust carry-over
       .mockResolvedValueOnce([{ season_number: 2, current_week: 5 }]); // season
 
     (transaction as jest.Mock).mockImplementation(async (cb: (client: any) => Promise<void>) => {
