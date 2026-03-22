@@ -29,7 +29,7 @@ object NftBoost {
      * Контекст для финального расчёта с бустами
      * 
      * @param baseNp базовые Night Points без бустов
-     * @param socialBoost социальный буст (0.0-0.4)
+     * @param socialBoost социальный буст (0.0-0.2)
      * @param skrBoost SKR буст (0.0-1.0)
      * @param hasGenesisNft владеет ли пользователь генезис NFT
      * @param maxTotalMultiplier максимальный общий мультипликатор
@@ -45,8 +45,8 @@ object NftBoost {
             require(baseNp >= 0.0) {
                 "Base NP cannot be negative: $baseNp"
             }
-            require(socialBoost in 0.0..0.5) {
-                "Social boost must be in 0.0..0.5: $socialBoost"
+            require(socialBoost in 0.0..0.20) {
+                "Social boost must be in 0.0..0.20: $socialBoost"
             }
             require(skrBoost in 0.0..1.0) {
                 "SKR boost must be in 0.0..1.0: $skrBoost"

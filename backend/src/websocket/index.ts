@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { logger } from '../utils/logger';
 import { query } from '../database';
-import { calcStorageMultiplier, calcStakingBoost, calcFinalNp, calcSkrBoost } from '../economy';
+import { calcBaseNp, calcStakingBoost, calcFinalNp, calcSkrBoost } from '../economy';
 import { BASE_RATE_PER_MINUTE, MAX_TOTAL_MULTIPLIER, SkrBoostLevel } from '../economy/constants';
 
 interface WalletProfile {
@@ -136,7 +136,6 @@ function handleMessage(clientId: string, message: any) {
         wallet,
         sessionId,
         uptimeSeconds,
-        storageMb,
         humanChecksPassed,
         humanChecksFailed,
         socialBoostPercent,
@@ -144,10 +143,9 @@ function handleMessage(clientId: string, message: any) {
         wallet?: string;
         sessionId?: string;
         uptimeSeconds?: number;
-        storageMb?: number;
         humanChecksPassed?: number;
         humanChecksFailed?: number;
-        socialBoostPercent?: number; // 0..0.40
+        socialBoostPercent?: number; // 0..0.20
       };
 
       const targetWallet = wallet ?? client.walletAddress;
@@ -159,7 +157,6 @@ function handleMessage(clientId: string, message: any) {
       // Server-side profile (loaded on night:register, not trusted from client)
       const profile = client.profile ?? { hasGenesisNft: false, stakedSkrHuman: 0, activeBoostLevel: SkrBoostLevel.NONE };
 
-      const storageMult = calcStorageMultiplier(storageMb ?? 0);
       const passed = humanChecksPassed ?? 0;
       const failed = humanChecksFailed ?? 0;
       const totalChecks = passed + failed;
@@ -168,9 +165,10 @@ function handleMessage(clientId: string, message: any) {
       // Server-authoritative: staking + NFT
       const stakingBoost = calcStakingBoost(profile.stakedSkrHuman);
       const skrBoostValue = calcSkrBoost(profile.activeBoostLevel);
-      const socialBoost = Math.max(0, Math.min(socialBoostPercent ?? 0, 0.40));
+      const socialBoost = Math.max(0, Math.min(socialBoostPercent ?? 0, 0.20));
 
-      const baseNpPerSecond = (BASE_RATE_PER_MINUTE / 60) * storageMult * humanFactor;
+      // baseNp per second — 1 minute = BASE_RATE, apply humanFactor
+      const baseNpPerSecond = (BASE_RATE_PER_MINUTE / 60) * humanFactor;
       const { finalNp: finalNpPerSecond, totalMultiplier } = calcFinalNp(
         baseNpPerSecond,
         socialBoost,
