@@ -1,6 +1,7 @@
 package com.sleeper.app.ui.screen.mining
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +18,7 @@ import com.sleeper.app.security.TokenVerifier
 import com.sleeper.app.service.MiningService
 import com.sleeper.app.utils.DevLog
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -63,10 +65,24 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     private val _uiState = MutableStateFlow(MiningUiState())
     val uiState: StateFlow<MiningUiState> = _uiState.asStateFlow()
     
+    private val exceptionHandler = CoroutineExceptionHandler { _, e ->
+        DevLog.e(TAG, "Coroutine error: ${e.message}", e)
+        _uiState.value = _uiState.value.copy(
+            isVerifying = false,
+            errorMessage = "Startup error: ${e.javaClass.simpleName}"
+        )
+    }
+
     companion object {
         private const val TAG = "MiningViewModel"
+        private const val SKR_PREFS = "skr_verification_cache"
+        private const val KEY_SKR_WALLET = "wallet"
+        private const val KEY_SKR_USERNAME = "username"
+        private const val KEY_SKR_TOKEN_ADDRESS = "token_address"
+        private const val KEY_SKR_VERIFIED_AT = "verified_at"
+        private const val SKR_CACHE_TTL_MS = 12 * 60 * 60 * 1000L // 12 часов
     }
-    
+
     init {
         verifyDevice()
         observeUserStats()
@@ -76,7 +92,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     private fun verifyDevice() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             _uiState.value = _uiState.value.copy(isVerifying = true)
             
             // Инициализируем БД
@@ -115,7 +131,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     private fun observeUserStats() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             repository.userStats.collect { stats ->
                 stats?.let {
                     val pps = energyManager.getCurrentPointsPerSecond()
@@ -143,7 +159,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     private fun startEnergyRestoration() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             while (true) {
                 delay(60_000) // каждую минуту
                 energyManager.restoreEnergy()
@@ -173,7 +189,11 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                     isTokenVerified = true,
                     skrUsername = tokenResult.username
                 )
-                
+
+                // Кэшируем результат — следующий запуск будет мгновенным
+                val addr = walletManager.getSavedWalletAddress()
+                if (addr != null) saveSkrVerificationCache(addr, tokenResult.username, tokenResult.tokenAddress)
+
                 // Сохраняем для аудита
                 tokenVerifier.saveVerifiedToken(
                     tokenResult.username,
@@ -308,11 +328,55 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
             walletConnected = isConnected
         )
         
-        if (isConnected) {
-            DevLog.d(TAG, "[WALLET_CHECK] Wallet connected. Верификация .skr только по кнопке «Верифицировать .skr токен» — автозапуск отключён.")
+        if (isConnected && walletAddress != null) {
+            DevLog.d(TAG, "[WALLET_CHECK] Wallet connected. Проверяем кэш SKR...")
+            loadCachedSkrVerification(walletAddress)
         } else {
             DevLog.d(TAG, "[WALLET_CHECK] No wallet connected")
         }
+    }
+
+    /**
+     * Загружает кэшированный результат верификации .skr из SharedPreferences.
+     * Если кэш свежий (< 12ч) и кошелёк совпадает — применяем без RPC вызова.
+     */
+    private fun loadCachedSkrVerification(walletAddress: String) {
+        val prefs = getApplication<Application>().getSharedPreferences(SKR_PREFS, Context.MODE_PRIVATE)
+        val cachedWallet = prefs.getString(KEY_SKR_WALLET, null)
+        val cachedUsername = prefs.getString(KEY_SKR_USERNAME, null)
+        val cachedTokenAddress = prefs.getString(KEY_SKR_TOKEN_ADDRESS, null)
+        val cachedAt = prefs.getLong(KEY_SKR_VERIFIED_AT, 0L)
+
+        val age = System.currentTimeMillis() - cachedAt
+        if (cachedUsername != null && cachedWallet == walletAddress && age < SKR_CACHE_TTL_MS) {
+            DevLog.d(TAG, "[SKR_CACHE] HIT: username=$cachedUsername age=${age / 1000}s")
+            walletManager.saveSkrUsername(cachedUsername)
+            _uiState.value = _uiState.value.copy(
+                isTokenVerified = true,
+                skrUsername = cachedUsername
+            )
+        } else {
+            DevLog.d(TAG, "[SKR_CACHE] MISS: cachedWallet=${cachedWallet?.take(8)} age=${age / 1000}s")
+        }
+    }
+
+    /** Сохраняет верифицированный .skr в кэш (вызывать после успешной верификации). */
+    private fun saveSkrVerificationCache(walletAddress: String, username: String, tokenAddress: String?) {
+        getApplication<Application>().getSharedPreferences(SKR_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_SKR_WALLET, walletAddress)
+            .putString(KEY_SKR_USERNAME, username)
+            .putString(KEY_SKR_TOKEN_ADDRESS, tokenAddress ?: "")
+            .putLong(KEY_SKR_VERIFIED_AT, System.currentTimeMillis())
+            .apply()
+        DevLog.d(TAG, "[SKR_CACHE] SAVED: username=$username")
+    }
+
+    /** Сбрасывает кэш SKR верификации (при смене кошелька или явном сбросе). */
+    fun clearSkrCache() {
+        getApplication<Application>().getSharedPreferences(SKR_PREFS, Context.MODE_PRIVATE)
+            .edit().clear().apply()
+        DevLog.d(TAG, "[SKR_CACHE] CLEARED")
     }
     
     /**
@@ -384,7 +448,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
      * Вызывается при старте и может вызываться при открытии кошелька/экрана майнинга.
      */
     fun syncWithBackend() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             DevLog.d(TAG, "syncWithBackend ENTRY")
             val sent = repository.syncPendingSessions()
             DevLog.d(TAG, "syncWithBackend syncPendingSessions sent=$sent")

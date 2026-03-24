@@ -1,6 +1,11 @@
 package com.sleeper.app.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,25 +24,46 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sleeper.app.R
+import com.sleeper.app.ui.theme.AppDuration
+import com.sleeper.app.ui.theme.AppGlow
+import com.sleeper.app.ui.theme.NightAccent
 import com.sleeper.app.ui.theme.accentGold
 import com.sleeper.app.ui.theme.accentGreen
-import com.sleeper.app.ui.theme.surface
 import com.sleeper.app.ui.theme.textPrimary
 
 @Composable
 fun EnergyBar(
     current: Int,
     max: Int,
+    isMining: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val percentage = if (max > 0) current.toFloat() / max else 0f
     val animatedProgress by animateFloatAsState(
         targetValue = percentage,
-        animationSpec = tween(300), label = "energy"
+        animationSpec = tween(AppDuration.Normal),
+        label = "energyProgress"
+    )
+
+    // Shimmer sweeps continuously; alpha gates it smoothly on/off
+    val shimmerTranslate by rememberInfiniteTransition(label = "shimmer").animateFloat(
+        initialValue = -400f,
+        targetValue = 800f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(AppDuration.Shimmer, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerX"
+    )
+    val shimmerAlpha by animateFloatAsState(
+        targetValue = if (isMining && animatedProgress > 0.05f) AppGlow.SHIMMER_ALPHA else 0f,
+        animationSpec = tween(AppDuration.Normal),
+        label = "shimmerAlpha"
     )
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -54,8 +80,7 @@ fun EnergyBar(
             )
             Text(
                 text = "${(percentage * 100).toInt()}%",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge,
                 color = accentGreen
             )
         }
@@ -67,8 +92,9 @@ fun EnergyBar(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(surface)
+                .background(NightAccent)
         ) {
+            // Filled portion
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedProgress)
@@ -81,7 +107,27 @@ fun EnergyBar(
                             end = Offset(600f, 0f)
                         )
                     )
-            )
+            ) {
+                // Shimmer highlight — fades in/out via alpha
+                if (shimmerAlpha > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = shimmerAlpha),
+                                        Color.White.copy(alpha = shimmerAlpha * 0.5f),
+                                        Color.Transparent
+                                    ),
+                                    start = Offset(shimmerTranslate, 0f),
+                                    end = Offset(shimmerTranslate + 200f, 0f)
+                                )
+                            )
+                    )
+                }
+            }
         }
     }
 }

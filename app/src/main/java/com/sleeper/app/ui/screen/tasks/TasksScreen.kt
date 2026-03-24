@@ -1,10 +1,13 @@
 package com.sleeper.app.ui.screen.tasks
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,58 +24,69 @@ import com.sleeper.app.data.local.TaskEntity
 import com.sleeper.app.data.local.TaskType
 import com.sleeper.app.ui.components.CyberCard
 import com.sleeper.app.ui.theme.*
+import com.sleeper.app.ui.theme.AppDuration
 
 @Composable
 fun TasksScreen(
     viewModel: TasksViewModel = viewModel()
 ) {
     val tasks by viewModel.tasks.collectAsState()
-    
-    val dailyTasks = tasks.filter { it.type == TaskType.DAILY }
+
+    val dailyTasks   = tasks.filter { it.type == TaskType.DAILY }
     val specialTasks = tasks.filter { it.type == TaskType.SPECIAL }
-    
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BgMain)
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
+
+    // Use LazyColumn for stagger-friendly layout
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = stringResource(R.string.tasks_daily_energy).uppercase(),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = CyberWhite
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        dailyTasks.forEach { task ->
-            TaskCard(
-                task = task,
-                onComplete = { viewModel.completeTask(task.id) }
+        // Daily tasks header
+        item {
+            Text(
+                text = stringResource(R.string.tasks_daily_energy).uppercase(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = CyberWhite
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            text = stringResource(R.string.tasks_special_energy).uppercase(),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = CyberYellow
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        specialTasks.forEach { task ->
-            TaskCard(
-                task = task,
-                onComplete = { viewModel.completeTask(task.id) }
+
+        // Daily tasks — staggered entrance
+        itemsIndexed(dailyTasks) { index, task ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)) +
+                        slideInVertically(tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)) { it / 3 }
+            ) {
+                TaskCard(task = task, onComplete = { viewModel.completeTask(task.id) })
+            }
+        }
+
+        // Special tasks header
+        item {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.tasks_special_energy).uppercase(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = CyberYellow
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
         }
+
+        // Special tasks — staggered entrance (offset index by dailyTasks count for independent timing)
+        itemsIndexed(specialTasks) { index, task ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(tween(AppDuration.Normal, delayMillis = (dailyTasks.size + index) * AppDuration.Stagger)) +
+                        slideInVertically(tween(AppDuration.Normal, delayMillis = (dailyTasks.size + index) * AppDuration.Stagger)) { it / 3 }
+            ) {
+                TaskCard(task = task, onComplete = { viewModel.completeTask(task.id) })
+            }
+        }
+
+        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
@@ -84,9 +98,9 @@ private fun TaskCard(
     CyberCard(
         modifier = Modifier
             .fillMaxWidth()
-            .then(Modifier.clickable(enabled = !task.isCompleted) { onComplete() }),
+            .clickable(enabled = !task.isCompleted) { onComplete() },
         strokeColor = if (task.isCompleted) CyberGreen else Stroke,
-        cornerRadius = 12.dp
+        glowColor = if (task.isCompleted) accentGreen else null
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -99,7 +113,7 @@ private fun TaskCard(
                     style = MaterialTheme.typography.titleMedium,
                     color = if (task.isCompleted) CyberGreen else CyberGray
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
                         text = stringResource(taskTitleResId(task.id)),
@@ -116,7 +130,6 @@ private fun TaskCard(
                     }
                 }
             }
-            
             Text(
                 text = "+${task.reward}",
                 style = MaterialTheme.typography.bodyLarge,
@@ -129,8 +142,8 @@ private fun TaskCard(
 
 private fun taskTitleResId(taskId: String): Int = when (taskId) {
     "invite_friend" -> R.string.task_invite_friend
-    "share" -> R.string.task_share_social
-    "watch_story" -> R.string.task_watch_stories
-    "subscribe" -> R.string.task_subscribe
-    else -> R.string.task_invite_friend
+    "share"         -> R.string.task_share_social
+    "watch_story"   -> R.string.task_watch_stories
+    "subscribe"     -> R.string.task_subscribe
+    else            -> R.string.task_invite_friend
 }
