@@ -42,6 +42,7 @@ CREATE INDEX idx_users_skr_username ON users(skr_username);
 CREATE INDEX idx_users_total_np ON users(total_np DESC);
 CREATE INDEX idx_users_referral_code ON users(referral_code);
 CREATE INDEX idx_users_referred_by ON users(referred_by);
+CREATE INDEX idx_users_last_active ON users(last_active_at DESC);
 
 -- ============================================================================
 -- NIGHT SESSIONS TABLE
@@ -101,6 +102,8 @@ CREATE INDEX idx_night_wallet ON night_sessions(wallet_address);
 CREATE INDEX idx_night_date ON night_sessions(night_date DESC);
 CREATE INDEX idx_night_processed ON night_sessions(processed, night_date);
 CREATE INDEX idx_night_week ON night_sessions(week_index);
+-- Composite: "all unprocessed sessions for wallet X"
+CREATE INDEX idx_night_wallet_processed ON night_sessions(wallet_address, processed);
 
 -- ============================================================================
 -- SEASON STATS TABLE

@@ -223,11 +223,15 @@ class MiningRepository(private val database: AppDatabase) {
     }
 
     /**
-     * Активация Genesis NFT после оплаты минта (MVP: локальная запись; ончейн — отдельно).
-     * Устанавливает hasGenesisNft = true и genesisNftMultiplier = 1.1 (+10% навсегда).
+     * Активация Genesis NFT после оплаты минта.
+     * Устанавливает hasGenesisNft = true, genesisNftMultiplier = 3.0.
+     * Опционально сохраняет on-chain mint адрес и порядковый номер NFT.
      */
-    suspend fun activateGenesisNft(): Boolean {
-        DevLog.d(TAG, "activateGenesisNft ENTRY")
+    suspend fun activateGenesisNft(
+        nftMint: String? = null,
+        nftNumber: Int? = null
+    ): Boolean {
+        DevLog.d(TAG, "activateGenesisNft ENTRY nftMint=${nftMint?.take(16)} nftNumber=$nftNumber")
         val stats = database.userStatsDao().getUserStats() ?: run {
             DevLog.w(TAG, "activateGenesisNft no UserStats")
             return false
@@ -235,10 +239,12 @@ class MiningRepository(private val database: AppDatabase) {
         database.userStatsDao().update(
             stats.copy(
                 hasGenesisNft = true,
-                genesisNftMultiplier = 1.1
+                genesisNftMultiplier = 3.0,
+                genesisNftMint = nftMint,
+                genesisNftNumber = nftNumber
             )
         )
-        DevLog.i(TAG, "activateGenesisNft SUCCESS hasGenesisNft=true multiplier=1.1")
+        DevLog.i(TAG, "activateGenesisNft SUCCESS hasGenesisNft=true multiplier=3.0 mint=${nftMint?.take(16)} #$nftNumber")
         return true
     }
 }

@@ -68,6 +68,16 @@ app.use([
   '/api/v1/payment/verify-skr',
 ], writeRouteLimiter);
 
+// Strict rate limit for admin endpoints: 5 req/min per IP
+const adminRateLimiter = createSimpleRateLimit({
+  windowMs: 60_000,
+  max: 5,
+  methods: ['POST', 'GET'],
+  keyFn: (req) => `admin:${req.ip}`,
+});
+app.use('/api/v1/season', adminRateLimiter);
+app.use('/api/v1/economy', adminRateLimiter);
+
 // Request logging
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.path}`, {
@@ -117,9 +127,46 @@ const server = createServer(app);
 const wss = new WebSocketServer({ port: WS_PORT });
 setupWebSocket(wss);
 
+/** Warn about missing env vars at startup so issues surface immediately. */
+function validateEnv(): void {
+  const required: Record<string, string> = {
+    DB_PASSWORD: 'PostgreSQL password',
+    JWT_SECRET: 'JWT signing secret (openssl rand -hex 32)',
+    ADMIN_SECRET: 'Admin API secret (openssl rand -hex 32)',
+  };
+  const recommended: Record<string, string> = {
+    TREASURY_WALLET: 'SKR payment receiver wallet (required for boosts/NFT)',
+    SKR_TOKEN_MINT: 'SKR SPL token mint address (required for boosts/NFT)',
+    CANDY_MACHINE_ID: 'Metaplex Candy Machine address (required for NFT mint)',
+    TREASURY_KEYPAIR: 'Treasury private key for SLEEP token distribution at TGE',
+    ALLOWED_ORIGINS: 'CORS allowlist (required in production)',
+    SOLANA_RPC_URL: 'Solana RPC endpoint (defaults to public, unreliable in prod)',
+  };
+
+  let hasError = false;
+  for (const [key, desc] of Object.entries(required)) {
+    if (!process.env[key]) {
+      logger.error(`❌ REQUIRED env var missing: ${key} — ${desc}`);
+      hasError = true;
+    }
+  }
+  if (hasError && process.env.NODE_ENV === 'production') {
+    logger.error('Refusing to start in production with missing required env vars');
+    process.exit(1);
+  }
+
+  for (const [key, desc] of Object.entries(recommended)) {
+    if (!process.env[key]) {
+      logger.warn(`⚠️  Recommended env var not set: ${key} — ${desc}`);
+    }
+  }
+}
+
 // Start server
 async function start() {
   try {
+    validateEnv();
+
     // Test database connection
     await db.query('SELECT NOW()');
     logger.info('✅ Database connected');

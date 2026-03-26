@@ -28,7 +28,9 @@ data class UserStatsEntity(
     // Буст за SKR: id из SkrBoostCatalog, действует до timestamp
     val activeSkrBoostId: String? = null,
     val activeSkrBoostEndsAt: Long = 0L,
-    // Genesis NFT: постоянный множитель к награде после платного минта (250–300 SKR)
+    // Genesis NFT: постоянный множитель к награде после платного минта (500 SKR)
     val hasGenesisNft: Boolean = false,
-    val genesisNftMultiplier: Double = 1.0
+    val genesisNftMultiplier: Double = 1.0,
+    val genesisNftMint: String? = null,       // on-chain mint адрес NFT
+    val genesisNftNumber: Int? = null          // порядковый номер (1..10000)
 )

@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.sleeper.app.data.local.AppDatabase
 import com.sleeper.app.data.network.SolanaCluster
 import com.sleeper.app.data.network.SolanaRpcClient
+import com.sleeper.app.data.network.WebSocketManager
+import com.sleeper.app.data.network.deriveWsUrl
 import com.sleeper.app.BuildConfig
 import com.sleeper.app.data.local.PendingSessionEntity
 import com.sleeper.app.data.repository.MiningRepository
@@ -25,6 +27,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 data class MiningUiState(
@@ -49,7 +53,8 @@ data class MiningUiState(
     val stakedSkrHuman: Double = 0.0,     // Стейк SKR (для множителя и отображения)
     val stakeMultiplier: Double = 1.0,    // +X% к награде за стейк
     val hasGenesisNft: Boolean = false,
-    val genesisNftMultiplier: Double = 1.0
+    val genesisNftMultiplier: Double = 1.0,
+    val pendingSessionsCount: Int = 0    // сессии ожидающие синхронизации с бэкендом
 )
 
 class MiningViewModel(application: Application) : AndroidViewModel(application) {
@@ -61,7 +66,8 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     private val walletManager = WalletManager(application)
     private val tokenVerifier = TokenVerifier(walletManager)
     private val rpcClient = SolanaRpcClient(SolanaCluster.MAINNET_HELIUS)
-    
+    private val wsManager = WebSocketManager(deriveWsUrl(BuildConfig.API_BASE_URL))
+
     private val _uiState = MutableStateFlow(MiningUiState())
     val uiState: StateFlow<MiningUiState> = _uiState.asStateFlow()
     
@@ -86,9 +92,38 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
     init {
         verifyDevice()
         observeUserStats()
+        observePendingSessions()
+        observeNetworkStats()
         startEnergyRestoration()
         checkWalletConnection()
         syncWithBackend()
+        wsManager.connect()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        wsManager.destroy()
+    }
+
+    private fun observeNetworkStats() {
+        wsManager.networkStats
+            .onEach { stats ->
+                if (stats.onlineMiners > 0) {
+                    _uiState.value = _uiState.value.copy(
+                        onlineUsers = stats.onlineMiners,
+                        isDemoNetworkStats = false
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observePendingSessions() {
+        database.pendingSessionDao().getAllPendingFlow()
+            .onEach { list ->
+                _uiState.value = _uiState.value.copy(pendingSessionsCount = list.size)
+            }
+            .launchIn(viewModelScope)
     }
     
     private fun verifyDevice() {
@@ -221,30 +256,40 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
     
+    private val isMiningStarting = java.util.concurrent.atomic.AtomicBoolean(false)
+
     fun startMining() {
+        if (!isMiningStarting.compareAndSet(false, true)) {
+            DevLog.w(TAG, "startMining: duplicate call ignored (already starting)")
+            return
+        }
         viewModelScope.launch {
-            // Доступ только по .skr; стейк используется только как множитель к награде.
-            // 1. Device (Seeker) 2. Wallet (connected) 3. .skr Token (ownership)
-            if (!_uiState.value.isTokenVerified) {
-                DevLog.w(TAG, "❌ Mining blocked: .skr token not verified. Filter logcat by 'SolanaRpcClient' or 'TokenVerifier' for detection details.")
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = getApplication<Application>().getString(com.sleeper.app.R.string.mining_connect_wallet_skr)
-                )
-                return@launch
+            try {
+                // Доступ только по .skr; стейк используется только как множитель к награде.
+                // 1. Device (Seeker) 2. Wallet (connected) 3. .skr Token (ownership)
+                if (!_uiState.value.isTokenVerified) {
+                    DevLog.w(TAG, "❌ Mining blocked: .skr token not verified.")
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = getApplication<Application>().getString(com.sleeper.app.R.string.mining_connect_wallet_skr)
+                    )
+                    return@launch
+                }
+
+                if (!energyManager.hasEnoughEnergy()) {
+                    DevLog.w(TAG, "Not enough energy to start mining")
+                    return@launch
+                }
+
+                // Запускаем MiningService
+                val intent = Intent(getApplication(), MiningService::class.java).apply {
+                    action = MiningService.ACTION_START_MINING
+                }
+                getApplication<Application>().startService(intent)
+
+                DevLog.i(TAG, "✅ Mining started for user: ${_uiState.value.skrUsername}")
+            } finally {
+                isMiningStarting.set(false)
             }
-            
-            if (!energyManager.hasEnoughEnergy()) {
-                DevLog.w(TAG, "Not enough energy to start mining")
-                return@launch
-            }
-            
-            // Запускаем MiningService
-            val intent = Intent(getApplication(), MiningService::class.java).apply {
-                action = MiningService.ACTION_START_MINING
-            }
-            getApplication<Application>().startService(intent)
-            
-            DevLog.i(TAG, "✅ Mining started for user: ${_uiState.value.skrUsername}")
         }
     }
     

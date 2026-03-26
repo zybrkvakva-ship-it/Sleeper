@@ -128,12 +128,12 @@ class TokenVerifier(
     // Removed: parseSkrUsername - парсинг теперь в SolanaRpcClient!
     
     /**
-     * Сохраняет verified .skr token для mining session
+     * Сохраняет verified .skr token для mining session.
+     * username сохраняется в SharedPreferences через WalletManager (используется в Leaderboard, UI).
      */
     fun saveVerifiedToken(username: String, tokenAddress: String, walletAddress: String) {
-        // Сохраняем в БД для аудита
-        DevLog.i(TAG, "Verified mining session: $username @ $walletAddress")
-        // TODO: Сохранить в Room Database
+        walletManager.saveSkrUsername(username)
+        DevLog.i(TAG, "saveVerifiedToken: username=$username tokenAddress=${tokenAddress.take(8)}... wallet=${walletAddress.take(8)}...")
     }
     
     private data class SkrTokenCheck(

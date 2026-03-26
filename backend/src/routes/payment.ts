@@ -47,7 +47,7 @@ const activateBoostHandler = async (req: Request, res: Response, next: NextFunct
     }
 
     const expectedAmountRaw = BigInt(Math.floor(boostConfig.price * 1_000_000));
-    const treasuryReceived = await verifyTokenTransfer({
+    const treasuryReceived = await verifyTokenTransferWithRetry({
       txHash,
       signerWallet: walletAddress,
       treasuryWallet: TREASURY_WALLET!,
@@ -158,6 +158,30 @@ router.get('/active-boost/:walletAddress', async (req, res, next) => {
     next(error);
   }
 });
+
+/** Retry verifyTokenTransfer up to 3 times on transient RPC errors. AppErrors are not retried. */
+async function verifyTokenTransferWithRetry(
+  opts: Parameters<typeof verifyTokenTransfer>[0],
+  maxAttempts = 3
+): Promise<bigint> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await verifyTokenTransfer(opts);
+    } catch (err) {
+      if (err instanceof AppError) throw err; // validation errors — no retry
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        logger.warn(`verifyTokenTransfer attempt ${attempt}/${maxAttempts} failed — retrying`, {
+          txHash: opts.txHash.slice(0, 16),
+          err: (err as Error).message,
+        });
+        await new Promise((r) => setTimeout(r, 2000 * attempt));
+      }
+    }
+  }
+  throw lastErr;
+}
 
 function getBoostConfig(boostId: string): { boost: number; price: number } | null {
   const legacyMapping: Record<string, string> = {

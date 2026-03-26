@@ -33,6 +33,12 @@ data class AuthChallengeApiResponse(
     val expiresAt: String
 )
 
+data class GenesisNftMintResponse(
+    val nftMint: String,
+    val nftNumber: Int,
+    val txHash: String
+)
+
 /**
  * Клиент к бэкенду майнинга (POST /night/end, GET /user/balance, GET /leaderboard).
  * Если BuildConfig.API_BASE_URL пустой — вызовы не выполняются (no-op).
@@ -181,15 +187,15 @@ class MiningBackendApi {
                 LeaderboardApiEntry(
                     rank = obj.optInt("rank", i + 1),
                     username = obj.optString("username", ""),
-                    blocks = obj.optInt("blocks", 0)
+                    blocks = obj.optInt("total_np", 0)   // backend: total_np = Night Points
                 )
             }
             val resp = LeaderboardApiResponse(
                 top = top,
                 userRank = json.optInt("user_rank", 0),
-                userBlocks = json.optInt("user_blocks", 0),
-                totalPoints = json.optLong("total_points", 0L),
-                totalBlocks = json.optInt("total_blocks", 0)
+                userBlocks = json.optInt("user_np", 0),       // backend: user_np
+                totalPoints = json.optLong("total_np", 0L),   // backend: total_np (global sum)
+                totalBlocks = json.optInt("total_users", 0)   // backend: total_users
             )
             DevLog.i(TAG, "getLeaderboard SUCCESS topSize=${top.size} userRank=${resp.userRank} totalPoints=${resp.totalPoints}")
             resp
@@ -223,6 +229,51 @@ class MiningBackendApi {
                 message = json.optString("message"),
                 expiresAt = json.optString("expiresAt")
             )
+        }
+    }
+
+    /**
+     * Минтит Genesis NFT после подтверждённого on-chain платежа SKR.
+     * POST /nft/mint
+     */
+    suspend fun mintGenesisNft(
+        walletAddress: String,
+        authToken: String,
+        paymentTxHash: String
+    ): Result<GenesisNftMintResponse> = withContext(Dispatchers.IO) {
+        DevLog.d(TAG, "mintGenesisNft ENTRY wallet=${DevLog.mask(walletAddress)} tx=${paymentTxHash.take(16)}...")
+        if (baseUrl.isEmpty()) {
+            return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        }
+        val body = JSONObject().apply {
+            put("walletAddress", walletAddress)
+            put("authToken", authToken)
+            put("txHash", paymentTxHash)
+        }.toString()
+        val request = Request.Builder()
+            .url("$baseUrl/nft/mint")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+            DevLog.d(TAG, "mintGenesisNft response code=${response.code} bodyLen=${responseBody.length}")
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${responseBody.take(400)}")
+            val json = JSONObject(responseBody)
+            if (json.has("error")) {
+                val msg = json.optJSONObject("error")?.optString("message")
+                    ?: json.optString("message", "NFT mint failed")
+                throw Exception(msg)
+            }
+            val result = GenesisNftMintResponse(
+                nftMint = json.optString("nftMint"),
+                nftNumber = json.optInt("nftNumber"),
+                txHash = json.optString("txHash")
+            )
+            DevLog.i(TAG, "mintGenesisNft SUCCESS nftMint=${result.nftMint.take(16)}... #${result.nftNumber}")
+            result
+        }.onFailure { e ->
+            DevLog.e(TAG, "mintGenesisNft error: ${e.message}", e)
         }
     }
 

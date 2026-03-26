@@ -179,9 +179,18 @@ class SolanaRpcClient(
             .build()
         val response = client.newCall(request).execute()
         val responseBody = response.body?.string() ?: "{}"
-        if (!response.isSuccessful) return null
-        val jsonResponse = try { JSONObject(responseBody) } catch (_: Exception) { return null }
-        if (jsonResponse.has("error")) return null
+        if (!response.isSuccessful) {
+            DevLog.w(TAG, "getProgramAccounts HTTP ${response.code}: ${responseBody.take(200)}")
+            return null
+        }
+        val jsonResponse = try { JSONObject(responseBody) } catch (e: Exception) {
+            DevLog.w(TAG, "getProgramAccounts: malformed JSON: ${e.message} body=${responseBody.take(200)}")
+            return null
+        }
+        if (jsonResponse.has("error")) {
+            DevLog.w(TAG, "getProgramAccounts RPC error: ${jsonResponse.optJSONObject("error")?.toString()}")
+            return null
+        }
         return jsonResponse.optJSONArray("result") ?: JSONArray()
     }
 
@@ -239,9 +248,18 @@ class SolanaRpcClient(
             .addHeader("Content-Type", "application/json")
             .build()
         val (response, responseBody) = executeRpcWithRetry(request, "STAKING_PA", RPC_RETRY_STAKING)
-        if (!response.isSuccessful) return@withContext null
-        val jsonResponse = try { JSONObject(responseBody) } catch (_: Exception) { return@withContext null }
-        if (jsonResponse.has("error")) return@withContext null
+        if (!response.isSuccessful) {
+            DevLog.w(TAG, "getProgramAccountsStaking HTTP ${response.code}: ${responseBody.take(200)}")
+            return@withContext null
+        }
+        val jsonResponse = try { JSONObject(responseBody) } catch (e: Exception) {
+            DevLog.w(TAG, "getProgramAccountsStaking: malformed JSON: ${e.message} body=${responseBody.take(200)}")
+            return@withContext null
+        }
+        if (jsonResponse.has("error")) {
+            DevLog.w(TAG, "getProgramAccountsStaking RPC error: ${jsonResponse.optJSONObject("error")?.toString()}")
+            return@withContext null
+        }
         jsonResponse.optJSONArray("result") ?: JSONArray()
     }
 
@@ -1855,6 +1873,66 @@ class SolanaRpcClient(
     }
 
     /**
+     * Ожидает подтверждения транзакции на Solana (polling getSignatureStatuses).
+     * @param signature base58 подпись TX
+     * @param maxAttempts максимальное число попыток (дефолт 20 = ~60 сек)
+     * @param delayMs пауза между попытками в мс (дефолт 3000)
+     */
+    suspend fun waitForConfirmation(
+        signature: String,
+        maxAttempts: Int = 20,
+        delayMs: Long = 3000L
+    ): TxConfirmResult = withContext(Dispatchers.IO) {
+        DevLog.d(TAG, "[TX_CONFIRM] waitForConfirmation ENTRY sig=${signature.take(20)}...")
+        repeat(maxAttempts) { attempt ->
+            delay(if (attempt == 0) 1500L else delayMs)
+            try {
+                val body = JSONObject().apply {
+                    put("jsonrpc", "2.0")
+                    put("id", 1)
+                    put("method", "getSignatureStatuses")
+                    put("params", JSONArray().apply {
+                        put(JSONArray().put(signature))
+                        put(JSONObject().apply { put("searchTransactionHistory", true) })
+                    })
+                }.toString()
+                val request = Request.Builder()
+                    .url(rpcUrl)
+                    .post(body.toRequestBody(JSON_MEDIA_TYPE))
+                    .build()
+                val response = client.newCall(request).execute()
+                val json = response.body?.string()?.let { JSONObject(it) }
+                if (json == null || json.has("error")) {
+                    DevLog.w(TAG, "[TX_CONFIRM] attempt=$attempt: RPC error or null")
+                    return@repeat
+                }
+                val value = json.optJSONObject("result")
+                    ?.optJSONArray("value")
+                    ?.optJSONObject(0)
+                if (value == null || value == JSONObject.NULL) {
+                    DevLog.d(TAG, "[TX_CONFIRM] attempt=$attempt: value=null (not found yet)")
+                    return@repeat
+                }
+                val err = value.opt("err")
+                if (err != null && err.toString() != "null") {
+                    DevLog.w(TAG, "[TX_CONFIRM] TX failed: err=$err")
+                    return@withContext TxConfirmResult.Failed("TX error: $err")
+                }
+                val status = value.optString("confirmationStatus", "")
+                DevLog.d(TAG, "[TX_CONFIRM] attempt=$attempt: status=$status")
+                if (status == "confirmed" || status == "finalized") {
+                    DevLog.i(TAG, "[TX_CONFIRM] ✅ Confirmed: sig=${signature.take(20)}")
+                    return@withContext TxConfirmResult.Confirmed
+                }
+            } catch (e: Exception) {
+                DevLog.w(TAG, "[TX_CONFIRM] attempt=$attempt exception: ${e.message}")
+            }
+        }
+        DevLog.w(TAG, "[TX_CONFIRM] TIMEOUT after $maxAttempts attempts")
+        TxConfirmResult.Timeout
+    }
+
+    /**
      * Получить последний blockhash для сборки транзакции (RPC getLatestBlockhash).
      */
     suspend fun getLatestBlockhash(): String? = withContext(Dispatchers.IO) {
@@ -1893,6 +1971,13 @@ class SolanaRpcClient(
             null
         }
     }
+}
+
+/** Результат ожидания подтверждения TX on-chain. */
+sealed class TxConfirmResult {
+    object Confirmed : TxConfirmResult()
+    data class Failed(val error: String) : TxConfirmResult()
+    object Timeout : TxConfirmResult()
 }
 
 /**

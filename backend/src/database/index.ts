@@ -8,12 +8,16 @@ import { logger } from '../utils/logger';
 
 // Create PostgreSQL connection pool with explicit config
 // This avoids issues with system PGDATABASE, PGUSER env vars
+if (!process.env.DB_PASSWORD) {
+  throw new Error('DB_PASSWORD environment variable is required');
+}
+
 export const db = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'sleeper',
   user: process.env.DB_USER || 'sleeper',
-  password: process.env.DB_PASSWORD || 'sleeper123',
+  password: process.env.DB_PASSWORD,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

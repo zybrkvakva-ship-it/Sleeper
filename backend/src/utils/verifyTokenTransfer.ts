@@ -62,16 +62,18 @@ export async function verifyTokenTransfer(
 
   // Calculate how much treasury received
   const preByIndex = new Map<number, bigint>();
-  for (const b of txInfo.meta?.preTokenBalances || []) {
+  for (const b of txInfo.meta?.preTokenBalances ?? []) {
     if (b.mint !== tokenMint || b.owner !== treasuryWallet) continue;
+    if (!b.uiTokenAmount?.amount) continue;
     preByIndex.set(b.accountIndex, BigInt(b.uiTokenAmount.amount));
   }
 
   let treasuryReceived = 0n;
-  for (const b of txInfo.meta?.postTokenBalances || []) {
+  for (const b of txInfo.meta?.postTokenBalances ?? []) {
     if (b.mint !== tokenMint || b.owner !== treasuryWallet) continue;
+    if (!b.uiTokenAmount?.amount) continue;
     const postAmount = BigInt(b.uiTokenAmount.amount);
-    const preAmount = preByIndex.get(b.accountIndex) || 0n;
+    const preAmount = preByIndex.get(b.accountIndex) ?? 0n;
     if (postAmount > preAmount) {
       treasuryReceived += postAmount - preAmount;
     }

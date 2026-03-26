@@ -74,10 +74,13 @@ android {
             if (releaseSigning != null && releaseSigning.storeFile?.exists() == true) {
                 signingConfig = releaseSigning
             } else {
+                // В CI/CD передать RELEASE_STORE_FILE через local.properties или -P флаг
+                // Без keystore release APK не может быть опубликован в Play Store
+                logger.warn("RELEASE_STORE_FILE not set — release APK will use debug signing. Set it before publishing.")
                 signingConfig = signingConfigs.getByName("debug")
             }
             buildConfigField("boolean", "BYPASS_DEVICE_CHECK", "false")
-            buildConfigField("boolean", "USE_REAL_LEADERBOARD", "false")
+            buildConfigField("boolean", "USE_REAL_LEADERBOARD", "true")
             buildConfigField("String", "API_BASE_URL", propQuoted("API_BASE_URL"))
             buildConfigField("String", "BOOST_TREASURY", propQuoted("BOOST_TREASURY"))
             buildConfigField("String", "HELIUS_API_KEY", propQuoted("HELIUS_API_KEY"))
@@ -96,6 +99,10 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true  // Explicitly enable BuildConfig
+    }
+
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
     }
 
     composeOptions {

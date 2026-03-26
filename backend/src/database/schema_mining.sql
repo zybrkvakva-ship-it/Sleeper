@@ -89,3 +89,21 @@ CREATE TABLE IF NOT EXISTS device_fingerprint_registry (
 );
 CREATE INDEX IF NOT EXISTS idx_fingerprint_registry_wallet
     ON device_fingerprint_registry(wallet_address);
+
+-- Night session tokens: issued by /night/start, consumed by /night/end
+-- Prevents /night/end submissions without a valid /night/start
+CREATE TABLE IF NOT EXISTS night_session_tokens (
+    session_id   UUID PRIMARY KEY,
+    wallet_address VARCHAR(44) NOT NULL,
+    night_date   DATE NOT NULL,
+    created_at   TIMESTAMP DEFAULT NOW(),
+    used_at      TIMESTAMP,
+    CONSTRAINT uq_night_token_wallet_date UNIQUE (wallet_address, night_date)
+);
+CREATE INDEX IF NOT EXISTS idx_night_tokens_wallet ON night_session_tokens(wallet_address);
+
+-- Performance indexes (idempotent)
+CREATE INDEX IF NOT EXISTS idx_night_wallet_processed
+    ON night_sessions(wallet_address, processed);
+CREATE INDEX IF NOT EXISTS idx_users_last_active
+    ON users(last_active_at DESC);

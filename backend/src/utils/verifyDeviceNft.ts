@@ -12,6 +12,7 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { logger } from './logger';
 import { getRedis } from '../redis';
 import { CacheKeys, CacheTTL } from './cacheKeys';
+import { query } from '../database';
 
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 const TOKEN_2022_PROGRAM_ID = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
@@ -94,11 +95,26 @@ async function queryDeviceNft(walletAddress: string): Promise<boolean> {
 
     return false;
   } catch (err) {
-    logger.error('Failed to verify Seeker device NFT', {
+    logger.error('Solana RPC failed for device NFT check — trying DB fallback', {
       wallet: walletAddress.slice(0, 8) + '...',
       err,
     });
-    throw err;
+    // Fallback: use last known DB value (updated by GET /nft/device-status)
+    try {
+      const rows = await query<{ has_device_nft: boolean }>(
+        'SELECT COALESCE(has_device_nft, false) AS has_device_nft FROM users WHERE wallet_address = $1',
+        [walletAddress]
+      );
+      const cached = rows[0]?.has_device_nft ?? false;
+      logger.warn('Using DB-cached device NFT status (RPC unavailable)', {
+        wallet: walletAddress.slice(0, 8) + '...',
+        cached,
+      });
+      return cached;
+    } catch (dbErr) {
+      logger.error('DB fallback also failed for device NFT check', { dbErr });
+      throw err; // re-throw original RPC error
+    }
   }
 }
 

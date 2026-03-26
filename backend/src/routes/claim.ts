@@ -12,9 +12,15 @@ import { isValidSolanaAddress } from '../utils/solanaAddress';
 
 const router = Router();
 
+// TGE configuration from environment
+const TGE_ENABLED = process.env.TGE_ENABLED === 'true';
+const TGE_DATE = process.env.TGE_DATE ? new Date(process.env.TGE_DATE) : null;
+const isClaimsOpen = (): boolean =>
+  TGE_ENABLED && TGE_DATE != null && new Date() >= TGE_DATE;
+
 /**
  * POST /api/v1/claim
- * Locked until TGE. Returns current accumulated balance.
+ * Locked until TGE. Set TGE_ENABLED=true and TGE_DATE=ISO8601 in .env to open.
  */
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -31,12 +37,25 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       'SELECT COALESCE(total_sleep_earned, 0) AS balance FROM users WHERE wallet_address = $1',
       [walletAddress]
     );
+    const balance = userRows[0] ? parseInt(String(userRows[0].balance), 10) : 0;
 
+    if (!isClaimsOpen()) {
+      const tgeDateStr = TGE_DATE ? TGE_DATE.toISOString() : 'TBD';
+      return res.status(503).json({
+        success: false,
+        error: `Claims open at TGE: ${tgeDateStr}`,
+        balance,
+        tgeDate: tgeDateStr,
+        tgeEnabled: TGE_ENABLED,
+      });
+    }
+
+    // TGE is open — real claim logic goes here
+    // TODO: implement sendSleepTokens() flow when TGE goes live
     res.status(503).json({
       success: false,
-      error: 'Claims are locked until TGE. Your balance is preserved.',
-      balance: userRows[0] ? parseInt(String(userRows[0].balance), 10) : 0,
-      tgeInfo: 'Token Generation Event will open claims at season end.',
+      error: 'Claim processing not yet implemented',
+      balance,
     });
   } catch (error) {
     next(error);

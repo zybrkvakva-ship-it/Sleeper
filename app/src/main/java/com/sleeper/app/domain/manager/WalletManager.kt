@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.solana.mobilewalletadapter.clientlib.*
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
+import com.solana.mobilewalletadapter.common.signin.SignInWithSolana
 import com.sleeper.app.data.network.SplTransferBuilder
 import com.sleeper.app.utils.DevLog
 import com.sleeper.app.utils.toBase58
@@ -114,22 +115,23 @@ class WalletManager(private val context: Context) {
                 delay(MWA_RETRY_INITIAL_DELAY_MS * (1L shl (attempt - 2)))
             }
             try {
-                // TODO: Uncomment when using SIWS in production
-                // val payload = SignInWithSolana.Payload(...)
-                // val result = walletAdapter.signIn(sender, payload)
-                val result = walletAdapter.connect(sender)
+                val payload = SignInWithSolana.Payload(
+                    /* domain = */ "seekermining.com",
+                    /* statement = */ "Sign in to Seeker Mining"
+                ).apply {
+                    domain = "seekermining.com"
+                }
+                val result = walletAdapter.signIn(sender, payload)
                 when (result) {
                     is TransactionResult.Success -> {
-                        val publicKeyBytes = result.authResult.accounts.firstOrNull()?.publicKey
-                        if (publicKeyBytes != null) {
-                            val address = publicKeyBytes.toBase58()
-                            saveAuthToken(walletAdapter.authToken)
-                            saveWalletAddress(address)
-                            DevLog.d(TAG, "Sign-in successful: $address")
-                            return SignInResult.Success(address)
-                        } else {
-                            return SignInResult.Error("No account found")
-                        }
+                        val authResult = result.authResult
+                        val siws = authResult.signInResult
+                        val publicKeyBytes = siws?.publicKey ?: authResult.publicKey
+                        val address = publicKeyBytes.toBase58()
+                        saveAuthToken(walletAdapter.authToken)
+                        saveWalletAddress(address)
+                        DevLog.i(TAG, "SIWS sign-in successful: ${address.take(8)}... sigLen=${siws?.signature?.size ?: 0}")
+                        return SignInResult.Success(address)
                     }
                     is TransactionResult.NoWalletFound -> return SignInResult.NoWalletFound
                     is TransactionResult.Failure -> {

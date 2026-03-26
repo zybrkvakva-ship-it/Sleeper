@@ -1,0 +1,374 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 12,
+    "identityHash": "549bfd2de473daec2ac757b7c71e2942",
+    "entities": [
+      {
+        "tableName": "user_stats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `energyCurrent` INTEGER NOT NULL, `energyMax` INTEGER NOT NULL, `pointsBalance` INTEGER NOT NULL, `uptimeMinutes` INTEGER NOT NULL, `totalBlocksMined` INTEGER NOT NULL, `currentBlock` INTEGER NOT NULL, `deviceFingerprint` TEXT NOT NULL, `lastHumanCheck` INTEGER NOT NULL, `humanChecksPassed` INTEGER NOT NULL, `humanChecksFailed` INTEGER NOT NULL, `miningStartTime` INTEGER NOT NULL, `isMining` INTEGER NOT NULL, `lastEnergyRestore` INTEGER NOT NULL, `stakedSkrRaw` INTEGER NOT NULL, `stakedSkrHuman` REAL NOT NULL, `dailySocialBonusPercent` REAL NOT NULL, `lastDailyResetAt` INTEGER NOT NULL, `activeSkrBoostId` TEXT, `activeSkrBoostEndsAt` INTEGER NOT NULL, `hasGenesisNft` INTEGER NOT NULL, `genesisNftMultiplier` REAL NOT NULL, `genesisNftMint` TEXT, `genesisNftNumber` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "energyCurrent",
+            "columnName": "energyCurrent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "energyMax",
+            "columnName": "energyMax",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pointsBalance",
+            "columnName": "pointsBalance",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uptimeMinutes",
+            "columnName": "uptimeMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalBlocksMined",
+            "columnName": "totalBlocksMined",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentBlock",
+            "columnName": "currentBlock",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceFingerprint",
+            "columnName": "deviceFingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastHumanCheck",
+            "columnName": "lastHumanCheck",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "humanChecksPassed",
+            "columnName": "humanChecksPassed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "humanChecksFailed",
+            "columnName": "humanChecksFailed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "miningStartTime",
+            "columnName": "miningStartTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isMining",
+            "columnName": "isMining",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastEnergyRestore",
+            "columnName": "lastEnergyRestore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stakedSkrRaw",
+            "columnName": "stakedSkrRaw",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stakedSkrHuman",
+            "columnName": "stakedSkrHuman",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailySocialBonusPercent",
+            "columnName": "dailySocialBonusPercent",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastDailyResetAt",
+            "columnName": "lastDailyResetAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activeSkrBoostId",
+            "columnName": "activeSkrBoostId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "activeSkrBoostEndsAt",
+            "columnName": "activeSkrBoostEndsAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasGenesisNft",
+            "columnName": "hasGenesisNft",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "genesisNftMultiplier",
+            "columnName": "genesisNftMultiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "genesisNftMint",
+            "columnName": "genesisNftMint",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "genesisNftNumber",
+            "columnName": "genesisNftNumber",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `reward` INTEGER NOT NULL, `type` TEXT NOT NULL, `isCompleted` INTEGER NOT NULL, `completedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reward",
+            "columnName": "reward",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCompleted",
+            "columnName": "isCompleted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "pending_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `walletAddress` TEXT NOT NULL, `authToken` TEXT, `skrUsername` TEXT, `uptimeMinutes` INTEGER NOT NULL, `durationSeconds` INTEGER NOT NULL, `stakedSkrHuman` REAL NOT NULL, `stakeMultiplier` REAL NOT NULL, `humanChecksPassed` INTEGER NOT NULL, `humanChecksFailed` INTEGER NOT NULL, `humanMultiplier` REAL NOT NULL, `dailySocialBonusPercent` REAL NOT NULL, `paidBoostMultiplier` REAL NOT NULL, `dailySocialMultiplier` REAL NOT NULL, `pointsPerSecond` REAL NOT NULL, `pointsBalance` INTEGER NOT NULL, `sessionStartedAt` INTEGER NOT NULL, `sessionEndedAt` INTEGER NOT NULL, `deviceFingerprint` TEXT, `hasGenesisNft` INTEGER NOT NULL, `genesisNftMultiplier` REAL NOT NULL, `activeSkrBoostId` TEXT, `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "walletAddress",
+            "columnName": "walletAddress",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authToken",
+            "columnName": "authToken",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "skrUsername",
+            "columnName": "skrUsername",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "uptimeMinutes",
+            "columnName": "uptimeMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationSeconds",
+            "columnName": "durationSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stakedSkrHuman",
+            "columnName": "stakedSkrHuman",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stakeMultiplier",
+            "columnName": "stakeMultiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "humanChecksPassed",
+            "columnName": "humanChecksPassed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "humanChecksFailed",
+            "columnName": "humanChecksFailed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "humanMultiplier",
+            "columnName": "humanMultiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailySocialBonusPercent",
+            "columnName": "dailySocialBonusPercent",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paidBoostMultiplier",
+            "columnName": "paidBoostMultiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailySocialMultiplier",
+            "columnName": "dailySocialMultiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pointsPerSecond",
+            "columnName": "pointsPerSecond",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pointsBalance",
+            "columnName": "pointsBalance",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionStartedAt",
+            "columnName": "sessionStartedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionEndedAt",
+            "columnName": "sessionEndedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceFingerprint",
+            "columnName": "deviceFingerprint",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "hasGenesisNft",
+            "columnName": "hasGenesisNft",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "genesisNftMultiplier",
+            "columnName": "genesisNftMultiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activeSkrBoostId",
+            "columnName": "activeSkrBoostId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '549bfd2de473daec2ac757b7c71e2942')"
+    ]
+  }
+}

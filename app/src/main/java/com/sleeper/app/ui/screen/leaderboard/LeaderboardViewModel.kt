@@ -33,6 +33,19 @@ data class GlobalStats(
     val totalBlocks: Int = 124_700          // СТУБ: с бэкенда
 )
 
+private val mockLeaderboardData = listOf(
+    LeaderboardEntry(1, "whale_sol", 12847),
+    LeaderboardEntry(2, "seeker_god", 9234),
+    LeaderboardEntry(3, "crypto_king", 7845),
+    LeaderboardEntry(4, "hodl_master", 6521),
+    LeaderboardEntry(5, "moon_boy", 5432),
+    LeaderboardEntry(6, "diamond_hands", 4987),
+    LeaderboardEntry(7, "satoshi_fan", 4321),
+    LeaderboardEntry(8, "block_hunter", 3876),
+    LeaderboardEntry(9, "miner_pro", 3456),
+    LeaderboardEntry(10, "solana_dev", 3123)
+)
+
 class LeaderboardViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
@@ -71,37 +84,25 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
                         DevLog.e(TAG, "loadLeaderboard API failed: ${it.message} cause=${it.cause?.message}", it)
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            topPlayers = emptyList(),
+                            topPlayers = mockLeaderboardData,
                             currentUserSkrUsername = currentSkr,
-                            isDemoData = false
+                            isDemoData = true
                         )
                     }
                 } else {
-                    DevLog.d(TAG, "loadLeaderboard API not configured -> empty")
+                    DevLog.d(TAG, "loadLeaderboard API not configured -> mock")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        topPlayers = emptyList(),
+                        topPlayers = mockLeaderboardData,
                         currentUserSkrUsername = currentSkr,
-                        isDemoData = false
+                        isDemoData = true
                     )
                 }
             } else {
-                DevLog.d(TAG, "loadLeaderboard using mock data")
-                val mockData = listOf(
-                    LeaderboardEntry(1, "whale_sol", 12847),
-                    LeaderboardEntry(2, "seeker_god", 9234),
-                    LeaderboardEntry(3, "crypto_king", 7845),
-                    LeaderboardEntry(4, "hodl_master", 6521),
-                    LeaderboardEntry(5, "moon_boy", 5432),
-                    LeaderboardEntry(6, "diamond_hands", 4987),
-                    LeaderboardEntry(7, "satoshi_fan", 4321),
-                    LeaderboardEntry(8, "block_hunter", 3876),
-                    LeaderboardEntry(9, "miner_pro", 3456),
-                    LeaderboardEntry(10, "solana_dev", 3123)
-                )
+                DevLog.d(TAG, "loadLeaderboard using mock data (debug build)")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    topPlayers = mockData,
+                    topPlayers = mockLeaderboardData,
                     currentUserSkrUsername = currentSkr,
                     isDemoData = true
                 )

@@ -153,7 +153,7 @@ router.post('/mint', async (req, res, next) => {
 
     // Re-check eligibility (idempotent guard)
     const users = await query(
-      'SELECT has_genesis_nft, skr_username, genesis_nft_mint FROM users WHERE wallet_address = $1',
+      'SELECT has_genesis_nft, skr_username, genesis_nft_mint, genesis_nft_number FROM users WHERE wallet_address = $1',
       [walletAddress]
     );
     if (users.length === 0) {
@@ -167,6 +167,8 @@ router.post('/mint', async (req, res, next) => {
         success: true,
         alreadyMinted: true,
         nftMint: user.genesis_nft_mint,
+        nftNumber: user.genesis_nft_number ?? 0,
+        txHash: '',
         message: 'You already own a Genesis NFT',
       });
     }
@@ -174,14 +176,7 @@ router.post('/mint', async (req, res, next) => {
       throw new AppError(403, 'You must own a .skr domain to mint Genesis NFT');
     }
 
-    // Check supply
-    const nftCount = await query('SELECT COUNT(*) as count FROM users WHERE has_genesis_nft = true');
-    const minted = parseInt(nftCount[0]?.count || '0');
-    if (minted >= 10000) {
-      throw new AppError(410, 'Genesis NFT supply exhausted (10,000/10,000)');
-    }
-
-    // Verify Candy Machine is configured
+    // Verify Candy Machine is configured (before acquiring lock)
     if (!process.env.CANDY_MACHINE_ID || !process.env.TREASURY_KEYPAIR) {
       throw new AppError(503, 'NFT minting is not configured on this server');
     }
@@ -200,11 +195,23 @@ router.post('/mint', async (req, res, next) => {
       commitment: 'confirmed',
     });
 
-    // Execute mint
-    const { txHash: mintTxHash, nftMint, nftNumber } = await mintGenesisNft(walletAddress);
+    // Execute mint + persist atomically with advisory lock to prevent supply race
+    const { txHash: mintTxHash, nftMint, nftNumber } = await dbTransaction(async (client) => {
+      // Advisory lock serialises all concurrent mint attempts
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext('genesis_nft_mint'))`);
 
-    // Persist NFT ownership atomically
-    await dbTransaction(async (client) => {
+      // Re-check supply under lock
+      const countRow = await client.query<{ count: string }>(
+        'SELECT COUNT(*)::text AS count FROM users WHERE has_genesis_nft = true'
+      );
+      const minted = parseInt(countRow.rows[0]?.count || '0');
+      if (minted >= 10000) {
+        throw new AppError(410, 'Genesis NFT supply exhausted (10,000/10,000)');
+      }
+
+      // Mint happens outside DB but inside the lock window
+      const mintResult = await mintGenesisNft(walletAddress);
+
       await client.query(
         `UPDATE users SET
            has_genesis_nft = true,
@@ -212,15 +219,16 @@ router.post('/mint', async (req, res, next) => {
            genesis_nft_number = $2,
            genesis_nft_purchased_at = NOW()
          WHERE wallet_address = $3`,
-        [nftMint, nftNumber, walletAddress]
+        [mintResult.nftMint, mintResult.nftNumber, walletAddress]
       );
-      // Record payment entry for audit trail
       await client.query(
         `INSERT INTO payments (wallet_address, tx_hash, payment_type, amount, nft_mint, nft_number, verified, verified_at)
          VALUES ($1, $2, 'GENESIS_NFT', $3, $4, $5, true, NOW())
          ON CONFLICT (tx_hash) DO NOTHING`,
-        [walletAddress, paymentTxHash, GENESIS_NFT_PRICE_SKR, nftMint, nftNumber]
+        [walletAddress, paymentTxHash, GENESIS_NFT_PRICE_SKR, mintResult.nftMint, mintResult.nftNumber]
       );
+
+      return mintResult;
     });
 
     logger.info('Genesis NFT minted and recorded', {

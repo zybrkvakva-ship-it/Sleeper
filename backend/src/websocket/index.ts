@@ -6,6 +6,7 @@ import { BASE_RATE_PER_MINUTE, MAX_TOTAL_MULTIPLIER, SkrBoostLevel } from '../ec
 
 interface WalletProfile {
   hasGenesisNft: boolean;
+  hasDeviceNft: boolean;
   stakedSkrHuman: number;
   activeBoostLevel: SkrBoostLevel;
 }
@@ -54,12 +55,16 @@ export function setupWebSocket(wss: WebSocketServer) {
     }));
     
     ws.on('message', (data) => {
+      let message: any;
       try {
-        const message = JSON.parse(data.toString());
-        handleMessage(clientId, message);
+        message = JSON.parse(data.toString());
       } catch (error) {
         logger.error('Failed to parse WebSocket message:', error);
+        return;
       }
+      handleMessage(clientId, message).catch((error) => {
+        logger.error(`Unhandled error in handleMessage for client ${clientId}:`, error);
+      });
     });
     
     ws.on('close', () => {
@@ -77,7 +82,7 @@ export function setupWebSocket(wss: WebSocketServer) {
   });
 }
 
-function handleMessage(clientId: string, message: any) {
+async function handleMessage(clientId: string, message: any): Promise<void> {
   const client = clients.get(clientId);
   if (!client) return;
   
@@ -93,38 +98,47 @@ function handleMessage(clientId: string, message: any) {
       client.nightId = message.nightId;
       // Load server-side profile (staking + NFT) — not trusted from client
       if (message.walletAddress) {
-        try {
-          const rows = await query<{
-            has_genesis_nft: boolean;
-            staked_skr_raw: string;
-            boost_level: string | null;
-          }>(
-            `SELECT u.has_genesis_nft,
-                    COALESCE(u.staked_skr_raw, 0) AS staked_skr_raw,
-                    p.boost_level
-             FROM users u
-             LEFT JOIN payments p ON p.wallet_address = u.wallet_address
-               AND p.payment_type = 'SKR_BOOST'
-               AND p.verified = true
-               AND p.boost_expires_at > NOW()
-             WHERE u.wallet_address = $1
-             ORDER BY p.created_at DESC
-             LIMIT 1`,
-            [message.walletAddress]
-          );
-          if (rows.length > 0) {
-            client.profile = {
-              hasGenesisNft: rows[0].has_genesis_nft ?? false,
-              stakedSkrHuman: Number(rows[0].staked_skr_raw) / 1_000_000,
-              activeBoostLevel: (rows[0].boost_level as SkrBoostLevel) || SkrBoostLevel.NONE,
-            };
+        const rows = await query<{
+          has_genesis_nft: boolean;
+          has_device_nft: boolean;
+          staked_skr_raw: string;
+          boost_level: string | null;
+        }>(
+          `SELECT u.has_genesis_nft,
+                  u.has_device_nft,
+                  COALESCE(u.staked_skr_raw, 0) AS staked_skr_raw,
+                  p.boost_level
+           FROM users u
+           LEFT JOIN payments p ON p.wallet_address = u.wallet_address
+             AND p.payment_type = 'SKR_BOOST'
+             AND p.verified = true
+             AND p.boost_expires_at > NOW()
+           WHERE u.wallet_address = $1
+           ORDER BY p.created_at DESC
+           LIMIT 1`,
+          [message.walletAddress]
+        );
+        if (rows.length > 0) {
+          client.profile = {
+            hasGenesisNft: rows[0].has_genesis_nft ?? false,
+            hasDeviceNft: rows[0].has_device_nft ?? false,
+            stakedSkrHuman: Number(rows[0].staked_skr_raw) / 1_000_000,
+            activeBoostLevel: (rows[0].boost_level as SkrBoostLevel) || SkrBoostLevel.NONE,
+          };
+          // Device NFT gate — mirrors POST /night/start
+          if (!client.profile.hasDeviceNft) {
+            logger.warn('night:register: device NFT missing', { wallet: message.walletAddress?.slice(0, 8) });
+            client.ws.send(JSON.stringify({
+              type: 'error',
+              code: 'DEVICE_NFT_REQUIRED',
+              message: 'Seeker device NFT required to mine',
+            }));
           }
-        } catch (err) {
-          logger.warn('night:register profile load failed', { err });
         }
       }
       logger.info(`Night registered for client ${clientId}`, {
         wallet: message.walletAddress,
+        hasDeviceNft: client.profile?.hasDeviceNft,
         hasGenesisNft: client.profile?.hasGenesisNft,
         staked: client.profile?.stakedSkrHuman,
       });
