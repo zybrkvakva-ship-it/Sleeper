@@ -23,7 +23,6 @@ import com.sleeper.app.economy.season.SeasonEconomy
  * ```kotlin
  * val ctx = NightContext(
  *     minutesSlept = 480,
- *     storageMb = 250,
  *     humanFactor = 1.0,
  *     weekIndex = 5,
  *     activeDevices = 15_000,
@@ -73,7 +72,6 @@ object SleeperEconomy {
         // 2. Базовые NP
         val baseCtx = BaseRewardCalculator.BaseContext(
             minutesSlept = ctx.minutesSlept,
-            storageMb = ctx.storageMb,
             humanFactor = ctx.humanFactor,
             weekIndex = ctx.weekIndex,
             maxWeeks = maxWeeks
@@ -205,7 +203,6 @@ object SleeperEconomy {
  */
 fun NightContext.copy(
     minutesSlept: Int = this.minutesSlept,
-    storageMb: Int = this.storageMb,
     humanFactor: Double = this.humanFactor,
     weekIndex: Int = this.weekIndex,
     activeDevices: Int = this.activeDevices,
@@ -215,7 +212,6 @@ fun NightContext.copy(
     hasGenesisNft: Boolean = this.hasGenesisNft
 ) = NightContext(
     minutesSlept = minutesSlept,
-    storageMb = storageMb,
     humanFactor = humanFactor,
     weekIndex = weekIndex,
     activeDevices = activeDevices,

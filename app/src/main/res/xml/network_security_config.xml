@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Разрешаем cleartext только для backend сервера (временно до перехода на HTTPS) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">89.124.78.88</domain>
+    </domain-config>
+    <!-- Все остальные соединения — только HTTPS -->
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

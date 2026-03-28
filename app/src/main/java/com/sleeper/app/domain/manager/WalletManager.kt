@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.solana.mobilewalletadapter.clientlib.*
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
+import com.solana.mobilewalletadapter.common.signin.SignInWithSolana
 import com.sleeper.app.data.network.SplTransferBuilder
 import com.sleeper.app.utils.DevLog
 import com.sleeper.app.utils.toBase58
@@ -20,6 +21,12 @@ class WalletManager(private val context: Context) {
         private const val KEY_BACKEND_AUTH_TOKEN = "backend_auth_token"
         private const val KEY_WALLET_ADDRESS = "wallet_address"
         private const val KEY_SKR_USERNAME = "skr_username"
+        private const val KEY_REFERRAL_CODE = "referral_code"
+        private const val KEY_REFERRAL_COUNT = "referral_count"
+        /** true если пользователю уже показывали диалог ввода реферального кода */
+        private const val KEY_REFERRAL_ASKED = "referral_onboarding_asked"
+        /** код из deep link, ожидающий применения */
+        private const val KEY_PENDING_REFERRAL_CODE = "pending_referral_code"
         /** Сообщение при временной недоступности MWA-сервера кошелька (ECONNREFUSED) */
         private const val MWA_CONNECTION_REFUSED_HINT = "Кошелёк ещё не готов. Откройте приложение кошелька и нажмите «Подключить» снова."
         /** Сообщение при отказе/таймауте авторизации в кошельке (authorization request failed) */
@@ -114,22 +121,23 @@ class WalletManager(private val context: Context) {
                 delay(MWA_RETRY_INITIAL_DELAY_MS * (1L shl (attempt - 2)))
             }
             try {
-                // TODO: Uncomment when using SIWS in production
-                // val payload = SignInWithSolana.Payload(...)
-                // val result = walletAdapter.signIn(sender, payload)
-                val result = walletAdapter.connect(sender)
+                val payload = SignInWithSolana.Payload(
+                    /* domain = */ "seekermining.com",
+                    /* statement = */ "Sign in to Seeker Mining"
+                ).apply {
+                    domain = "seekermining.com"
+                }
+                val result = walletAdapter.signIn(sender, payload)
                 when (result) {
                     is TransactionResult.Success -> {
-                        val publicKeyBytes = result.authResult.accounts.firstOrNull()?.publicKey
-                        if (publicKeyBytes != null) {
-                            val address = publicKeyBytes.toBase58()
-                            saveAuthToken(walletAdapter.authToken)
-                            saveWalletAddress(address)
-                            DevLog.d(TAG, "Sign-in successful: $address")
-                            return SignInResult.Success(address)
-                        } else {
-                            return SignInResult.Error("No account found")
-                        }
+                        val authResult = result.authResult
+                        val siws = authResult.signInResult
+                        val publicKeyBytes = siws?.publicKey ?: authResult.publicKey
+                        val address = publicKeyBytes.toBase58()
+                        saveAuthToken(walletAdapter.authToken)
+                        saveWalletAddress(address)
+                        DevLog.i(TAG, "SIWS sign-in successful: ${address.take(8)}... sigLen=${siws?.signature?.size ?: 0}")
+                        return SignInResult.Success(address)
                     }
                     is TransactionResult.NoWalletFound -> return SignInResult.NoWalletFound
                     is TransactionResult.Failure -> {
@@ -356,7 +364,50 @@ class WalletManager(private val context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_BACKEND_AUTH_TOKEN, null)
     }
-    
+
+    fun saveReferralCode(code: String?) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (code.isNullOrBlank()) prefs.edit().remove(KEY_REFERRAL_CODE).apply()
+        else prefs.edit().putString(KEY_REFERRAL_CODE, code).apply()
+    }
+
+    fun getSavedReferralCode(): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_REFERRAL_CODE, null)
+    }
+
+    fun saveReferralCount(count: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putInt(KEY_REFERRAL_COUNT, count).apply()
+    }
+
+    fun getSavedReferralCount(): Int {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(KEY_REFERRAL_COUNT, 0)
+    }
+
+    /** true если диалог onboarding уже был показан (не показываем повторно). */
+    fun isReferralOnboardingAsked(): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_REFERRAL_ASKED, false)
+    }
+
+    fun markReferralOnboardingAsked() {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_REFERRAL_ASKED, true).apply()
+    }
+
+    /** Код из deep link (seekermining://invite?code=XXX), ожидающий применения. */
+    fun getPendingReferralCode(): String? {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_PENDING_REFERRAL_CODE, null)
+    }
+
+    fun savePendingReferralCode(code: String?) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(KEY_PENDING_REFERRAL_CODE, code).apply()
+    }
+
     // Private helpers
 
     /**
@@ -414,6 +465,10 @@ class WalletManager(private val context: Context) {
             .remove(KEY_BACKEND_AUTH_TOKEN)
             .remove(KEY_WALLET_ADDRESS)
             .remove(KEY_SKR_USERNAME)
+            .remove(KEY_REFERRAL_CODE)
+            .remove(KEY_REFERRAL_COUNT)
+            .remove(KEY_REFERRAL_ASKED)
+            .remove(KEY_PENDING_REFERRAL_CODE)
             .apply()
     }
     

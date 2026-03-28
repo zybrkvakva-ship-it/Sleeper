@@ -149,7 +149,7 @@ class EnergyManager(private val userStatsDao: UserStatsDao) {
         val socialMult = dailySocialMultiplier(stats.dailySocialBonusPercent)
         val genesisMult = if (stats.hasGenesisNft && stats.genesisNftMultiplier > 0) stats.genesisNftMultiplier else 1.0
         val paidMult = paidBoostMultiplier(stats.activeSkrBoostId, stats.activeSkrBoostEndsAt)
-        return BASE_POINTS_PER_SECOND * stats.storageMultiplier * humanMultiplier * stakeMult * socialMult * genesisMult * paidMult
+        return BASE_POINTS_PER_SECOND * humanMultiplier * stakeMult * socialMult * genesisMult * paidMult
     }
     
     /**

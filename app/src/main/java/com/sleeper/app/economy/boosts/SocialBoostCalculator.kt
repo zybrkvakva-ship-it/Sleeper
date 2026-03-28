@@ -11,7 +11,7 @@ import com.sleeper.app.economy.models.EconomyConstants.MAX_SOCIAL_BOOST
  * - Ежедневную активность (daily check-ins, social shares)
  * - Регулярный майнинг (sleep streaks)
  * 
- * Максимальный социальный буст: 40% (0.4)
+ * Максимальный социальный буст: 20% — намеренно слабее любого платного SKR-буста (0.4)
  */
 object SocialBoostCalculator {
     
@@ -30,7 +30,7 @@ object SocialBoostCalculator {
      * Контекст социальных бустов
      * 
      * @param referralCount количество активных рефералов
-     * @param dailyTasksPercent суммарный буст от daily tasks (0.0-0.3)
+     * @param dailyTasksPercent суммарный буст от daily tasks (0.0-0.2)
      */
     data class SocialBoost(
         val referralCount: Int,
@@ -76,8 +76,8 @@ object SocialBoostCalculator {
      * максимальный социальный буст (40%).
      * 
      * @param boost контекст социальных бустов
-     * @param maxPercent максимальный социальный буст (по умолчанию 0.4)
-     * @return общий социальный буст (0.0-0.4)
+     * @param maxPercent максимальный социальный буст (по умолчанию 0.2)
+     * @return общий социальный буст (0.0-0.2)
      * 
      * @example
      * ```
@@ -95,8 +95,8 @@ object SocialBoostCalculator {
         // Буст от рефералов
         val refBoost = calcReferralBoost(boost.referralCount)
         
-        // Буст от daily tasks (capped на 30%)
-        val taskBoost = boost.dailyTasksPercent.coerceIn(0.0, 0.30)
+        // Буст от daily tasks (capped на 20%)
+        val taskBoost = boost.dailyTasksPercent.coerceIn(0.0, 0.20)
         
         // Суммарный буст
         val totalBoost = refBoost + taskBoost

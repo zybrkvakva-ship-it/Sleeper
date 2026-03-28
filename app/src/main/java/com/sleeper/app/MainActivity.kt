@@ -19,7 +19,9 @@ import androidx.core.content.ContextCompat
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import androidx.lifecycle.lifecycleScope
 import androidx.work.*
+import android.net.Uri
 import com.sleeper.app.data.local.AppDatabase
+import com.sleeper.app.domain.manager.WalletManager
 import com.sleeper.app.service.HumanCheckWorker
 import com.sleeper.app.ui.navigation.MainNavigation
 import com.sleeper.app.ui.theme.SleeperTheme
@@ -60,13 +62,14 @@ class MainActivity : ComponentActivity() {
         
         // Проверяем intent на human check
         handleHumanCheck(intent)
+        handleDeepLink(intent)
         
         setContent {
             SleeperTheme {
                 CompositionLocalProvider(LocalActivityResultSender provides activityResultSender) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
+                        color = androidx.compose.ui.graphics.Color.Transparent
                     ) {
                         MainNavigation()
                     }
@@ -77,7 +80,10 @@ class MainActivity : ComponentActivity() {
     
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        intent?.let { handleHumanCheck(it) }
+        intent?.let {
+            handleHumanCheck(it)
+            handleDeepLink(it)
+        }
     }
     
     private fun requestNotificationPermission() {
@@ -117,6 +123,17 @@ class MainActivity : ComponentActivity() {
         DevLog.d(TAG, "Human check worker scheduled")
     }
     
+    private fun handleDeepLink(intent: Intent) {
+        val data: Uri = intent.data ?: return
+        if (data.scheme == "seekermining" && data.host == "invite") {
+            val code = data.getQueryParameter("code")?.trim()
+            if (!code.isNullOrBlank()) {
+                WalletManager(applicationContext).savePendingReferralCode(code)
+                DevLog.d(TAG, "Deep link: pending referral code saved: ${code.take(4)}***")
+            }
+        }
+    }
+
     private fun handleHumanCheck(intent: Intent) {
         val isHumanCheck = intent.getBooleanExtra("human_check", false)
         

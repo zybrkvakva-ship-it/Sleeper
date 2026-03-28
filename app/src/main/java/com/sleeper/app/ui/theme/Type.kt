@@ -2,85 +2,108 @@ package com.sleeper.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
+import com.sleeper.app.R
 
-// Seed Vault: Inter-like (SansSerif) for UI; JetBrains Mono (Monospace) for numbers.
-// To use real Inter/JetBrains Mono, add .ttf to res/font and replace with Font(R.font.*).
-private val Inter = FontFamily.SansSerif
-private val JetBrainsMono = FontFamily.Monospace
+private val provider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
 
-private val letterSpacing = 0.12.sp
+private val spaceGroteskFont = GoogleFont("Space Grotesk")
+private val shareTechMonoFont = GoogleFont("Share Tech Mono")
+
+val SpaceGroteskFamily = FontFamily(
+    Font(googleFont = spaceGroteskFont, fontProvider = provider, weight = FontWeight.Normal),
+    Font(googleFont = spaceGroteskFont, fontProvider = provider, weight = FontWeight.Medium),
+    Font(googleFont = spaceGroteskFont, fontProvider = provider, weight = FontWeight.SemiBold),
+    Font(googleFont = spaceGroteskFont, fontProvider = provider, weight = FontWeight.Bold),
+)
+
+val ShareTechMonoFamily = FontFamily(
+    Font(googleFont = shareTechMonoFont, fontProvider = provider, weight = FontWeight.Normal),
+)
 
 val Typography = Typography(
     displayLarge = TextStyle(
-        fontFamily = Inter,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 34.sp,
-        letterSpacing = letterSpacing
+        letterSpacing = 0.sp
     ),
     displayMedium = TextStyle(
-        fontFamily = Inter,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
-        letterSpacing = letterSpacing
+        letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(
-        fontFamily = Inter,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
-        letterSpacing = letterSpacing
+        letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = Inter,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
-        letterSpacing = letterSpacing
+        letterSpacing = 0.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = SpaceGroteskFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = Inter,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        letterSpacing = letterSpacing
+        fontSize = 18.sp,
+        letterSpacing = 0.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = Inter,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        letterSpacing = letterSpacing
+        letterSpacing = 0.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = Inter,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        letterSpacing = letterSpacing
+        letterSpacing = 0.sp
     ),
+    // Mono labels for technical / numeric text
     labelLarge = TextStyle(
-        fontFamily = Inter,
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        letterSpacing = letterSpacing
+        fontFamily = ShareTechMonoFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        letterSpacing = 0.5.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = Inter,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        letterSpacing = letterSpacing
+        fontFamily = ShareTechMonoFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        letterSpacing = 1.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = Inter,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        letterSpacing = letterSpacing
+        fontFamily = ShareTechMonoFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 10.sp,
+        letterSpacing = 1.5.sp
     )
 )
 
-/** Seed Vault numeric style: JetBrains Mono Bold 48sp (for large numbers, rewards). */
+/** Large numeric display (NP balance, wallet amounts, big stats) */
 val Typography.numeric: TextStyle
     get() = TextStyle(
-        fontFamily = JetBrainsMono,
-        fontWeight = FontWeight.Bold,
+        fontFamily = ShareTechMonoFamily,
+        fontWeight = FontWeight.Normal,
         fontSize = 48.sp,
-        letterSpacing = letterSpacing
+        letterSpacing = (-1).sp
     )

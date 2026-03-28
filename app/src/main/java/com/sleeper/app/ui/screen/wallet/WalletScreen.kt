@@ -1,5 +1,11 @@
 package com.sleeper.app.ui.screen.wallet
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,8 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
@@ -23,6 +33,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.sleeper.app.LocalActivityResultSender
 import com.sleeper.app.R
+import com.sleeper.app.ui.components.CyberCard
+import com.sleeper.app.ui.components.CyberButton
 import com.sleeper.app.ui.theme.*
 
 @Composable
@@ -30,178 +42,235 @@ fun WalletScreen(
     viewModel: WalletViewModel = viewModel(),
     navController: NavController? = null
 ) {
-    val userStats by viewModel.userStats.collectAsState()
-    val walletState by viewModel.walletState.collectAsState()
+    val userStats    by viewModel.userStats.collectAsState()
+    val walletState  by viewModel.walletState.collectAsState()
     val activityResultSender = LocalActivityResultSender.current
 
     LaunchedEffect(Unit) {
         viewModel.syncBalanceFromServerIfNeeded()
     }
-    
+
+    // Screen enter state — triggers stagger sequence
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    fun enterSpec(index: Int) = fadeIn(
+        tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)
+    ) + slideInVertically(
+        tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)
+    ) { it / 3 }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.sleeper.app.ui.theme.BgMain)
-            .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = stringResource(R.string.wallet_screen_title).uppercase(),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = com.sleeper.app.ui.theme.CyberWhite
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Sleep Points
-        com.sleeper.app.ui.components.CyberCard(
-            modifier = Modifier.fillMaxWidth(),
-            strokeColor = com.sleeper.app.ui.theme.CyberYellow,
-            cornerRadius = 12.dp
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(R.string.sleep_points_label),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = com.sleeper.app.ui.theme.CyberGray
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = String.format("%,d", userStats?.pointsBalance ?: 0),
-                    style = MaterialTheme.typography.numeric,
-                    fontWeight = FontWeight.Bold,
-                    color = com.sleeper.app.ui.theme.CyberYellow
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Wallet Connection Section
-        if (walletState.connectedAddress == null) {
-            com.sleeper.app.ui.components.CyberButton(
-                text = if (walletState.isConnecting) stringResource(R.string.wallet_connecting) else stringResource(R.string.wallet_connect_button),
-                onClick = { viewModel.connectWallet(activityResultSender) },
-                enabled = !walletState.isConnecting,
-                strokeColor = com.sleeper.app.ui.theme.CyberGreen
-            )
-            if (walletState.isConnecting) {
-                Spacer(modifier = Modifier.height(8.dp))
-                CircularProgressIndicator(
-                    color = com.sleeper.app.ui.theme.CyberGreen,
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            }
-            
-            // Show error if any (localized)
-            walletState.error?.let {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.wallet_connection_error),
-                    color = com.sleeper.app.ui.theme.CyberRed,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        } else {
-            com.sleeper.app.ui.components.CyberCard(
-                modifier = Modifier.fillMaxWidth(),
-                strokeColor = com.sleeper.app.ui.theme.CyberGreen,
-                cornerRadius = 12.dp
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = stringResource(R.string.wallet_connected),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = com.sleeper.app.ui.theme.CyberGreen,
-                        fontWeight = FontWeight.Bold
+        // ── Hero gradient header + balance card — index 0 ─────────────────────
+        AnimatedVisibility(visible = visible, enter = enterSpec(0)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to NightDeep,
+                                0.6f to NightAccent,
+                                1f to background
+                            )
+                        )
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = stringResource(R.string.wallet_address, walletState.connectedAddress?.take(16) ?: ""),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = com.sleeper.app.ui.theme.CyberWhite
+                        text = stringResource(R.string.wallet_screen_title).uppercase(),
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = CyberWhite
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    TextButton(
-                        onClick = { viewModel.disconnectWallet(activityResultSender) }
+                    Spacer(Modifier.height(24.dp))
+                    CyberCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        strokeColor = CyberYellow,
+                        glowColor = accentGold
                     ) {
-                        Text(stringResource(R.string.wallet_disconnect), color = com.sleeper.app.ui.theme.CyberRed)
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(R.string.sleep_points_label),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = CyberGray
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = String.format("%,d", userStats?.pointsBalance ?: 0),
+                                style = MaterialTheme.typography.numeric,
+                                fontWeight = FontWeight.Bold,
+                                color = CyberYellow
+                            )
+                        }
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            com.sleeper.app.ui.components.CyberButton(
-                text = when (walletState.claimStatus) {
-                    is ClaimStatus.Processing -> stringResource(R.string.wallet_claim_processing)
-                    is ClaimStatus.Success -> stringResource(R.string.wallet_claim_success)
-                    is ClaimStatus.Error -> stringResource(R.string.wallet_claim_error)
-                    else -> stringResource(R.string.wallet_claim_pts, userStats?.pointsBalance ?: 0)
-                },
-                onClick = { viewModel.claimPoints(activityResultSender) },
-                enabled = walletState.claimStatus !is ClaimStatus.Processing &&
-                         (userStats?.pointsBalance ?: 0) > 0,
-                strokeColor = com.sleeper.app.ui.theme.CyberYellow
-            )
-            // Show claim success dialog
-            if (walletState.claimStatus is ClaimStatus.Success) {
-                AlertDialog(
-                    onDismissRequest = { viewModel.clearClaimStatus() },
-                    title = { Text(stringResource(R.string.wallet_claim_dialog_title)) },
-                    text = {
-                        Column {
-                            Text(stringResource(R.string.wallet_claim_dialog_message))
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                stringResource(R.string.wallet_claim_signature, (walletState.claimStatus as ClaimStatus.Success).signature.take(16)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = com.sleeper.app.ui.theme.CyberGray
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { viewModel.clearClaimStatus() }) {
-                            Text("OK", color = com.sleeper.app.ui.theme.CyberGreen)
-                        }
-                    }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        com.sleeper.app.ui.components.CyberCard(
-            modifier = Modifier.fillMaxWidth(),
-            strokeColor = com.sleeper.app.ui.theme.Stroke,
-            cornerRadius = 12.dp
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                StatRow(stringResource(R.string.stats_total_blocks), "${userStats?.totalBlocksMined ?: 0}")
-                Spacer(modifier = Modifier.height(8.dp))
-                StatRow(stringResource(R.string.stats_mining_time), "${userStats?.uptimeMinutes ?: 0} ${stringResource(R.string.stats_min)}")
-                Spacer(modifier = Modifier.height(8.dp))
-                StatRow(stringResource(R.string.stats_storage), "${userStats?.storageMB ?: 0} MB")
-            }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (navController != null) {
-            TextButton(onClick = { navController.navigate("privacy") }) {
-                Text(
-                    text = stringResource(R.string.privacy_title),
-                    color = com.sleeper.app.ui.theme.CyberGray,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+        // ── Rest of content ────────────────────────────────────────────────────
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(Modifier.height(8.dp))
+
+            // Wallet connection block (Crossfade between connected/disconnected) — index 1
+            AnimatedVisibility(visible = visible, enter = enterSpec(1)) {
+                Crossfade(
+                    targetState = walletState.connectedAddress != null,
+                    animationSpec = tween(AppDuration.Normal),
+                    label = "walletConnected"
+                ) { isConnected ->
+                    if (!isConnected) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CyberButton(
+                                text = if (walletState.isConnecting) stringResource(R.string.wallet_connecting) else stringResource(R.string.wallet_connect_button),
+                                onClick = { viewModel.connectWallet(activityResultSender) },
+                                enabled = !walletState.isConnecting,
+                                strokeColor = CyberGreen
+                            )
+                            // Connecting spinner
+                            AnimatedVisibility(
+                                visible = walletState.isConnecting,
+                                enter = fadeIn(tween(AppDuration.Fast)),
+                                exit = fadeOut(tween(AppDuration.Fast))
+                            ) {
+                                CircularProgressIndicator(color = CyberGreen, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            }
+                            walletState.error?.let {
+                                Text(
+                                    text = stringResource(R.string.wallet_connection_error),
+                                    color = CyberRed,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    } else {
+                        CyberCard(modifier = Modifier.fillMaxWidth(), strokeColor = CyberGreen, glowColor = accentGreen) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(stringResource(R.string.wallet_connected), style = MaterialTheme.typography.titleMedium, color = CyberGreen, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.wallet_address, walletState.connectedAddress?.take(16) ?: ""),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = CyberWhite
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                TextButton(onClick = { viewModel.disconnectWallet(activityResultSender) }) {
+                                    Text(stringResource(R.string.wallet_disconnect), color = CyberRed)
+                                }
+                            }
+                        }
+                    }
+                }
             }
+
+            // Claim button — only when connected, index 2
+            AnimatedVisibility(
+                visible = visible && walletState.connectedAddress != null,
+                enter = enterSpec(2),
+                exit = fadeOut(tween(AppDuration.Fast))
+            ) {
+                Column {
+                    // Claim status via Crossfade
+                    Crossfade(
+                        targetState = walletState.claimStatus,
+                        animationSpec = tween(AppDuration.Normal),
+                        label = "claimStatus"
+                    ) { status ->
+                        CyberButton(
+                            text = when (status) {
+                                is ClaimStatus.Processing -> stringResource(R.string.wallet_claim_processing)
+                                is ClaimStatus.Success    -> stringResource(R.string.wallet_claim_success)
+                                is ClaimStatus.Error      -> stringResource(R.string.wallet_claim_error)
+                                else -> stringResource(R.string.wallet_claim_pts, userStats?.pointsBalance ?: 0)
+                            },
+                            onClick = { viewModel.claimPoints(activityResultSender) },
+                            enabled = status !is ClaimStatus.Processing &&
+                                      (userStats?.pointsBalance ?: 0) > 0,
+                            strokeColor = CyberYellow
+                        )
+                    }
+
+                    if (walletState.claimStatus is ClaimStatus.Success) {
+                        AlertDialog(
+                            onDismissRequest = { viewModel.clearClaimStatus() },
+                            containerColor = com.sleeper.app.ui.theme.NightAccent,
+                            tonalElevation = 0.dp,
+                            title = {
+                                Text(
+                                    stringResource(R.string.wallet_claim_dialog_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = CyberWhite,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            text = {
+                                Column {
+                                    Text(
+                                        stringResource(R.string.wallet_claim_dialog_message),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = CyberWhite
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        stringResource(R.string.wallet_claim_signature, (walletState.claimStatus as ClaimStatus.Success).signature.take(16)),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = CyberGray
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { viewModel.clearClaimStatus() }) {
+                                    Text("OK", color = CyberGreen, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Stats card — index 3
+            AnimatedVisibility(visible = visible, enter = enterSpec(3)) {
+                CyberCard(modifier = Modifier.fillMaxWidth(), strokeColor = Stroke) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        StatRow(stringResource(R.string.stats_total_blocks), "${userStats?.totalBlocksMined ?: 0}")
+                        Spacer(Modifier.height(8.dp))
+                        StatRow(stringResource(R.string.stats_mining_time), "${userStats?.uptimeMinutes ?: 0} ${stringResource(R.string.stats_min)}")
+                    }
+                }
+            }
+
+            if (navController != null) {
+                TextButton(onClick = { navController.navigate("privacy") }) {
+                    Text(
+                        text = stringResource(R.string.privacy_title),
+                        color = CyberGray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -212,16 +281,7 @@ private fun StatRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = com.sleeper.app.ui.theme.CyberGray
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = com.sleeper.app.ui.theme.CyberWhite
-        )
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = CyberGray)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = CyberWhite)
     }
 }

@@ -56,23 +56,23 @@
     <string name="upgrade_available" formatted="false">Available: %s SKR</string>
     <string name="upgrade_genesis_nft">GENESIS NFT</string>
     <string name="upgrade_genesis_description">Genesis NFT — permanent reward boost</string>
-    <string name="upgrade_genesis_hint">+10%% reward forever after mint</string>
+    <string name="upgrade_genesis_hint" formatted="false">+10% reward forever after mint</string>
     <string name="upgrade_mint_button">Mint for 275 SKR</string>
     <string name="upgrade_genesis_forever" formatted="false">+%d%% forever</string>
     <!-- Boost names/descriptions by id -->
     <string name="boost_7h_name">1× boost 7 h</string>
-    <string name="boost_7h_desc">+5%% reward for 7 hours (1 blockchain tx)</string>
+    <string name="boost_7h_desc" formatted="false">+5% reward for 7 hours (1 blockchain tx)</string>
     <string name="boost_7x_name">7× boost 49 h</string>
-    <string name="boost_7x_desc">+5%% for 49 h — 7 txs in 1</string>
+    <string name="boost_7x_desc" formatted="false">+5% for 49 h — 7 txs in 1</string>
     <string name="boost_49x_name">49× boost 7 days</string>
-    <string name="boost_49x_desc">+10%% for 7 days — 49 txs in 1</string>
-    <string name="skr_lite_name">Lite +5%%</string>
-    <string name="skr_lite_desc">Reward boost +5%%</string>
-    <string name="skr_plus_name">Plus +10%%</string>
-    <string name="skr_plus_desc">Reward boost +10%%</string>
-    <string name="skr_pro_name">Pro +50%%</string>
-    <string name="skr_pro_desc">Reward boost +50%%</string>
-    <string name="skr_ultra_name">Ultra +100%%</string>
+    <string name="boost_49x_desc" formatted="false">+10% for 7 days — 49 txs in 1</string>
+    <string name="skr_lite_name" formatted="false">Lite +5%</string>
+    <string name="skr_lite_desc" formatted="false">Reward boost +5%</string>
+    <string name="skr_plus_name" formatted="false">Plus +10%</string>
+    <string name="skr_plus_desc" formatted="false">Reward boost +10%</string>
+    <string name="skr_pro_name" formatted="false">Pro +50%</string>
+    <string name="skr_pro_desc" formatted="false">Reward boost +50%</string>
+    <string name="skr_ultra_name" formatted="false">Ultra +100%</string>
     <string name="skr_ultra_desc">Doubles reward</string>
     
     <!-- Tasks Screen -->

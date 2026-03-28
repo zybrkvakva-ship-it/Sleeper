@@ -42,6 +42,7 @@ CREATE INDEX idx_users_skr_username ON users(skr_username);
 CREATE INDEX idx_users_total_np ON users(total_np DESC);
 CREATE INDEX idx_users_referral_code ON users(referral_code);
 CREATE INDEX idx_users_referred_by ON users(referred_by);
+CREATE INDEX idx_users_last_active ON users(last_active_at DESC);
 
 -- ============================================================================
 -- NIGHT SESSIONS TABLE
@@ -101,6 +102,8 @@ CREATE INDEX idx_night_wallet ON night_sessions(wallet_address);
 CREATE INDEX idx_night_date ON night_sessions(night_date DESC);
 CREATE INDEX idx_night_processed ON night_sessions(processed, night_date);
 CREATE INDEX idx_night_week ON night_sessions(week_index);
+-- Composite: "all unprocessed sessions for wallet X"
+CREATE INDEX idx_night_wallet_processed ON night_sessions(wallet_address, processed);
 
 -- ============================================================================
 -- SEASON STATS TABLE
@@ -219,6 +222,46 @@ CREATE INDEX idx_daily_tasks_wallet ON daily_tasks(wallet_address);
 CREATE INDEX idx_daily_tasks_date ON daily_tasks(task_date DESC);
 
 -- ============================================================================
+-- USER TASK COMPLETIONS
+-- Stores every task completion: daily (task_date = date) and special (task_date IS NULL)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS user_task_completions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+
+    -- Task identifier from catalog
+    task_id VARCHAR(50) NOT NULL,
+
+    -- NULL for one-time special tasks; DATE for daily tasks
+    task_date DATE,
+
+    -- Snapshot at completion time
+    reward_pts INTEGER NOT NULL DEFAULT 0,
+    bonus_percent DECIMAL(4, 3) NOT NULL DEFAULT 0,
+
+    completed_at TIMESTAMP DEFAULT NOW(),
+
+    -- Composite unique: one completion per wallet+task per day (daily),
+    -- and one ever per wallet+task (special, enforced by partial index below)
+    CONSTRAINT unique_daily_completion UNIQUE(wallet_address, task_id, task_date)
+);
+
+-- Partial unique index: each special task can only be completed once per wallet
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_special_task
+    ON user_task_completions(wallet_address, task_id)
+    WHERE task_date IS NULL;
+
+CREATE INDEX idx_task_completions_wallet ON user_task_completions(wallet_address);
+CREATE INDEX idx_task_completions_date   ON user_task_completions(task_date DESC);
+
+-- ============================================================================
+-- Add special_task_bonus column to users (accumulated one-time task bonuses)
+-- ============================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS special_task_bonus DECIMAL(4, 3) NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS has_device_nft BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS staked_skr_raw BIGINT DEFAULT 0;
+
+-- ============================================================================
 -- LEADERBOARD (Materialized View)
 -- ============================================================================
 CREATE MATERIALIZED VIEW leaderboard AS
@@ -266,6 +309,57 @@ CREATE TABLE IF NOT EXISTS night_distributions (
 );
 
 CREATE INDEX idx_distributions_date ON night_distributions(night_date DESC);
+
+-- ============================================================================
+-- TOKEN CLAIMS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS token_claims (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+
+    -- Claim details
+    amount BIGINT NOT NULL,
+    tx_hash VARCHAR(88) UNIQUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending, confirmed, failed
+
+    -- Metadata
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT valid_claim_status CHECK (status IN ('pending', 'confirmed', 'failed')),
+    CONSTRAINT valid_claim_amount CHECK (amount > 0)
+);
+
+CREATE INDEX idx_token_claims_wallet ON token_claims(wallet_address);
+CREATE INDEX idx_token_claims_status ON token_claims(status);
+CREATE INDEX idx_token_claims_created ON token_claims(created_at DESC);
+
+-- ============================================================================
+-- WALLET AUTH TABLES (also in schema_mining.sql — duplicated for standalone use)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS wallet_auth_challenges (
+    nonce UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL,
+    message TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_wallet
+    ON wallet_auth_challenges(wallet_address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_expires
+    ON wallet_auth_challenges(expires_at);
+
+CREATE TABLE IF NOT EXISTS wallet_auth_tokens (
+    token UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_wallet
+    ON wallet_auth_tokens(wallet_address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_auth_tokens_expires
+    ON wallet_auth_tokens(expires_at);
 
 -- ============================================================================
 -- FUNCTIONS

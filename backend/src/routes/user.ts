@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { buildAuthMessage, verifySolanaSignatureHex } from '../utils/solanaAuth';
 import { isValidSolanaAddress, pickFirstString, pickWallet } from '../utils/solanaAddress';
+import { fetchStakingInfo } from '../utils/stakingInfo';
 
 const router = Router();
 const AUTH_CHALLENGE_TTL_SECONDS = parseInt(process.env.AUTH_CHALLENGE_TTL_SECONDS || '600', 10);
@@ -17,14 +18,17 @@ router.post('/register', async (req, res, next) => {
   try {
     const walletAddress = pickWallet(req.body);
     const skrUsername = pickFirstString(req.body as Record<string, unknown>, ['skrUsername', 'skr']);
-    
+
     if (!walletAddress) {
       throw new AppError(400, 'walletAddress (or wallet) is required');
     }
     if (!isValidSolanaAddress(walletAddress)) {
       throw new AppError(400, 'invalid wallet format');
     }
-    
+    if (skrUsername && skrUsername.length > 50) {
+      throw new AppError(400, 'skr_username must be 50 characters or less');
+    }
+
     // Generate referral code (8 chars from wallet)
     const referralCode = walletAddress.substring(0, 8);
     
@@ -270,69 +274,101 @@ router.get('/:walletAddress', async (req, res, next) => {
 
 /**
  * POST /api/v1/user/apply-referral
- * Apply referral code
+ * Apply referral code. Atomic — uses transaction + row lock to prevent race conditions.
  */
 router.post('/apply-referral', async (req, res, next) => {
   try {
     const walletAddress = pickWallet(req.body);
     const referralCode = pickFirstString(req.body as Record<string, unknown>, ['referralCode', 'referral_code']);
-    
+
     if (!walletAddress || !referralCode) {
       throw new AppError(400, 'walletAddress (or wallet) and referralCode are required');
     }
-    
-    // Find referrer
-    const referrers = await query(
-      'SELECT wallet_address FROM users WHERE referral_code = $1',
-      [referralCode]
-    );
-    
-    if (referrers.length === 0) {
-      throw new AppError(404, 'Referral code not found');
+    if (!isValidSolanaAddress(walletAddress)) {
+      throw new AppError(400, 'invalid wallet format');
     }
-    
-    const referrer = referrers[0].wallet_address;
-    
-    // Cannot refer yourself
-    if (referrer === walletAddress) {
-      throw new AppError(400, 'Cannot use your own referral code');
+
+    await transaction(async (client) => {
+      // Lock the referee row to prevent concurrent apply-referral for same user
+      const refereeRows = await client.query(
+        'SELECT wallet_address, referred_by FROM users WHERE wallet_address = $1 FOR UPDATE',
+        [walletAddress]
+      );
+      if (refereeRows.rows.length === 0) {
+        throw new AppError(404, 'User not found. Please register first.');
+      }
+      if (refereeRows.rows[0].referred_by !== null) {
+        throw new AppError(409, 'Already used a referral code');
+      }
+
+      // Find referrer
+      const referrerRows = await client.query(
+        'SELECT wallet_address FROM users WHERE referral_code = $1',
+        [referralCode]
+      );
+      if (referrerRows.rows.length === 0) {
+        throw new AppError(404, 'Referral code not found');
+      }
+      const referrer = referrerRows.rows[0].wallet_address as string;
+      if (referrer === walletAddress) {
+        throw new AppError(400, 'Cannot use your own referral code');
+      }
+
+      // Insert referral (UNIQUE PK prevents duplicates even under concurrency)
+      await client.query(
+        'INSERT INTO referrals (referrer, referee) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [referrer, walletAddress]
+      );
+
+      // Update referee + increment referrer atomically
+      await client.query(
+        'UPDATE users SET referred_by = $1 WHERE wallet_address = $2',
+        [referrer, walletAddress]
+      );
+      await client.query(
+        'UPDATE users SET referral_count = referral_count + 1 WHERE wallet_address = $1',
+        [referrer]
+      );
+    });
+
+    logger.info(`Referral applied: ${walletAddress.slice(0, 8)} -> referrer`);
+    res.json({ success: true, message: 'Referral code applied successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/v1/user/staking-info/:walletAddress
+ * Fetch on-chain SKR staking balance from Guardian program.
+ * Redis cache 5min. Side-effect: updates staked_skr_raw in users table.
+ */
+router.get('/staking-info/:walletAddress', async (req, res, next) => {
+  try {
+    const { walletAddress } = req.params;
+    if (!isValidSolanaAddress(walletAddress)) {
+      throw new AppError(400, 'Invalid wallet address format');
     }
-    
-    // Check if already referred
-    const existing = await query(
-      'SELECT * FROM referrals WHERE referee = $1',
-      [walletAddress]
-    );
-    
-    if (existing.length > 0) {
-      throw new AppError(400, 'Already used a referral code');
-    }
-    
-    // Create referral
-    await query(
-      'INSERT INTO referrals (referrer, referee) VALUES ($1, $2)',
-      [referrer, walletAddress]
-    );
-    
-    // Update user
-    await query(
-      'UPDATE users SET referred_by = $1 WHERE wallet_address = $2',
-      [referrer, walletAddress]
-    );
-    
-    // Increment referrer count
-    await query(
-      'UPDATE users SET referral_count = referral_count + 1 WHERE wallet_address = $1',
-      [referrer]
-    );
-    
-    logger.info(`Referral applied: ${walletAddress} -> ${referrer}`);
-    
+
+    const info = await fetchStakingInfo(walletAddress);
+
+    // Update DB side-effect (non-fatal)
+    query(
+      `UPDATE users SET staked_skr_raw = $1, staked_skr_verified_at = NOW()
+       WHERE wallet_address = $2`,
+      [info.stakedAmountRaw.toString(), walletAddress]
+    ).catch(() => {
+      // user may not be registered — non-fatal
+    });
+
     res.json({
       success: true,
-      message: 'Referral code applied successfully'
+      walletAddress,
+      stakedAmountHuman: info.stakedAmountHuman,
+      stakedAmountRaw: info.stakedAmountRaw.toString(),
+      accountsFound: info.accountsFound,
+      fetchedAt: info.fetchedAt,
     });
-    
   } catch (error) {
     next(error);
   }

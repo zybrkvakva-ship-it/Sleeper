@@ -25,8 +25,9 @@ export function errorHandler(
     });
 
     return res.status(error.statusCode).json({
+      success: false,
       error: error.message,
-      statusCode: error.statusCode
+      statusCode: error.statusCode,
     });
   }
 
@@ -38,7 +39,8 @@ export function errorHandler(
   });
 
   res.status(500).json({
+    success: false,
     error: 'Internal Server Error',
-    statusCode: 500
+    statusCode: 500,
   });
 }

@@ -2,6 +2,7 @@ import { query, transaction } from '../database';
 import { poolPerNight, distributeSleepTokens } from '../economy';
 import { broadcast } from '../websocket';
 import { logger } from '../utils/logger';
+import { invalidateLeaderboardCache } from '../routes/leaderboard';
 
 /**
  * Daily SLEEP token distribution scheduler
@@ -87,50 +88,83 @@ export async function runDailyDistribution(): Promise<void> {
       totalNp += session.final_np;
     }
     
-    // Get pool for night
+    // Get pool for night (base)
     const activeDevices = sessions.length;
-    const poolNight = poolPerNight(activeDevices);
-    
-    logger.info(`Total NP: ${totalNp.toFixed(2)}, Pool: ${poolNight} SLEEP`);
+    const basePoolNight = poolPerNight(activeDevices);
+
+    // Add uncarried dust from previous nights
+    const dustRow = await query<{ dust: string }>(
+      `SELECT COALESCE(SUM(dust_carried), 0) AS dust
+       FROM night_distributions
+       WHERE dust_carried > 0`
+    );
+    const prevDust = parseInt(dustRow[0]?.dust ?? '0', 10);
+    const poolNight = basePoolNight + prevDust;
+
+    logger.info(`Total NP: ${totalNp.toFixed(2)}, Base pool: ${basePoolNight}, Dust carry-in: ${prevDust}, Effective pool: ${poolNight} SLEEP`);
     
     // Distribute tokens
     const rewards = distributeSleepTokens(usersNp, poolNight);
     
-    // Calculate total distributed
+    // Calculate total distributed and dust (Math.floor rounding remainder)
     const totalDistributed = Object.values(rewards).reduce((sum, tokens) => sum + tokens, 0);
+    const dustCarried = poolNight - totalDistributed;
     
-    // Update database in transaction
+    // Prepare batch arrays
+    const wallets = Object.keys(rewards);
+    const tokenAmounts = Object.values(rewards).map(String); // bigint-safe as text
+
+    // Get active season info
+    const seasonRow = await query<{ season_number: number; current_week: number }>(
+      `SELECT season_number, COALESCE(current_week, 1) AS current_week
+       FROM season_stats WHERE status = 'ACTIVE' ORDER BY season_number DESC LIMIT 1`
+    );
+    const seasonNumber = seasonRow[0]?.season_number ?? 1;
+    const weekIndex = seasonRow[0]?.current_week ?? 1;
+
+    // Update database in a single transaction with batch operations
     await transaction(async (client) => {
-      // Update night sessions with SLEEP tokens
-      for (const [walletAddress, sleepTokens] of Object.entries(rewards)) {
-        await client.query(
-          `UPDATE night_sessions 
-           SET sleep_tokens = $1, processed = true, processed_at = NOW()
-           WHERE wallet_address = $2 AND night_date = $3`,
-          [sleepTokens, walletAddress, yesterdayStr]
-        );
-        
-        // Update user total SLEEP earned
-        await client.query(
-          'UPDATE users SET total_sleep_earned = total_sleep_earned + $1 WHERE wallet_address = $2',
-          [sleepTokens, walletAddress]
-        );
-      }
-      
-      // Record distribution
+      // Batch update night_sessions — one query instead of N
+      await client.query(
+        `UPDATE night_sessions
+         SET sleep_tokens = v.tokens::bigint, processed = true, processed_at = NOW()
+         FROM (
+           SELECT unnest($1::text[]) AS wallet, unnest($2::text[]) AS tokens
+         ) v
+         WHERE night_sessions.wallet_address = v.wallet
+           AND night_sessions.night_date = $3
+           AND night_sessions.processed = false`,
+        [wallets, tokenAmounts, yesterdayStr]
+      );
+
+      // Batch update users.total_sleep_earned — one query instead of N
+      await client.query(
+        `UPDATE users
+         SET total_sleep_earned = users.total_sleep_earned + v.tokens::bigint
+         FROM (
+           SELECT unnest($1::text[]) AS wallet, unnest($2::text[]) AS tokens
+         ) v
+         WHERE users.wallet_address = v.wallet`,
+        [wallets, tokenAmounts]
+      );
+
+      // Record distribution with real season data + dust
       await client.query(
         `INSERT INTO night_distributions (
-          night_date, total_np, pool_night, total_distributed, users_count, active_devices, season_number, week_index
-        ) VALUES ($1, $2, $3, $4, $5, $6, 1, 1)`,
-        [yesterdayStr, totalNp, poolNight, totalDistributed, sessions.length, activeDevices]
+          night_date, total_np, pool_night, total_distributed, users_count, active_devices, season_number, week_index, dust_carried
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [yesterdayStr, totalNp, poolNight, totalDistributed, sessions.length, activeDevices, seasonNumber, weekIndex, dustCarried]
       );
-      
-      // Refresh leaderboard
+
+      // Refresh leaderboard materialized view
       await client.query('SELECT refresh_leaderboard()');
     });
     
-    logger.info(`✅ Distribution completed: ${totalDistributed} SLEEP to ${sessions.length} users`);
-    
+    logger.info(`✅ Distribution completed: ${totalDistributed} SLEEP to ${sessions.length} users, dust carried: ${dustCarried}`);
+
+    // Invalidate leaderboard cache so next request gets fresh data
+    await invalidateLeaderboardCache();
+
     // Broadcast to connected clients
     broadcast({
       type: 'sleep-distributed',

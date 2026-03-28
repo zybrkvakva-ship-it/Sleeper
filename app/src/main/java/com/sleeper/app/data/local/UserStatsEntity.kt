@@ -9,8 +9,6 @@ data class UserStatsEntity(
     val energyCurrent: Int = 28_800, // полный бак ≈ 8 ч майнинга при 1/сек
     val energyMax: Int = 28_800,
     val pointsBalance: Long = 0,
-    val storageMB: Int = 100,
-    val storageMultiplier: Double = 1.0,
     val uptimeMinutes: Long = 0,
     val totalBlocksMined: Int = 0,
     val currentBlock: Int = 1247,
@@ -30,7 +28,9 @@ data class UserStatsEntity(
     // Буст за SKR: id из SkrBoostCatalog, действует до timestamp
     val activeSkrBoostId: String? = null,
     val activeSkrBoostEndsAt: Long = 0L,
-    // Genesis NFT: постоянный множитель к награде после платного минта (250–300 SKR)
+    // Genesis NFT: постоянный множитель к награде после платного минта (500 SKR)
     val hasGenesisNft: Boolean = false,
-    val genesisNftMultiplier: Double = 1.0
+    val genesisNftMultiplier: Double = 1.0,
+    val genesisNftMint: String? = null,       // on-chain mint адрес NFT
+    val genesisNftNumber: Int? = null          // порядковый номер (1..10000)
 )

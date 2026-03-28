@@ -16,11 +16,11 @@ enum class SkrBoostLevel(
     /** Нет буста */
     NONE(0.0, 0.0),
     
-    /** Lite: +5% за 1 SKR */
-    LITE(0.05, 1.0),
-    
-    /** Plus: +10% за 2.5 SKR */
-    PLUS(0.10, 2.5),
+    /** Lite: +10% за 1 SKR */
+    LITE(0.10, 1.0),
+
+    /** Plus: +25% за 2.5 SKR */
+    PLUS(0.25, 2.5),
     
     /** Pro: +50% за 10 SKR */
     PRO(0.50, 10.0),
@@ -34,8 +34,8 @@ enum class SkrBoostLevel(
     fun displayName(): String {
         return when (this) {
             NONE -> "No Boost"
-            LITE -> "Lite Boost (+5%)"
-            PLUS -> "Plus Boost (+10%)"
+            LITE -> "Lite Boost (+10%)"
+            PLUS -> "Plus Boost (+25%)"
             PRO -> "Pro Boost (+50%)"
             ULTRA -> "Ultra Boost (+100%)"
         }
