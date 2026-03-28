@@ -194,12 +194,20 @@ router.post('/end', async (req, res, next) => {
     );
     const referralCount = parseInt(referrals[0]?.count || '0');
 
-    // Daily tasks bonus
-    const tasks = await query<{ total_bonus_percent: number }>(
+    // Daily tasks bonus (today) + permanent special task bonus
+    const tasks = await query<{ total_bonus_percent: string }>(
       'SELECT total_bonus_percent FROM daily_tasks WHERE wallet_address = $1 AND task_date = $2',
       [walletAddress, todayStr]
     );
-    const dailyTasksPercent = tasks[0]?.total_bonus_percent || 0;
+    const dailyBonus = parseFloat(tasks[0]?.total_bonus_percent ?? '0');
+
+    const specialRow = await query<{ special_task_bonus: string }>(
+      'SELECT COALESCE(special_task_bonus, 0)::text AS special_task_bonus FROM users WHERE wallet_address = $1',
+      [walletAddress]
+    );
+    const specialBonus = parseFloat(specialRow[0]?.special_task_bonus ?? '0');
+
+    const dailyTasksPercent = Math.min(dailyBonus + specialBonus, 0.30); // hard cap 30%
 
     // Active SKR boost
     const boosts = await query<{ boost_level: string }>(

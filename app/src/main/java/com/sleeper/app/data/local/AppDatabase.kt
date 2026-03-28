@@ -18,13 +18,31 @@ private val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
+/**
+ * v12 → v13: TaskEntity расширена для полной механики заданий.
+ *   - description: подзаголовок задания
+ *   - bonusPercent: % буста за выполнение (из сервера)
+ *   - actionType:   тип действия (CHECKIN/SHARE/STORY/OPEN_URL/AUTO/REFERRAL)
+ *   - actionUrl:    URL для OPEN_URL / SHARE / STORY
+ *   - canComplete:  флаг доступности от сервера
+ */
+private val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE tasks ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+        database.execSQL("ALTER TABLE tasks ADD COLUMN bonusPercent REAL NOT NULL DEFAULT 0.0")
+        database.execSQL("ALTER TABLE tasks ADD COLUMN actionType TEXT NOT NULL DEFAULT 'CHECKIN'")
+        database.execSQL("ALTER TABLE tasks ADD COLUMN actionUrl TEXT")
+        database.execSQL("ALTER TABLE tasks ADD COLUMN canComplete INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
 @Database(
     entities = [
         UserStatsEntity::class,
         TaskEntity::class,
         PendingSessionEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "sleeper_database"
                 )
-                    .addMigrations(MIGRATION_11_12)
+                    .addMigrations(MIGRATION_11_12, MIGRATION_12_13)
                     // fallback только для версий ниже 11 (pre-production)
                     .fallbackToDestructiveMigrationFrom(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
                     .build()

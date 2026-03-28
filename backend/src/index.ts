@@ -21,6 +21,7 @@ import paymentRouter from './routes/payment';
 import seasonRouter from './routes/season';
 import economyRouter from './routes/economy';
 import claimRouter from './routes/claim';
+import tasksRouter from './routes/tasks';
 
 // WebSocket handlers
 import { setupWebSocket } from './websocket';
@@ -66,6 +67,7 @@ app.use([
   '/api/v1/night/end',
   '/api/v1/payment/activate-boost',
   '/api/v1/payment/verify-skr',
+  '/api/v1/tasks/complete',
 ], writeRouteLimiter);
 
 // Strict rate limit for admin endpoints: 5 req/min per IP
@@ -108,6 +110,7 @@ app.use('/api/v1/season', seasonRouter);
 app.use('/api/v1/mining/season', seasonRouter);
 app.use('/api/v1/economy', economyRouter);
 app.use('/api/v1/claim', claimRouter);
+app.use('/api/v1/tasks', tasksRouter);
 
 // 404 handler
 app.use((req, res) => {

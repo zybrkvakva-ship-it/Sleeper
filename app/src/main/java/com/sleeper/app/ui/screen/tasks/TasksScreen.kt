@@ -1,5 +1,9 @@
 package com.sleeper.app.ui.screen.tasks
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -8,142 +12,334 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sleeper.app.R
+import com.sleeper.app.data.local.TaskActionType
 import com.sleeper.app.data.local.TaskEntity
 import com.sleeper.app.data.local.TaskType
 import com.sleeper.app.ui.components.CyberCard
 import com.sleeper.app.ui.theme.*
 import com.sleeper.app.ui.theme.AppDuration
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 fun TasksScreen(
     viewModel: TasksViewModel = viewModel()
 ) {
     val tasks by viewModel.tasks.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Launcher used after returning from share/external link action
+    var pendingTaskId by remember { mutableStateOf<String?>(null) }
+    val urlLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { _ ->
+        // User returned from external app — claim completion
+        pendingTaskId?.let { id ->
+            viewModel.completeTask(id)
+            pendingTaskId = null
+        }
+    }
+
+    // Show error/success snackbars
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { msg ->
+            scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short) }
+            viewModel.clearError()
+        }
+    }
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { msg ->
+            scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short) }
+            viewModel.clearSuccess()
+        }
+    }
 
     val dailyTasks   = tasks.filter { it.type == TaskType.DAILY }
     val specialTasks = tasks.filter { it.type == TaskType.SPECIAL }
 
-    // Use LazyColumn for stagger-friendly layout
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Daily tasks header
-        item {
-            Text(
-                text = stringResource(R.string.tasks_daily_energy).uppercase(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = CyberWhite
-            )
-            Spacer(Modifier.height(8.dp))
-        }
-
-        // Daily tasks — staggered entrance
-        itemsIndexed(dailyTasks) { index, task ->
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)) +
-                        slideInVertically(tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)) { it / 3 }
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = androidx.compose.ui.graphics.Color.Transparent
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TaskCard(task = task, onComplete = { viewModel.completeTask(task.id) })
+                // ── Header: current boost ────────────────────────────────────
+                item {
+                    BonusBar(bonusPercent = uiState.totalBonusPercent, isSyncing = uiState.isSyncing)
+                    Spacer(Modifier.height(12.dp))
+                }
+
+                // ── Daily tasks ──────────────────────────────────────────────
+                item {
+                    Text(
+                        text = stringResource(R.string.tasks_daily_energy).uppercase(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = CyberWhite
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                itemsIndexed(dailyTasks) { index, task ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)) +
+                                slideInVertically(tween(AppDuration.Normal, delayMillis = index * AppDuration.Stagger)) { it / 3 }
+                    ) {
+                        TaskCard(
+                            task = task,
+                            isProcessing = uiState.isLoading,
+                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel) { pendingTaskId = it } }
+                        )
+                    }
+                }
+
+                // ── Special tasks ────────────────────────────────────────────
+                item {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.tasks_special_energy).uppercase(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = CyberYellow
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                itemsIndexed(specialTasks) { index, task ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(tween(AppDuration.Normal, delayMillis = (dailyTasks.size + index) * AppDuration.Stagger)) +
+                                slideInVertically(tween(AppDuration.Normal, delayMillis = (dailyTasks.size + index) * AppDuration.Stagger)) { it / 3 }
+                    ) {
+                        TaskCard(
+                            task = task,
+                            isProcessing = uiState.isLoading,
+                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel) { pendingTaskId = it } }
+                        )
+                    }
+                }
+
+                item { Spacer(Modifier.height(16.dp)) }
+            }
+
+            // Full-screen loading overlay while syncing
+            if (uiState.isLoading) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = CyberGreen, modifier = Modifier.size(48.dp))
+                }
             }
         }
-
-        // Special tasks header
-        item {
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.tasks_special_energy).uppercase(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = CyberYellow
-            )
-            Spacer(Modifier.height(8.dp))
-        }
-
-        // Special tasks — staggered entrance (offset index by dailyTasks count for independent timing)
-        itemsIndexed(specialTasks) { index, task ->
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(tween(AppDuration.Normal, delayMillis = (dailyTasks.size + index) * AppDuration.Stagger)) +
-                        slideInVertically(tween(AppDuration.Normal, delayMillis = (dailyTasks.size + index) * AppDuration.Stagger)) { it / 3 }
-            ) {
-                TaskCard(task = task, onComplete = { viewModel.completeTask(task.id) })
-            }
-        }
-
-        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
+// ─── BonusBar ─────────────────────────────────────────────────────────────────
 @Composable
-private fun TaskCard(
-    task: TaskEntity,
-    onComplete: () -> Unit
-) {
-    CyberCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !task.isCompleted) { onComplete() },
-        strokeColor = if (task.isCompleted) CyberGreen else Stroke,
-        glowColor = if (task.isCompleted) accentGreen else null
-    ) {
+private fun BonusBar(bonusPercent: Double, isSyncing: Boolean) {
+    CyberCard(strokeColor = if (bonusPercent > 0) accentGreen else Stroke) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text("Task Boost", style = MaterialTheme.typography.labelMedium, color = CyberGray)
                 Text(
-                    text = if (task.isCompleted) "✓" else "○",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (task.isCompleted) CyberGreen else CyberGray
+                    text = "+${(bonusPercent * 100).roundToInt()}% to night reward",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (bonusPercent > 0) CyberGreen else CyberWhite
                 )
-                Spacer(Modifier.width(12.dp))
-                Column {
+            }
+            if (isSyncing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = CyberGreen,
+                    strokeWidth = 2.dp
+                )
+            }
+        }
+    }
+}
+
+// ─── TaskCard ─────────────────────────────────────────────────────────────────
+@Composable
+private fun TaskCard(
+    task: TaskEntity,
+    isProcessing: Boolean,
+    onAction: () -> Unit
+) {
+    val isActionable = !task.isCompleted && task.canComplete && !isProcessing
+    val actionLabel = when {
+        task.isCompleted           -> null
+        !task.canComplete          -> null
+        task.actionType == TaskActionType.AUTO -> null  // streak tasks complete automatically
+        task.actionType == TaskActionType.SHARE   -> "SHARE"
+        task.actionType == TaskActionType.STORY   -> "VIEW"
+        task.actionType == TaskActionType.OPEN_URL -> "OPEN"
+        task.actionType == TaskActionType.REFERRAL -> "INVITE"
+        else                       -> "CLAIM"           // CHECKIN
+    }
+
+    CyberCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = isActionable && actionLabel != null) { onAction() },
+        strokeColor = when {
+            task.isCompleted -> CyberGreen
+            !task.canComplete -> Stroke.copy(alpha = 0.4f)
+            else -> Stroke
+        },
+        glowColor = if (task.isCompleted) accentGreen else null
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left: status icon + title
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
-                        text = stringResource(taskTitleResId(task.id)),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (task.isCompleted) CyberGray else CyberWhite
+                        text = when {
+                            task.isCompleted  -> "✓"
+                            !task.canComplete -> "🔒"
+                            else              -> "○"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = when {
+                            task.isCompleted  -> CyberGreen
+                            !task.canComplete -> CyberGray
+                            else              -> CyberWhite
+                        }
                     )
-                    if (task.isCompleted) {
+                    Spacer(Modifier.width(12.dp))
+                    Column {
                         Text(
-                            text = stringResource(R.string.task_completed),
+                            text = task.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (task.isCompleted || !task.canComplete) CyberGray else CyberWhite
+                        )
+                        if (task.description.isNotEmpty()) {
+                            Text(
+                                text = task.description,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CyberGray
+                            )
+                        }
+                        if (task.isCompleted) {
+                            Text(
+                                text = stringResource(R.string.task_completed),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CyberGreen
+                            )
+                        }
+                    }
+                }
+
+                // Right: reward + bonus + action button
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "+${task.reward}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = CyberYellow
+                    )
+                    if (task.bonusPercent > 0) {
+                        Text(
+                            text = "+${(task.bonusPercent * 100).roundToInt()}% boost",
                             style = MaterialTheme.typography.labelSmall,
                             color = CyberGreen
                         )
                     }
                 }
             }
-            Text(
-                text = "+${task.reward}",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = CyberYellow
-            )
+
+            // Action button row (only if actionable and has label)
+            if (isActionable && actionLabel != null) {
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = onAction,
+                    modifier = Modifier.align(Alignment.End).height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberGreen)
+                ) {
+                    Text(
+                        text = actionLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = NightDeep,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
 
-private fun taskTitleResId(taskId: String): Int = when (taskId) {
-    "invite_friend" -> R.string.task_invite_friend
-    "share"         -> R.string.task_share_social
-    "watch_story"   -> R.string.task_watch_stories
-    "subscribe"     -> R.string.task_subscribe
-    else            -> R.string.task_invite_friend
+// ─── Action resolver ─────────────────────────────────────────────────────────
+private fun resolveTaskAction(
+    @Suppress("UNUSED_PARAMETER") context: android.content.Context,
+    task: TaskEntity,
+    urlLauncher: androidx.activity.result.ActivityResultLauncher<Intent>,
+    @Suppress("UNUSED_PARAMETER") pendingTaskId: String?,
+    viewModel: TasksViewModel,
+    setPendingTaskId: (String?) -> Unit,
+) {
+    when (task.actionType) {
+        TaskActionType.CHECKIN -> {
+            // No external action — complete immediately
+            viewModel.completeTask(task.id)
+        }
+        TaskActionType.SHARE -> {
+            val shareUrl = task.actionUrl ?: "https://t.me/seekermining"
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, shareUrl)
+            }
+            setPendingTaskId(task.id)
+            urlLauncher.launch(Intent.createChooser(shareIntent, "Share Seeker Mining"))
+        }
+        TaskActionType.STORY,
+        TaskActionType.OPEN_URL -> {
+            val url = task.actionUrl ?: return
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            setPendingTaskId(task.id)
+            urlLauncher.launch(intent)
+        }
+        TaskActionType.REFERRAL -> {
+            // Open share sheet with referral link (referral code from userStats ideally)
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, "Join Seeker Mining! https://t.me/seekermining")
+            }
+            setPendingTaskId(task.id)
+            urlLauncher.launch(Intent.createChooser(shareIntent, "Invite a Friend"))
+        }
+        TaskActionType.AUTO -> {
+            // Server-granted: just attempt claim (server validates streak)
+            viewModel.completeTask(task.id)
+        }
+    }
 }

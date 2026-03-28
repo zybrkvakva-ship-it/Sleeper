@@ -222,6 +222,46 @@ CREATE INDEX idx_daily_tasks_wallet ON daily_tasks(wallet_address);
 CREATE INDEX idx_daily_tasks_date ON daily_tasks(task_date DESC);
 
 -- ============================================================================
+-- USER TASK COMPLETIONS
+-- Stores every task completion: daily (task_date = date) and special (task_date IS NULL)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS user_task_completions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_address VARCHAR(44) NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+
+    -- Task identifier from catalog
+    task_id VARCHAR(50) NOT NULL,
+
+    -- NULL for one-time special tasks; DATE for daily tasks
+    task_date DATE,
+
+    -- Snapshot at completion time
+    reward_pts INTEGER NOT NULL DEFAULT 0,
+    bonus_percent DECIMAL(4, 3) NOT NULL DEFAULT 0,
+
+    completed_at TIMESTAMP DEFAULT NOW(),
+
+    -- Composite unique: one completion per wallet+task per day (daily),
+    -- and one ever per wallet+task (special, enforced by partial index below)
+    CONSTRAINT unique_daily_completion UNIQUE(wallet_address, task_id, task_date)
+);
+
+-- Partial unique index: each special task can only be completed once per wallet
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_special_task
+    ON user_task_completions(wallet_address, task_id)
+    WHERE task_date IS NULL;
+
+CREATE INDEX idx_task_completions_wallet ON user_task_completions(wallet_address);
+CREATE INDEX idx_task_completions_date   ON user_task_completions(task_date DESC);
+
+-- ============================================================================
+-- Add special_task_bonus column to users (accumulated one-time task bonuses)
+-- ============================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS special_task_bonus DECIMAL(4, 3) NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS has_device_nft BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS staked_skr_raw BIGINT DEFAULT 0;
+
+-- ============================================================================
 -- LEADERBOARD (Materialized View)
 -- ============================================================================
 CREATE MATERIALIZED VIEW leaderboard AS

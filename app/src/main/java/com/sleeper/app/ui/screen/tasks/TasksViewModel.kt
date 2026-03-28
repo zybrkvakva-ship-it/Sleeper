@@ -1,26 +1,116 @@
 package com.sleeper.app.ui.screen.tasks
 
 import android.app.Application
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sleeper.app.data.local.AppDatabase
+import com.sleeper.app.data.local.TaskActionType
 import com.sleeper.app.data.local.TaskEntity
 import com.sleeper.app.data.repository.MiningRepository
+import com.sleeper.app.domain.manager.WalletManager
+import com.sleeper.app.utils.DevLog
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class TasksUiState(
+    val isLoading: Boolean = false,
+    val isSyncing: Boolean = false,
+    val error: String? = null,
+    val successMessage: String? = null,
+    /** Total task boost for tonight's mining (daily + special). */
+    val totalBonusPercent: Double = 0.0,
+    val nightStreak: Int = 0,
+    val referralCount: Int = 0,
+)
+
 class TasksViewModel(application: Application) : AndroidViewModel(application) {
-    
-    private val repository = MiningRepository(AppDatabase.getInstance(application))
-    
+
+    companion object {
+        private const val TAG = "TasksViewModel"
+    }
+
+    private val db = AppDatabase.getInstance(application)
+    private val repository = MiningRepository(db)
+    private val walletManager = WalletManager(application)
+
     val tasks: StateFlow<List<TaskEntity>> = repository.tasks
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    
-    fun completeTask(taskId: String) {
+
+    private val _uiState = MutableStateFlow(TasksUiState())
+    val uiState: StateFlow<TasksUiState> = _uiState
+
+    init {
+        syncFromServer()
+    }
+
+    /** Pull tasks from server and update Room cache. */
+    fun syncFromServer() {
         viewModelScope.launch {
-            repository.completeTask(taskId)
+            val walletAddress = walletManager.getSavedWalletAddress() ?: return@launch
+            val authToken = walletManager.getSavedBackendAuthToken()
+            _uiState.update { it.copy(isSyncing = true, error = null) }
+            val ok = repository.syncTasksFromServer(walletAddress, authToken)
+            if (!ok) {
+                DevLog.d(TAG, "syncFromServer: offline or no API — using local cache")
+            }
+            // Update bonus from local store (was written by sync)
+            val refreshed = db.userStatsDao().getUserStats()
+            _uiState.update {
+                it.copy(
+                    isSyncing = false,
+                    totalBonusPercent = refreshed?.dailySocialBonusPercent ?: it.totalBonusPercent
+                )
+            }
         }
     }
+
+    /**
+     * Complete a task. For OPEN_URL / SHARE / STORY / REFERRAL tasks:
+     * the UI already opened the external link — this records the completion.
+     */
+    fun completeTask(taskId: String) {
+        viewModelScope.launch {
+            val walletAddress = walletManager.getSavedWalletAddress()
+            val authToken = walletManager.getSavedBackendAuthToken()
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            val success = repository.completeTask(
+                taskId = taskId,
+                walletAddress = walletAddress,
+                authToken = authToken
+            )
+
+            if (success) {
+                val task = db.taskDao().getTasks().find { it.id == taskId }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        successMessage = if (task != null) "+${task.reward} pts" else "Task completed!",
+                        totalBonusPercent = db.userStatsDao().getUserStats()?.dailySocialBonusPercent ?: it.totalBonusPercent
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(isLoading = false, error = "Could not complete task. Try again.") }
+            }
+        }
+    }
+
+    /**
+     * Opens external URL via Android intent and returns the url to caller.
+     * Actual completion is sent to server separately by [completeTask].
+     */
+    fun buildShareIntent(url: String, @Suppress("UNUSED_PARAMETER") taskId: String): Intent {
+        return Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, url)
+        }
+    }
+
+    fun clearError() = _uiState.update { it.copy(error = null) }
+    fun clearSuccess() = _uiState.update { it.copy(successMessage = null) }
 }

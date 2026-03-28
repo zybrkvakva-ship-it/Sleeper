@@ -39,6 +39,37 @@ data class GenesisNftMintResponse(
     val txHash: String
 )
 
+data class TaskStatusResponse(
+    val taskDate: String,
+    val dailyBonusPercent: Double,
+    val specialBonusPercent: Double,
+    val totalBonusPercent: Double,
+    val referralCount: Int,
+    val nightStreak: Int,
+    val tasks: List<RemoteTaskItem>
+)
+
+data class RemoteTaskItem(
+    val id: String,
+    val type: String,           // "DAILY" | "SPECIAL"
+    val title: String,
+    val description: String,
+    val rewardPts: Int,
+    val bonusPercent: Double,
+    val actionType: String,     // "CHECKIN" | "SHARE" | "STORY" | "OPEN_URL" | "AUTO" | "REFERRAL"
+    val actionUrl: String?,
+    val isCompleted: Boolean,
+    val canComplete: Boolean
+)
+
+data class TaskCompleteResponse(
+    val taskId: String,
+    val rewardPts: Int,
+    val bonusPercent: Double,
+    val newDailyBonusPercent: Double,
+    val newSpecialBonusPercent: Double
+)
+
 /**
  * Клиент к бэкенду майнинга (POST /night/end, GET /user/balance, GET /leaderboard).
  * Если BuildConfig.API_BASE_URL пустой — вызовы не выполняются (no-op).
@@ -275,6 +306,84 @@ class MiningBackendApi {
         }.onFailure { e ->
             DevLog.e(TAG, "mintGenesisNft error: ${e.message}", e)
         }
+    }
+
+    /**
+     * Получает список заданий с сервера + статус выполнения для данного кошелька.
+     * GET /tasks?wallet=...
+     */
+    suspend fun getTasksStatus(walletAddress: String): Result<TaskStatusResponse> = withContext(Dispatchers.IO) {
+        DevLog.d(TAG, "getTasksStatus ENTRY wallet=${DevLog.mask(walletAddress)}")
+        if (baseUrl.isEmpty()) return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        val url = "$baseUrl/tasks?wallet=${java.net.URLEncoder.encode(walletAddress, "UTF-8")}"
+        val request = Request.Builder().url(url).get().build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val bodyStr = response.body?.string() ?: ""
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${bodyStr.take(400)}")
+            val json = JSONObject(bodyStr)
+            val tasksArray = json.optJSONArray("tasks") ?: org.json.JSONArray()
+            val tasks = List(tasksArray.length()) { i ->
+                val t = tasksArray.getJSONObject(i)
+                RemoteTaskItem(
+                    id = t.optString("id"),
+                    type = t.optString("type", "DAILY"),
+                    title = t.optString("title"),
+                    description = t.optString("description"),
+                    rewardPts = t.optInt("rewardPts", 0),
+                    bonusPercent = t.optDouble("bonusPercent", 0.0),
+                    actionType = t.optString("actionType", "CHECKIN"),
+                    actionUrl = t.optString("actionUrl").takeIf { it.isNotEmpty() },
+                    isCompleted = t.optBoolean("isCompleted", false),
+                    canComplete = t.optBoolean("canComplete", false)
+                )
+            }
+            TaskStatusResponse(
+                taskDate = json.optString("taskDate"),
+                dailyBonusPercent = json.optDouble("dailyBonusPercent", 0.0),
+                specialBonusPercent = json.optDouble("specialBonusPercent", 0.0),
+                totalBonusPercent = json.optDouble("totalBonusPercent", 0.0),
+                referralCount = json.optInt("referralCount", 0),
+                nightStreak = json.optInt("nightStreak", 0),
+                tasks = tasks
+            ).also { DevLog.i(TAG, "getTasksStatus SUCCESS tasks=${tasks.size} bonus=${it.totalBonusPercent}") }
+        }.onFailure { DevLog.e(TAG, "getTasksStatus error: ${it.message}", it) }
+    }
+
+    /**
+     * Отправляет выполнение задания на сервер.
+     * POST /tasks/complete
+     * @return TaskCompleteResponse при успехе.
+     */
+    suspend fun completeTaskOnServer(
+        walletAddress: String,
+        authToken: String,
+        taskId: String
+    ): Result<TaskCompleteResponse> = withContext(Dispatchers.IO) {
+        DevLog.d(TAG, "completeTaskOnServer ENTRY wallet=${DevLog.mask(walletAddress)} taskId=$taskId")
+        if (baseUrl.isEmpty()) return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        val body = JSONObject().apply {
+            put("walletAddress", walletAddress)
+            put("authToken", authToken)
+            put("taskId", taskId)
+        }.toString()
+        val request = Request.Builder()
+            .url("$baseUrl/tasks/complete")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val bodyStr = response.body?.string() ?: ""
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${bodyStr.take(400)}")
+            val json = JSONObject(bodyStr)
+            TaskCompleteResponse(
+                taskId = json.optString("taskId", taskId),
+                rewardPts = json.optInt("rewardPts", 0),
+                bonusPercent = json.optDouble("bonusPercent", 0.0),
+                newDailyBonusPercent = json.optDouble("newDailyBonusPercent", 0.0),
+                newSpecialBonusPercent = json.optDouble("newSpecialBonusPercent", 0.0)
+            ).also { DevLog.i(TAG, "completeTaskOnServer SUCCESS taskId=$taskId rewardPts=${it.rewardPts}") }
+        }.onFailure { DevLog.e(TAG, "completeTaskOnServer error: ${it.message}", it) }
     }
 
     /**

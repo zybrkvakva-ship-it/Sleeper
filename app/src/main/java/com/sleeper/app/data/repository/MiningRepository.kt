@@ -4,6 +4,7 @@ import com.sleeper.app.data.local.AppDatabase
 import com.sleeper.app.utils.DevLog
 import com.sleeper.app.data.local.PendingSessionEntity
 import com.sleeper.app.data.local.SkrBoostCatalog
+import com.sleeper.app.data.local.TaskActionType
 import com.sleeper.app.data.local.TaskEntity
 import com.sleeper.app.data.local.TaskType
 import com.sleeper.app.data.local.UserStatsEntity
@@ -21,82 +22,137 @@ class MiningRepository(private val database: AppDatabase) {
     val tasks: Flow<List<TaskEntity>> = database.taskDao().getAllTasksFlow()
     
     suspend fun initializeDefaultData() {
-        // Проверяем, есть ли уже данные
         val existingStats = database.userStatsDao().getUserStats()
         if (existingStats == null) {
-            // Создаём начальную статистику
             database.userStatsDao().insert(UserStatsEntity())
-            
-            // Создаём задания
-            val defaultTasks = listOf(
-                TaskEntity(
-                    id = "invite_friend",
-                    title = "Пригласи друга",
-                    reward = 300,
-                    type = TaskType.DAILY
-                ),
-                TaskEntity(
-                    id = "share",
-                    title = "Поделись в соцсетях",
-                    reward = 500,
-                    type = TaskType.DAILY
-                ),
-                TaskEntity(
-                    id = "watch_story",
-                    title = "Смотри сторис",
-                    reward = 100,
-                    type = TaskType.DAILY
-                ),
-                TaskEntity(
-                    id = "subscribe",
-                    title = "Подпишись на @Sleeper",
-                    reward = 5000,
-                    type = TaskType.SPECIAL
+        }
+        // Seed default tasks if table is empty (offline fallback until server sync)
+        if (database.taskDao().getTasks().isEmpty()) {
+            database.taskDao().upsertAll(buildDefaultTasks())
+        }
+    }
+
+    /**
+     * Синхронизирует список заданий с сервером.
+     * Если API не настроен — молча возвращает false (офлайн режим).
+     * @return true при успехе, false при ошибке или офлайн.
+     */
+    suspend fun syncTasksFromServer(walletAddress: String, @Suppress("UNUSED_PARAMETER") authToken: String? = null): Boolean {
+        DevLog.d(TAG, "syncTasksFromServer ENTRY wallet=${DevLog.mask(walletAddress)}")
+        val api = MiningBackendApi()
+        if (!api.isConfigured()) {
+            DevLog.d(TAG, "syncTasksFromServer SKIP: API not configured")
+            return false
+        }
+        val result = api.getTasksStatus(walletAddress)
+        val serverData = result.getOrNull() ?: run {
+            DevLog.w(TAG, "syncTasksFromServer FAILED: ${result.exceptionOrNull()?.message}")
+            return false
+        }
+        val now = System.currentTimeMillis()
+        val entities = serverData.tasks.map { t ->
+            TaskEntity(
+                id = t.id,
+                title = t.title,
+                description = t.description,
+                reward = t.rewardPts,
+                bonusPercent = t.bonusPercent,
+                type = if (t.type == "DAILY") TaskType.DAILY else TaskType.SPECIAL,
+                actionType = parseActionType(t.actionType),
+                actionUrl = t.actionUrl,
+                isCompleted = t.isCompleted,
+                completedAt = if (t.isCompleted) now else 0L,
+                canComplete = t.canComplete
+            )
+        }
+        database.taskDao().upsertAll(entities)
+
+        // Обновляем локальный бонус из ответа сервера
+        database.userStatsDao().getUserStats()?.let { stats ->
+            val isNewDay = stats.lastDailyResetAt == 0L || !isSameDay(stats.lastDailyResetAt, now)
+            database.userStatsDao().update(
+                stats.copy(
+                    dailySocialBonusPercent = serverData.totalBonusPercent,
+                    lastDailyResetAt = if (isNewDay) now else stats.lastDailyResetAt
                 )
             )
-            database.taskDao().insertAll(defaultTasks)
         }
-    }
-    
-    suspend fun completeTask(taskId: String): Boolean {
-        val stats = database.userStatsDao().getUserStats() ?: return false
-        val task = database.taskDao().getTasks().find { it.id == taskId } ?: return false
-        
-        if (task.isCompleted) return false
-        val now = System.currentTimeMillis()
-
-        // --- dailySocialMultiplier: обновление бонуса от дейликов/социалок ---
-        // Считаем «день» как целое количество суток с эпохи, чтобы избежать сложного календаря
-        val isNewDay = stats.lastDailyResetAt == 0L || !isSameDay(stats.lastDailyResetAt, now)
-
-        // Если новый день — сбрасываем бонус и точку отсчёта
-        val baseBonus = if (isNewDay) 0.0 else stats.dailySocialBonusPercent
-        val lastReset = if (isNewDay) now else stats.lastDailyResetAt
-
-        // Приращение бонуса по типу задания (примерные значения, кап на уровне ~+15%)
-        val bonusIncrement = when (task.type) {
-            TaskType.DAILY -> 0.05  // дейлики: +5%
-            TaskType.SPECIAL -> 0.02 // special: +2%
-        }
-
-        // Максимальный суммарный бонус: 0.15 (мультипликатор до 1.15)
-        val DAILY_SOCIAL_MAX_BONUS = 0.15
-        val newBonus = (baseBonus + bonusIncrement).coerceAtMost(DAILY_SOCIAL_MAX_BONUS)
-
-        // Начисляем награду и сохраняем обновлённый бонус
-        database.userStatsDao().update(
-            stats.copy(
-                pointsBalance = stats.pointsBalance + task.reward,
-                dailySocialBonusPercent = newBonus,
-                lastDailyResetAt = lastReset
-            )
-        )
-        
-        // Помечаем выполненным
-        database.taskDao().markCompleted(taskId, System.currentTimeMillis())
-        
+        DevLog.i(TAG, "syncTasksFromServer SUCCESS tasks=${entities.size} bonus=${serverData.totalBonusPercent}")
         return true
     }
+
+    /**
+     * Выполняет задание: сначала отправляет на сервер, затем обновляет локально.
+     * В офлайн-режиме (API не настроен) — работает только локально.
+     * @return true при успехе.
+     */
+    suspend fun completeTask(taskId: String, walletAddress: String? = null, authToken: String? = null): Boolean {
+        val stats = database.userStatsDao().getUserStats() ?: return false
+        val task = database.taskDao().getTasks().find { it.id == taskId } ?: return false
+        if (task.isCompleted) return false
+
+        val api = MiningBackendApi()
+        val now = System.currentTimeMillis()
+
+        // ── Server-first (if configured) ──────────────────────────────────────
+        if (api.isConfigured() && walletAddress != null && authToken != null) {
+            val serverResult = api.completeTaskOnServer(walletAddress, authToken, taskId)
+            serverResult.onFailure { e ->
+                DevLog.w(TAG, "completeTask server failed taskId=$taskId: ${e.message}")
+                return false  // Reject if server says no (409 = already done, 400 = conditions not met)
+            }
+            val resp = serverResult.getOrNull() ?: return false
+            // Server accepted — update local with server-authoritative bonus
+            val isNewDay = stats.lastDailyResetAt == 0L || !isSameDay(stats.lastDailyResetAt, now)
+            database.userStatsDao().update(
+                stats.copy(
+                    pointsBalance = stats.pointsBalance + resp.rewardPts,
+                    dailySocialBonusPercent = resp.newDailyBonusPercent + resp.newSpecialBonusPercent,
+                    lastDailyResetAt = if (isNewDay) now else stats.lastDailyResetAt
+                )
+            )
+        } else {
+            // ── Offline fallback: local-only ──────────────────────────────────
+            val bonusIncrement = task.bonusPercent.takeIf { it > 0.0 } ?: when (task.type) {
+                TaskType.DAILY -> 0.05
+                TaskType.SPECIAL -> 0.02
+            }
+            val isNewDay = stats.lastDailyResetAt == 0L || !isSameDay(stats.lastDailyResetAt, now)
+            val baseBonus = if (isNewDay) 0.0 else stats.dailySocialBonusPercent
+            val newBonus = (baseBonus + bonusIncrement).coerceAtMost(0.30)
+            database.userStatsDao().update(
+                stats.copy(
+                    pointsBalance = stats.pointsBalance + task.reward,
+                    dailySocialBonusPercent = newBonus,
+                    lastDailyResetAt = if (isNewDay) now else stats.lastDailyResetAt
+                )
+            )
+        }
+
+        database.taskDao().markCompleted(taskId, now)
+        DevLog.i(TAG, "completeTask SUCCESS taskId=$taskId")
+        return true
+    }
+
+    private fun parseActionType(raw: String) = when (raw.uppercase()) {
+        "SHARE"    -> TaskActionType.SHARE
+        "STORY"    -> TaskActionType.STORY
+        "OPEN_URL" -> TaskActionType.OPEN_URL
+        "AUTO"     -> TaskActionType.AUTO
+        "REFERRAL" -> TaskActionType.REFERRAL
+        else       -> TaskActionType.CHECKIN
+    }
+
+    private fun buildDefaultTasks() = listOf(
+        TaskEntity(id = "daily_checkin",       title = "Daily Check-in",           description = "Open the app every day",                        reward = 50,    bonusPercent = 0.03, type = TaskType.DAILY,   actionType = TaskActionType.CHECKIN),
+        TaskEntity(id = "share",               title = "Share Seeker Mining",       description = "Share the app with friends",                    reward = 200,   bonusPercent = 0.05, type = TaskType.DAILY,   actionType = TaskActionType.SHARE,    actionUrl = "https://t.me/seekermining"),
+        TaskEntity(id = "watch_story",         title = "Watch a Story",             description = "Check the latest story in Telegram",            reward = 100,   bonusPercent = 0.03, type = TaskType.DAILY,   actionType = TaskActionType.STORY,    actionUrl = "https://t.me/seekermining"),
+        TaskEntity(id = "invite_friend",       title = "Invite a Friend",           description = "Invite someone using your referral link",       reward = 300,   bonusPercent = 0.05, type = TaskType.DAILY,   actionType = TaskActionType.REFERRAL),
+        TaskEntity(id = "subscribe_telegram",  title = "Join Telegram Channel",     description = "Subscribe to @SeekerMining on Telegram",        reward = 2000,  bonusPercent = 0.02, type = TaskType.SPECIAL, actionType = TaskActionType.OPEN_URL, actionUrl = "https://t.me/seekermining"),
+        TaskEntity(id = "subscribe_twitter",   title = "Follow on X",               description = "Follow @SeekerMining on X (Twitter)",           reward = 1000,  bonusPercent = 0.02, type = TaskType.SPECIAL, actionType = TaskActionType.OPEN_URL, actionUrl = "https://x.com/seekermining"),
+        TaskEntity(id = "sleep_streak_3",      title = "3-Night Streak",            description = "Mine 3 nights in a row",                        reward = 5000,  bonusPercent = 0.05, type = TaskType.SPECIAL, actionType = TaskActionType.AUTO,     canComplete = false),
+        TaskEntity(id = "sleep_streak_7",      title = "7-Night Streak",            description = "Mine 7 nights in a row",                        reward = 15000, bonusPercent = 0.10, type = TaskType.SPECIAL, actionType = TaskActionType.AUTO,     canComplete = false),
+    )
     
     suspend fun recordHumanCheckResponse(passed: Boolean) {
         if (passed) {
