@@ -421,6 +421,24 @@ class MiningBackendApi {
         }.onFailure { DevLog.e(TAG, "completeTaskOnServer error: ${it.message}", it) }
     }
 
+    /** Apply a referral code for the given wallet. Returns true on success. */
+    suspend fun applyReferral(walletAddress: String, referralCode: String): Result<Unit> = withContext(Dispatchers.IO) {
+        if (baseUrl.isEmpty()) return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        val body = JSONObject().apply {
+            put("walletAddress", walletAddress)
+            put("referralCode", referralCode)
+        }.toString()
+        val request = Request.Builder()
+            .url("$baseUrl/user/apply-referral")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val bodyStr = response.body?.string() ?: ""
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${bodyStr.take(400)}")
+        }.also { r -> r.onFailure { DevLog.e(TAG, "applyReferral error: ${it.message}", it) } }
+    }
+
     /**
      * Verify wallet signature and receive backend auth token.
      */

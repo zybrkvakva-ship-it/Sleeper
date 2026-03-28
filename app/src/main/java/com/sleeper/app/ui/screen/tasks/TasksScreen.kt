@@ -15,6 +15,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -69,6 +73,17 @@ fun TasksScreen(
             scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short) }
             viewModel.clearSuccess()
         }
+    }
+
+    // Referral onboarding dialog
+    if (uiState.showReferralOnboarding) {
+        ReferralOnboardingDialog(
+            preFillCode = uiState.referralOnboardingPreFill,
+            error = uiState.referralOnboardingError,
+            isLoading = uiState.isLoading,
+            onSubmit = { viewModel.submitReferralCode(it) },
+            onDismiss = { viewModel.dismissReferralOnboarding() }
+        )
     }
 
     val dailyTasks   = tasks.filter { it.type == TaskType.DAILY }
@@ -391,6 +406,81 @@ private fun TaskCard(
             }
         }
     }
+}
+
+// ─── ReferralOnboardingDialog ─────────────────────────────────────────────────
+@Composable
+private fun ReferralOnboardingDialog(
+    preFillCode: String,
+    error: String?,
+    isLoading: Boolean,
+    onSubmit: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var code by remember { mutableStateOf(preFillCode) }
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        containerColor = NightDeep,
+        title = {
+            Text(
+                text = "Реферальный код",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = CyberYellow
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Введи код пригласившего, чтобы дать ему +5% командный буст",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CyberGray
+                )
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it.uppercase() },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    placeholder = { Text("XXXXXXXX", color = CyberGray) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = CyberYellow,
+                        unfocusedBorderColor = Stroke,
+                        focusedTextColor = CyberWhite,
+                        unfocusedTextColor = CyberWhite,
+                        cursorColor = CyberYellow
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Characters,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { if (code.isNotBlank()) onSubmit(code) }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (error != null) {
+                    Text(text = error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(code) },
+                enabled = code.isNotBlank() && !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = CyberGreen)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = NightDeep, strokeWidth = 2.dp)
+                } else {
+                    Text("ПРИМЕНИТЬ", color = NightDeep, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text("Пропустить", color = CyberGray, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    )
 }
 
 // ─── Action resolver ─────────────────────────────────────────────────────────

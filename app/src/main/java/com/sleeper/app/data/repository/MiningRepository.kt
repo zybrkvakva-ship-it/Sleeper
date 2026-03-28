@@ -71,6 +71,27 @@ class MiningRepository(private val database: AppDatabase) {
         return profile
     }
 
+    /**
+     * Sends walletAddress + referralCode to backend.
+     * Returns null on success, error message on failure.
+     */
+    suspend fun applyReferral(walletAddress: String, referralCode: String): String? {
+        val api = MiningBackendApi()
+        if (!api.isConfigured()) return "Сервер недоступен — попробуй позже"
+        val result = api.applyReferral(walletAddress, referralCode)
+        return if (result.isSuccess) null
+        else {
+            val msg = result.exceptionOrNull()?.message ?: "Ошибка"
+            when {
+                msg.contains("409") || msg.contains("Already") -> "Реферальный код уже применён"
+                msg.contains("404") && msg.contains("code") -> "Код не найден"
+                msg.contains("400") && msg.contains("own") -> "Нельзя использовать свой код"
+                msg.contains("404") && msg.contains("User") -> "Зарегистрируйся сначала"
+                else -> "Ошибка: $msg"
+            }
+        }
+    }
+
     suspend fun syncTasksFromServer(walletAddress: String, @Suppress("UNUSED_PARAMETER") authToken: String? = null): Boolean {
         DevLog.d(TAG, "syncTasksFromServer ENTRY wallet=${DevLog.mask(walletAddress)}")
         val api = MiningBackendApi()

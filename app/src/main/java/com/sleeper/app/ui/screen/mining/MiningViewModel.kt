@@ -95,6 +95,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
         observePendingSessions()
         observeNetworkStats()
         startEnergyRestoration()
+        startNightUpdateLoop()
         checkWalletConnection()
         syncWithBackend()
         wsManager.connect()
@@ -201,6 +202,27 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
+
+    /** Раз в 30 секунд отправляет night:update в WebSocket во время активной сессии. */
+    private fun startNightUpdateLoop() {
+        viewModelScope.launch {
+            while (true) {
+                delay(30_000)
+                val sessionId = currentSessionId ?: continue
+                if (!_uiState.value.isMining) continue
+                val wallet = walletManager.getSavedWalletAddress() ?: continue
+                val stats = repository.getUserStats() ?: continue
+                wsManager.sendNightUpdate(
+                    walletAddress = wallet,
+                    sessionId = sessionId,
+                    uptimeSeconds = (stats.uptimeMinutes * 60).toInt(),
+                    humanChecksPassed = stats.humanChecksPassed,
+                    humanChecksFailed = stats.humanChecksFailed,
+                    socialBoostPercent = stats.dailySocialBonusPercent
+                )
+            }
+        }
+    }
     
     /**
      * Проверяет .skr token перед началом майнинга
@@ -256,6 +278,9 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
     
+    /** ID текущей ночной сессии, генерируется при startMining(). */
+    private var currentSessionId: String? = null
+
     private val isMiningStarting = java.util.concurrent.atomic.AtomicBoolean(false)
 
     fun startMining() {
@@ -280,13 +305,20 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
 
+                // Генерируем ID сессии и регистрируем в WebSocket
+                val sessionId = java.util.UUID.randomUUID().toString()
+                currentSessionId = sessionId
+                walletManager.getSavedWalletAddress()?.let { addr ->
+                    wsManager.registerMiningSession(addr, sessionId)
+                }
+
                 // Запускаем MiningService
                 val intent = Intent(getApplication(), MiningService::class.java).apply {
                     action = MiningService.ACTION_START_MINING
                 }
                 getApplication<Application>().startService(intent)
 
-                DevLog.i(TAG, "✅ Mining started for user: ${_uiState.value.skrUsername}")
+                DevLog.i(TAG, "✅ Mining started for user: ${_uiState.value.skrUsername} sessionId=${sessionId.take(8)}")
             } finally {
                 isMiningStarting.set(false)
             }
@@ -335,6 +367,7 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 repository.enqueuePendingSession(session)
                 DevLog.d(TAG, "Session enqueued for backend: ${session.sessionEndedAt - session.sessionStartedAt}ms")
             }
+            currentSessionId = null
             // Останавливаем MiningService
             val intent = Intent(getApplication(), MiningService::class.java).apply {
                 action = MiningService.ACTION_STOP_MINING

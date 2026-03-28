@@ -29,6 +29,10 @@ data class TasksUiState(
     /** User's own referral code (first 8 chars of wallet, server-authoritative). */
     val referralCode: String? = null,
     val walletAddress: String? = null,
+    /** Show one-time referral onboarding dialog (enter inviter's code). */
+    val showReferralOnboarding: Boolean = false,
+    val referralOnboardingPreFill: String = "",
+    val referralOnboardingError: String? = null,
 )
 
 class TasksViewModel(application: Application) : AndroidViewModel(application) {
@@ -52,12 +56,44 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         val savedWallet = walletManager.getSavedWalletAddress()
         val savedCode = walletManager.getSavedReferralCode()
             ?: savedWallet?.take(8)  // derive locally if not yet synced
+        val pendingCode = walletManager.getPendingReferralCode() ?: ""
+        val shouldAsk = savedWallet != null &&
+            !walletManager.isReferralOnboardingAsked() &&
+            walletManager.getSavedBackendAuthToken() != null
         _uiState.update { it.copy(
             walletAddress = savedWallet,
             referralCode = savedCode,
-            referralCount = walletManager.getSavedReferralCount()
+            referralCount = walletManager.getSavedReferralCount(),
+            showReferralOnboarding = shouldAsk,
+            referralOnboardingPreFill = pendingCode
         ) }
         syncFromServer()
+    }
+
+    fun submitReferralCode(code: String) {
+        val wallet = _uiState.value.walletAddress ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, referralOnboardingError = null) }
+            val error = repository.applyReferral(wallet, code.trim())
+            if (error == null) {
+                walletManager.markReferralOnboardingAsked()
+                walletManager.savePendingReferralCode(null)
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    showReferralOnboarding = false,
+                    successMessage = "Реферальный код применён!"
+                ) }
+                syncFromServer()  // refresh referral count
+            } else {
+                _uiState.update { it.copy(isLoading = false, referralOnboardingError = error) }
+            }
+        }
+    }
+
+    fun dismissReferralOnboarding() {
+        walletManager.markReferralOnboardingAsked()
+        walletManager.savePendingReferralCode(null)
+        _uiState.update { it.copy(showReferralOnboarding = false) }
     }
 
     /** Pull profile + tasks from server and update local cache. */

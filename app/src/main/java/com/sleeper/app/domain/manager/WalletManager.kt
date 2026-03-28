@@ -23,6 +23,10 @@ class WalletManager(private val context: Context) {
         private const val KEY_SKR_USERNAME = "skr_username"
         private const val KEY_REFERRAL_CODE = "referral_code"
         private const val KEY_REFERRAL_COUNT = "referral_count"
+        /** true если пользователю уже показывали диалог ввода реферального кода */
+        private const val KEY_REFERRAL_ASKED = "referral_onboarding_asked"
+        /** код из deep link, ожидающий применения */
+        private const val KEY_PENDING_REFERRAL_CODE = "pending_referral_code"
         /** Сообщение при временной недоступности MWA-сервера кошелька (ECONNREFUSED) */
         private const val MWA_CONNECTION_REFUSED_HINT = "Кошелёк ещё не готов. Откройте приложение кошелька и нажмите «Подключить» снова."
         /** Сообщение при отказе/таймауте авторизации в кошельке (authorization request failed) */
@@ -382,6 +386,28 @@ class WalletManager(private val context: Context) {
         return prefs.getInt(KEY_REFERRAL_COUNT, 0)
     }
 
+    /** true если диалог onboarding уже был показан (не показываем повторно). */
+    fun isReferralOnboardingAsked(): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_REFERRAL_ASKED, false)
+    }
+
+    fun markReferralOnboardingAsked() {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_REFERRAL_ASKED, true).apply()
+    }
+
+    /** Код из deep link (seekermining://invite?code=XXX), ожидающий применения. */
+    fun getPendingReferralCode(): String? {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_PENDING_REFERRAL_CODE, null)
+    }
+
+    fun savePendingReferralCode(code: String?) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(KEY_PENDING_REFERRAL_CODE, code).apply()
+    }
+
     // Private helpers
 
     /**
@@ -441,6 +467,8 @@ class WalletManager(private val context: Context) {
             .remove(KEY_SKR_USERNAME)
             .remove(KEY_REFERRAL_CODE)
             .remove(KEY_REFERRAL_COUNT)
+            .remove(KEY_REFERRAL_ASKED)
+            .remove(KEY_PENDING_REFERRAL_CODE)
             .apply()
     }
     
