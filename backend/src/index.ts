@@ -60,14 +60,17 @@ const writeRouteLimiter = createSimpleRateLimit({
 });
 
 app.use([
+  '/api/v1/user/register',
   '/api/v1/user/auth/challenge',
   '/api/v1/user/auth/verify',
+  '/api/v1/user/apply-referral',
   '/api/v1/mining/session',
   '/api/v1/night/start',
   '/api/v1/night/end',
   '/api/v1/payment/activate-boost',
   '/api/v1/payment/verify-skr',
   '/api/v1/tasks/complete',
+  '/api/v1/claim',
 ], writeRouteLimiter);
 
 // Strict rate limit for admin endpoints: 5 req/min per IP

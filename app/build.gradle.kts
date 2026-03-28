@@ -71,12 +71,21 @@ android {
                 "proguard-rules.pro"
             )
             val releaseSigning = signingConfigs.findByName("release")
+            val isReleaseBuild = gradle.startParameter.taskNames.any {
+                it.contains("Release", ignoreCase = true) && !it.contains("Debug")
+            }
             if (releaseSigning != null && releaseSigning.storeFile?.exists() == true) {
                 signingConfig = releaseSigning
+            } else if (isReleaseBuild) {
+                throw GradleException(
+                    "RELEASE_STORE_FILE is not set or keystore not found.\n" +
+                    "Add to local.properties:\n" +
+                    "  RELEASE_STORE_FILE=../keystore/seeker-release.jks\n" +
+                    "  RELEASE_KEY_ALIAS=seeker\n" +
+                    "  RELEASE_STORE_PASSWORD=<password>\n" +
+                    "  RELEASE_KEY_PASSWORD=<password>"
+                )
             } else {
-                // В CI/CD передать RELEASE_STORE_FILE через local.properties или -P флаг
-                // Без keystore release APK не может быть опубликован в Play Store
-                logger.warn("RELEASE_STORE_FILE not set — release APK will use debug signing. Set it before publishing.")
                 signingConfig = signingConfigs.getByName("debug")
             }
             buildConfigField("boolean", "BYPASS_DEVICE_CHECK", "false")
@@ -127,6 +136,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     debugImplementation("androidx.compose.ui:ui-tooling")
     
+    // Security — encrypted storage for auth tokens
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     // Core Android
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")

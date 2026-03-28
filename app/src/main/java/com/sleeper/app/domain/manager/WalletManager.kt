@@ -1,7 +1,10 @@
 package com.sleeper.app.domain.manager
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.solana.mobilewalletadapter.clientlib.*
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import com.solana.mobilewalletadapter.common.signin.SignInWithSolana
@@ -36,6 +39,28 @@ class WalletManager(private val context: Context) {
         private const val MWA_RETRY_INITIAL_DELAY_MS = 400L
     }
     
+    /**
+     * Encrypted SharedPreferences for sensitive wallet data (authTokens, wallet address).
+     * Falls back to plain SharedPreferences if KeyStore is unavailable (e.g. emulator issues).
+     */
+    private val prefs: SharedPreferences by lazy {
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            DevLog.w(TAG, "EncryptedSharedPreferences unavailable, falling back to plain: ${e.message}")
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        }
+    }
+
     private val walletAdapter: MobileWalletAdapter by lazy {
         MobileWalletAdapter(
             connectionIdentity = ConnectionIdentity(
@@ -314,7 +339,6 @@ class WalletManager(private val context: Context) {
      * Получить сохранённый адрес wallet
      */
     fun getSavedWalletAddress(): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val address = prefs.getString(KEY_WALLET_ADDRESS, null)
         DevLog.d(TAG, "[GET_ADDRESS] getSavedWalletAddress: ${if (address != null) "ok len=${address.length} value=${address.take(12)}...${address.takeLast(8)}" else "null"}")
         return address
@@ -335,7 +359,6 @@ class WalletManager(private val context: Context) {
      * Сохранить верифицированный .skr username (для майнинга и лидерборда)
      */
     fun saveSkrUsername(username: String?) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (username != null) {
             prefs.edit().putString(KEY_SKR_USERNAME, username).apply()
         } else {
@@ -347,12 +370,10 @@ class WalletManager(private val context: Context) {
      * Получить сохранённый .skr username (реальный с блокчейна)
      */
     fun getSavedSkrUsername(): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_SKR_USERNAME, null)
     }
 
     fun saveBackendAuthToken(token: String?) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (token.isNullOrBlank()) {
             prefs.edit().remove(KEY_BACKEND_AUTH_TOKEN).apply()
         } else {
@@ -361,50 +382,45 @@ class WalletManager(private val context: Context) {
     }
 
     fun getSavedBackendAuthToken(): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_BACKEND_AUTH_TOKEN, null)
     }
 
     fun saveReferralCode(code: String?) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (code.isNullOrBlank()) prefs.edit().remove(KEY_REFERRAL_CODE).apply()
         else prefs.edit().putString(KEY_REFERRAL_CODE, code).apply()
     }
 
     fun getSavedReferralCode(): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_REFERRAL_CODE, null)
     }
 
     fun saveReferralCount(count: Int) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putInt(KEY_REFERRAL_COUNT, count).apply()
     }
 
     fun getSavedReferralCount(): Int {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getInt(KEY_REFERRAL_COUNT, 0)
     }
 
     /** true если диалог onboarding уже был показан (не показываем повторно). */
     fun isReferralOnboardingAsked(): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs
             .getBoolean(KEY_REFERRAL_ASKED, false)
     }
 
     fun markReferralOnboardingAsked() {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs
             .edit().putBoolean(KEY_REFERRAL_ASKED, true).apply()
     }
 
     /** Код из deep link (seekermining://invite?code=XXX), ожидающий применения. */
     fun getPendingReferralCode(): String? {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs
             .getString(KEY_PENDING_REFERRAL_CODE, null)
     }
 
     fun savePendingReferralCode(code: String?) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs
             .edit().putString(KEY_PENDING_REFERRAL_CODE, code).apply()
     }
 
@@ -444,22 +460,18 @@ class WalletManager(private val context: Context) {
     }
     
     private fun saveAuthToken(token: String?) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(KEY_AUTH_TOKEN, token).apply()
     }
     
     private fun getSavedAuthToken(): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_AUTH_TOKEN, null)
     }
     
     private fun saveWalletAddress(address: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(KEY_WALLET_ADDRESS, address).apply()
     }
     
     private fun clearSavedData() {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .remove(KEY_AUTH_TOKEN)
             .remove(KEY_BACKEND_AUTH_TOKEN)
