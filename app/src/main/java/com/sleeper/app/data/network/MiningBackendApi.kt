@@ -62,6 +62,15 @@ data class RemoteTaskItem(
     val canComplete: Boolean
 )
 
+data class UserProfileResponse(
+    val walletAddress: String,
+    val referralCode: String,
+    val referralCount: Int,
+    val skrUsername: String?,
+    val totalNp: Double,
+    val totalNightsMined: Int
+)
+
 data class TaskCompleteResponse(
     val taskId: String,
     val rewardPts: Int,
@@ -306,6 +315,32 @@ class MiningBackendApi {
         }.onFailure { e ->
             DevLog.e(TAG, "mintGenesisNft error: ${e.message}", e)
         }
+    }
+
+    /**
+     * Загружает профиль пользователя (referralCode, referralCount, stats).
+     * GET /user/:walletAddress
+     */
+    suspend fun getUserProfile(walletAddress: String): Result<UserProfileResponse> = withContext(Dispatchers.IO) {
+        DevLog.d(TAG, "getUserProfile ENTRY wallet=${DevLog.mask(walletAddress)}")
+        if (baseUrl.isEmpty()) return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        val url = "$baseUrl/user/${java.net.URLEncoder.encode(walletAddress, "UTF-8")}"
+        val request = Request.Builder().url(url).get().build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val bodyStr = response.body?.string() ?: ""
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${bodyStr.take(400)}")
+            val json = JSONObject(bodyStr)
+            val user = json.optJSONObject("user") ?: throw Exception("Missing 'user' field in response")
+            UserProfileResponse(
+                walletAddress = user.optString("wallet_address", walletAddress),
+                referralCode  = user.optString("referral_code", walletAddress.take(8)),
+                referralCount = user.optInt("referral_count", 0),
+                skrUsername   = user.optString("skr_username").takeIf { it.isNotEmpty() },
+                totalNp       = user.optDouble("total_np", 0.0),
+                totalNightsMined = user.optInt("total_nights_mined", 0)
+            ).also { DevLog.i(TAG, "getUserProfile SUCCESS referralCode=${it.referralCode} referrals=${it.referralCount}") }
+        }.onFailure { DevLog.e(TAG, "getUserProfile error: ${it.message}", it) }
     }
 
     /**

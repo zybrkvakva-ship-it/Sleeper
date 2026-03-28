@@ -21,6 +21,8 @@ class WalletManager(private val context: Context) {
         private const val KEY_BACKEND_AUTH_TOKEN = "backend_auth_token"
         private const val KEY_WALLET_ADDRESS = "wallet_address"
         private const val KEY_SKR_USERNAME = "skr_username"
+        private const val KEY_REFERRAL_CODE = "referral_code"
+        private const val KEY_REFERRAL_COUNT = "referral_count"
         /** Сообщение при временной недоступности MWA-сервера кошелька (ECONNREFUSED) */
         private const val MWA_CONNECTION_REFUSED_HINT = "Кошелёк ещё не готов. Откройте приложение кошелька и нажмите «Подключить» снова."
         /** Сообщение при отказе/таймауте авторизации в кошельке (authorization request failed) */
@@ -358,7 +360,28 @@ class WalletManager(private val context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_BACKEND_AUTH_TOKEN, null)
     }
-    
+
+    fun saveReferralCode(code: String?) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (code.isNullOrBlank()) prefs.edit().remove(KEY_REFERRAL_CODE).apply()
+        else prefs.edit().putString(KEY_REFERRAL_CODE, code).apply()
+    }
+
+    fun getSavedReferralCode(): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_REFERRAL_CODE, null)
+    }
+
+    fun saveReferralCount(count: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putInt(KEY_REFERRAL_COUNT, count).apply()
+    }
+
+    fun getSavedReferralCount(): Int {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(KEY_REFERRAL_COUNT, 0)
+    }
+
     // Private helpers
 
     /**
@@ -416,6 +439,8 @@ class WalletManager(private val context: Context) {
             .remove(KEY_BACKEND_AUTH_TOKEN)
             .remove(KEY_WALLET_ADDRESS)
             .remove(KEY_SKR_USERNAME)
+            .remove(KEY_REFERRAL_CODE)
+            .remove(KEY_REFERRAL_COUNT)
             .apply()
     }
     

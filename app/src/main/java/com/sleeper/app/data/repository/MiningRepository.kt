@@ -9,6 +9,8 @@ import com.sleeper.app.data.local.TaskEntity
 import com.sleeper.app.data.local.TaskType
 import com.sleeper.app.data.local.UserStatsEntity
 import com.sleeper.app.data.network.MiningBackendApi
+import com.sleeper.app.data.network.UserProfileResponse
+import com.sleeper.app.domain.manager.WalletManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 
@@ -37,6 +39,38 @@ class MiningRepository(private val database: AppDatabase) {
      * Если API не настроен — молча возвращает false (офлайн режим).
      * @return true при успехе, false при ошибке или офлайн.
      */
+    /**
+     * Загружает профиль пользователя с сервера и сохраняет referralCode + referralCount
+     * в WalletManager (SharedPreferences). Вызывается при запуске / подключении кошелька.
+     * @return профиль при успехе, null при ошибке/офлайн.
+     */
+    suspend fun syncUserProfile(walletAddress: String, walletManager: WalletManager): UserProfileResponse? {
+        DevLog.d(TAG, "syncUserProfile ENTRY wallet=${DevLog.mask(walletAddress)}")
+        val api = MiningBackendApi()
+        if (!api.isConfigured()) {
+            // Derive locally: referral code = first 8 chars of wallet (matches server logic)
+            val localCode = walletAddress.take(8)
+            if (walletManager.getSavedReferralCode() == null) {
+                walletManager.saveReferralCode(localCode)
+                DevLog.d(TAG, "syncUserProfile: API not configured, derived local code=$localCode")
+            }
+            return null
+        }
+        val result = api.getUserProfile(walletAddress)
+        val profile = result.getOrNull() ?: run {
+            DevLog.w(TAG, "syncUserProfile FAILED: ${result.exceptionOrNull()?.message}")
+            // Fallback to derived local code
+            if (walletManager.getSavedReferralCode() == null) {
+                walletManager.saveReferralCode(walletAddress.take(8))
+            }
+            return null
+        }
+        walletManager.saveReferralCode(profile.referralCode)
+        walletManager.saveReferralCount(profile.referralCount)
+        DevLog.i(TAG, "syncUserProfile SUCCESS code=${profile.referralCode} count=${profile.referralCount}")
+        return profile
+    }
+
     suspend fun syncTasksFromServer(walletAddress: String, @Suppress("UNUSED_PARAMETER") authToken: String? = null): Boolean {
         DevLog.d(TAG, "syncTasksFromServer ENTRY wallet=${DevLog.mask(walletAddress)}")
         val api = MiningBackendApi()

@@ -26,6 +26,9 @@ data class TasksUiState(
     val totalBonusPercent: Double = 0.0,
     val nightStreak: Int = 0,
     val referralCount: Int = 0,
+    /** User's own referral code (first 8 chars of wallet, server-authoritative). */
+    val referralCode: String? = null,
+    val walletAddress: String? = null,
 )
 
 class TasksViewModel(application: Application) : AndroidViewModel(application) {
@@ -45,24 +48,43 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<TasksUiState> = _uiState
 
     init {
+        // Restore cached referral info immediately (no flicker)
+        val savedWallet = walletManager.getSavedWalletAddress()
+        val savedCode = walletManager.getSavedReferralCode()
+            ?: savedWallet?.take(8)  // derive locally if not yet synced
+        _uiState.update { it.copy(
+            walletAddress = savedWallet,
+            referralCode = savedCode,
+            referralCount = walletManager.getSavedReferralCount()
+        ) }
         syncFromServer()
     }
 
-    /** Pull tasks from server and update Room cache. */
+    /** Pull profile + tasks from server and update local cache. */
     fun syncFromServer() {
         viewModelScope.launch {
             val walletAddress = walletManager.getSavedWalletAddress() ?: return@launch
             val authToken = walletManager.getSavedBackendAuthToken()
             _uiState.update { it.copy(isSyncing = true, error = null) }
-            val ok = repository.syncTasksFromServer(walletAddress, authToken)
-            if (!ok) {
-                DevLog.d(TAG, "syncFromServer: offline or no API — using local cache")
-            }
-            // Update bonus from local store (was written by sync)
+
+            // Load user profile (referral code + count)
+            val profile = repository.syncUserProfile(walletAddress, walletManager)
+            val referralCode = profile?.referralCode
+                ?: walletManager.getSavedReferralCode()
+                ?: walletAddress.take(8)
+            val referralCount = profile?.referralCount ?: walletManager.getSavedReferralCount()
+
+            // Load tasks
+            val tasksOk = repository.syncTasksFromServer(walletAddress, authToken)
+            if (!tasksOk) DevLog.d(TAG, "syncFromServer: offline or no API — using local cache")
+
             val refreshed = db.userStatsDao().getUserStats()
             _uiState.update {
                 it.copy(
                     isSyncing = false,
+                    walletAddress = walletAddress,
+                    referralCode = referralCode,
+                    referralCount = referralCount,
                     totalBonusPercent = refreshed?.dailySocialBonusPercent ?: it.totalBonusPercent
                 )
             }

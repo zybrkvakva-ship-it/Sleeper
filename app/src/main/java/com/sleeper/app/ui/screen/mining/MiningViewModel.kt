@@ -502,6 +502,8 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 val balanceSynced = repository.syncBalanceFromServer(addr)
                 DevLog.d(TAG, "syncWithBackend syncBalanceFromServer addr=${DevLog.mask(addr)} ok=$balanceSynced")
                 if (balanceSynced) DevLog.d(TAG, "Backend: balance synced from server")
+                // Also refresh referral code/count (cheap GET, cached in SharedPreferences)
+                repository.syncUserProfile(addr, walletManager)
             } ?: DevLog.d(TAG, "syncWithBackend no wallet, skip balance sync")
         }
     }

@@ -1,5 +1,8 @@
 package com.sleeper.app.ui.screen.tasks
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -19,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sleeper.app.R
@@ -83,6 +87,27 @@ fun TasksScreen(
                 // ── Header: current boost ────────────────────────────────────
                 item {
                     BonusBar(bonusPercent = uiState.totalBonusPercent, isSyncing = uiState.isSyncing)
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                // ── Referral card ────────────────────────────────────────────
+                item {
+                    ReferralCard(
+                        referralCode = uiState.referralCode,
+                        referralCount = uiState.referralCount,
+                        onShare = { code ->
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    "Join Seeker Mining — earn SLEEP tokens while you sleep!\n" +
+                                    "Use my referral code: $code\n" +
+                                    "https://t.me/seekermining"
+                                )
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Invite a Friend"))
+                        }
+                    )
                     Spacer(Modifier.height(12.dp))
                 }
 
@@ -105,7 +130,7 @@ fun TasksScreen(
                         TaskCard(
                             task = task,
                             isProcessing = uiState.isLoading,
-                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel) { pendingTaskId = it } }
+                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel, uiState.referralCode) { pendingTaskId = it } }
                         )
                     }
                 }
@@ -130,7 +155,7 @@ fun TasksScreen(
                         TaskCard(
                             task = task,
                             isProcessing = uiState.isLoading,
-                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel) { pendingTaskId = it } }
+                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel, uiState.referralCode) { pendingTaskId = it } }
                         )
                     }
                 }
@@ -147,6 +172,76 @@ fun TasksScreen(
                     CircularProgressIndicator(color = CyberGreen, modifier = Modifier.size(48.dp))
                 }
             }
+        }
+    }
+}
+
+// ─── ReferralCard ─────────────────────────────────────────────────────────────
+@Composable
+private fun ReferralCard(
+    referralCode: String?,
+    referralCount: Int,
+    onShare: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val code = referralCode ?: "Loading..."
+    val isReady = referralCode != null
+
+    CyberCard(strokeColor = StrokeGold, glowColor = GoldGlow) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = "YOUR REFERRAL CODE",
+                style = MaterialTheme.typography.labelMedium,
+                color = CyberGray,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = code,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = CyberYellow,
+                    letterSpacing = androidx.compose.ui.unit.TextUnit(4f, androidx.compose.ui.unit.TextUnitType.Sp)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Copy button
+                    OutlinedButton(
+                        onClick = {
+                            if (isReady) {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Referral Code", code))
+                            }
+                        },
+                        enabled = isReady,
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CyberYellow)
+                    ) {
+                        Text("COPY", style = MaterialTheme.typography.labelSmall, color = CyberYellow, fontWeight = FontWeight.Bold)
+                    }
+                    // Share button
+                    Button(
+                        onClick = { if (isReady) onShare(code) },
+                        enabled = isReady,
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberYellow)
+                    ) {
+                        Text("INVITE", style = MaterialTheme.typography.labelSmall, color = NightDeep, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "$referralCount friend${if (referralCount != 1) "s" else ""} invited · +${referralCount * 5}% team boost",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (referralCount > 0) CyberGreen else CyberGray
+            )
         }
     }
 }
@@ -305,11 +400,11 @@ private fun resolveTaskAction(
     urlLauncher: androidx.activity.result.ActivityResultLauncher<Intent>,
     @Suppress("UNUSED_PARAMETER") pendingTaskId: String?,
     viewModel: TasksViewModel,
+    referralCode: String?,
     setPendingTaskId: (String?) -> Unit,
 ) {
     when (task.actionType) {
         TaskActionType.CHECKIN -> {
-            // No external action — complete immediately
             viewModel.completeTask(task.id)
         }
         TaskActionType.SHARE -> {
@@ -329,16 +424,18 @@ private fun resolveTaskAction(
             urlLauncher.launch(intent)
         }
         TaskActionType.REFERRAL -> {
-            // Open share sheet with referral link (referral code from userStats ideally)
+            val code = referralCode ?: "?"
+            val shareText = "Join Seeker Mining — earn SLEEP tokens while you sleep!\n" +
+                "Use my referral code: $code\n" +
+                "https://t.me/seekermining"
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, "Join Seeker Mining! https://t.me/seekermining")
+                putExtra(Intent.EXTRA_TEXT, shareText)
             }
             setPendingTaskId(task.id)
             urlLauncher.launch(Intent.createChooser(shareIntent, "Invite a Friend"))
         }
         TaskActionType.AUTO -> {
-            // Server-granted: just attempt claim (server validates streak)
             viewModel.completeTask(task.id)
         }
     }
