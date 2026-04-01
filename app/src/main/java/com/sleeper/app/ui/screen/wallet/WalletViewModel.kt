@@ -22,7 +22,8 @@ data class WalletUiState(
     val isConnecting: Boolean = false,
     val connectedAddress: String? = null,
     val claimStatus: ClaimStatus = ClaimStatus.Idle,
-    val error: String? = null
+    val error: String? = null,
+    val referralApplied: Boolean = false  // one-shot: показать тост "Referral applied!"
 )
 
 sealed class ClaimStatus {
@@ -98,6 +99,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                         .onSuccess { authToken ->
                             walletManager.saveBackendAuthToken(authToken)
                             DevLog.i(TAG, "Backend auth token received and saved")
+                            autoApplyPendingReferral(walletAddress)
                         }
                         .onFailure { e ->
                             walletManager.saveBackendAuthToken(null)
@@ -116,6 +118,26 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             }
     }
     
+    /** Применяет реферальный код из deep link автоматически, без диалога. */
+    private suspend fun autoApplyPendingReferral(walletAddress: String) {
+        val code = walletManager.getPendingReferralCode() ?: return
+        DevLog.d(TAG, "autoApplyPendingReferral code=${code.take(4)}***")
+        val error = repository.applyReferral(walletAddress, code)
+        walletManager.savePendingReferralCode(null)
+        walletManager.markReferralOnboardingAsked()
+        if (error == null) {
+            DevLog.i(TAG, "Referral auto-applied: $code")
+            _walletState.value = _walletState.value.copy(referralApplied = true)
+        } else {
+            // 409 = already used, 400 = own code — silently skip, not an error for the user
+            DevLog.w(TAG, "autoApplyPendingReferral skipped: $error")
+        }
+    }
+
+    fun clearReferralApplied() {
+        _walletState.value = _walletState.value.copy(referralApplied = false)
+    }
+
     fun claimPoints(sender: ActivityResultSender) {
         viewModelScope.launch {
             DevLog.d(TAG, "claimPoints ENTRY")
