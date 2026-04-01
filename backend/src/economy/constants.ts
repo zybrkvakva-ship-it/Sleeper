@@ -6,8 +6,8 @@
 
 export const SEASON_POOL = 5_000_000;
 export const MAX_DEVICES = 150_000;
-/** Social referral/tasks boost — intentionally weaker than any paid SKR boost */
-export const MAX_SOCIAL_BOOST = 0.20;
+/** Social boost cap: referrals (up to +25%) + tasks (up to +30%) can stack, capped at 40% */
+export const MAX_SOCIAL_BOOST = 0.40;
 export const MAX_TOTAL_MULTIPLIER = 6.0;
 export const BASE_RATE_PER_MINUTE = 1.0;
 export const MAX_SLEEP_MINUTES = 480;

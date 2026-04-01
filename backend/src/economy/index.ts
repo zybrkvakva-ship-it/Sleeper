@@ -78,25 +78,28 @@ export function calcBaseNp(
 }
 
 /**
- * Calculate referral boost (max +20% of social budget)
+ * Calculate referral boost.
+ * +5% per referral, max 5 referrals → cap +25%.
+ * Visible and achievable: 1 friend = noticeable, 5 friends = significant.
  */
 export function calcReferralBoost(referralCount: number): number {
-  const MAX_REFERRAL_BOOST = 0.20;
-  const BOOST_PER_REFERRAL = 0.01;
+  const MAX_REFERRAL_BOOST = 0.25; // 5 referrals = max
+  const BOOST_PER_REFERRAL = 0.05; // +5% each
   return Math.min(referralCount * BOOST_PER_REFERRAL, MAX_REFERRAL_BOOST);
 }
 
 /**
- * Calculate social boost (referrals + daily tasks), capped at MAX_SOCIAL_BOOST (0.20).
- * Intentionally weaker than any paid SKR boost (LITE starts at +10%).
+ * Calculate social boost (referrals + tasks in separate buckets, combined cap 40%).
+ * Referrals and tasks no longer compete — both are worth doing.
+ * Still weaker than paid SKR Pro (+50%) or Genesis NFT (×3).
  */
 export function calcSocialBoost(
   referralCount: number,
   dailyTasksPercent: number
 ): number {
-  const refBoost = calcReferralBoost(referralCount);
-  const taskBoost = Math.max(0, Math.min(dailyTasksPercent, 0.20));
-  return Math.min(refBoost + taskBoost, MAX_SOCIAL_BOOST);
+  const refBoost = calcReferralBoost(referralCount);           // 0–25%
+  const taskBoost = Math.max(0, Math.min(dailyTasksPercent, 0.30)); // 0–30%
+  return Math.min(refBoost + taskBoost, MAX_SOCIAL_BOOST);    // cap 40%
 }
 
 /**

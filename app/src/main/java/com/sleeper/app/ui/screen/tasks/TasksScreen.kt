@@ -117,6 +117,7 @@ fun TasksScreen(
                                     Intent.EXTRA_TEXT,
                                     "Join Seeker Mining — earn SLEEP tokens while you sleep!\n" +
                                     "Use my referral code: $code\n" +
+                                    "seekermining://invite?code=$code\n" +
                                     "https://t.me/seekermining"
                                 )
                             }
@@ -252,10 +253,20 @@ private fun ReferralCard(
                 }
             }
             Spacer(Modifier.height(4.dp))
+            val boostPct = minOf(referralCount * 5, 25)
+            val nextTarget = when {
+                referralCount >= 5 -> null
+                else -> 5 - referralCount
+            }
             Text(
-                text = "$referralCount friend${if (referralCount != 1) "s" else ""} invited · +${referralCount * 5}% team boost",
+                text = if (referralCount == 0)
+                    "Invite friends — earn +5% mining boost each (max +25%)"
+                else if (nextTarget != null)
+                    "$referralCount invited · +$boostPct% boost · $nextTarget more → +${boostPct + nextTarget * 5}%"
+                else
+                    "$referralCount invited · +$boostPct% max boost unlocked",
                 style = MaterialTheme.typography.labelSmall,
-                color = if (referralCount > 0) CyberGreen else CyberGray
+                color = if (referralCount >= 5) CyberYellow else if (referralCount > 0) CyberGreen else CyberGray
             )
         }
     }
@@ -517,6 +528,7 @@ private fun resolveTaskAction(
             val code = referralCode ?: "?"
             val shareText = "Join Seeker Mining — earn SLEEP tokens while you sleep!\n" +
                 "Use my referral code: $code\n" +
+                "seekermining://invite?code=$code\n" +
                 "https://t.me/seekermining"
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
