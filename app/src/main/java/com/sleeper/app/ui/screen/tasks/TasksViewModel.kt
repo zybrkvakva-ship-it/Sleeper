@@ -59,9 +59,12 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         val savedCode = walletManager.getSavedReferralCode()
             ?: savedWallet?.take(8)  // derive locally if not yet synced
         val pendingCode = walletManager.getPendingReferralCode() ?: ""
+        // Don't show dialog if there's a pending code — it will be auto-applied after wallet auth
+        val hasPendingCode = pendingCode.isNotEmpty()
         val shouldAsk = savedWallet != null &&
             !walletManager.isReferralOnboardingAsked() &&
-            walletManager.getSavedBackendAuthToken() != null
+            walletManager.getSavedBackendAuthToken() != null &&
+            !hasPendingCode
         _uiState.update { it.copy(
             walletAddress = savedWallet,
             referralCode = savedCode,

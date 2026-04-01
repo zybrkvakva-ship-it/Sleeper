@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -48,6 +49,17 @@ fun WalletScreen(
 
     LaunchedEffect(Unit) {
         viewModel.syncBalanceFromServerIfNeeded()
+    }
+
+    // Auto-dismiss referral applied banner after 3s
+    var showReferralBanner by remember { mutableStateOf(false) }
+    LaunchedEffect(walletState.referralApplied) {
+        if (walletState.referralApplied) {
+            showReferralBanner = true
+            delay(3000)
+            showReferralBanner = false
+            viewModel.clearReferralApplied()
+        }
     }
 
     // Screen enter state — triggers stagger sequence
@@ -127,6 +139,27 @@ fun WalletScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(Modifier.height(8.dp))
+
+            // Referral auto-applied banner
+            AnimatedVisibility(
+                visible = showReferralBanner,
+                enter = fadeIn(tween(AppDuration.Fast)) + slideInVertically(tween(AppDuration.Fast)) { -it },
+                exit = fadeOut(tween(AppDuration.Fast))
+            ) {
+                CyberCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    strokeColor = CyberGreen,
+                    glowColor = accentGreen
+                ) {
+                    Text(
+                        text = "Referral applied! +10% boost for 3 nights",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CyberGreen,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
 
             // Wallet connection block (Crossfade between connected/disconnected) — index 1
             AnimatedVisibility(visible = visible, enter = enterSpec(1)) {
