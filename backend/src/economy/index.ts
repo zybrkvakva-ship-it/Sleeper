@@ -166,13 +166,17 @@ export function calculateNightReward(ctx: NightContext): NightReward {
   const skrBoost = calcSkrBoost(ctx.skrBoostLevel);
   const stakingBoost = calcStakingBoost(ctx.stakedSkrHuman ?? 0);
 
-  const { finalNp, nftMultiplier, totalMultiplier } = calcFinalNp(
+  const { finalNp: rawFinalNp, nftMultiplier, totalMultiplier } = calcFinalNp(
     baseNp,
     socialBoost,
     skrBoost,
     ctx.hasGenesisNft,
     stakingBoost
   );
+
+  // New-user welcome bonus: flat +10% applied after all other multipliers
+  const newUserBonus = ctx.newUserBonus ?? 0;
+  const finalNp = Math.round(rawFinalNp * (1 + newUserBonus));
 
   return {
     baseNp,
@@ -183,6 +187,7 @@ export function calculateNightReward(ctx: NightContext): NightReward {
     totalMultiplier,
     finalNp,
     sleepTokens: 0,
+    newUserBonus,
   };
 }
 

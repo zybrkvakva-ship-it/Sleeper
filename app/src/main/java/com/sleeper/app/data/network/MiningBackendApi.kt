@@ -68,7 +68,8 @@ data class UserProfileResponse(
     val referralCount: Int,
     val skrUsername: String?,
     val totalNp: Double,
-    val totalNightsMined: Int
+    val totalNightsMined: Int,
+    val bonusNightsRemaining: Int = 0
 )
 
 data class TaskCompleteResponse(
@@ -338,7 +339,8 @@ class MiningBackendApi {
                 referralCount = user.optInt("referral_count", 0),
                 skrUsername   = user.optString("skr_username").takeIf { it.isNotEmpty() },
                 totalNp       = user.optDouble("total_np", 0.0),
-                totalNightsMined = user.optInt("total_nights_mined", 0)
+                totalNightsMined = user.optInt("total_nights_mined", 0),
+                bonusNightsRemaining = user.optInt("bonusNightsRemaining", 0)
             ).also { DevLog.i(TAG, "getUserProfile SUCCESS referralCode=${it.referralCode} referrals=${it.referralCount}") }
         }.onFailure { DevLog.e(TAG, "getUserProfile error: ${it.message}", it) }
     }

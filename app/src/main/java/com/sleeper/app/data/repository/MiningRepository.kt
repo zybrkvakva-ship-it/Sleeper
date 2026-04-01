@@ -67,7 +67,8 @@ class MiningRepository(private val database: AppDatabase) {
         }
         walletManager.saveReferralCode(profile.referralCode)
         walletManager.saveReferralCount(profile.referralCount)
-        DevLog.i(TAG, "syncUserProfile SUCCESS code=${profile.referralCode} count=${profile.referralCount}")
+        walletManager.saveBonusNightsRemaining(profile.bonusNightsRemaining)
+        DevLog.i(TAG, "syncUserProfile SUCCESS code=${profile.referralCode} count=${profile.referralCount} bonusNights=${profile.bonusNightsRemaining}")
         return profile
     }
 

@@ -43,7 +43,9 @@ export interface NightContext {
   dailyTasksPercent: number;
   skrBoostLevel: SkrBoostLevel;
   hasGenesisNft: boolean;
-  stakedSkrHuman?: number;   // SKR staked via Guardian program
+  stakedSkrHuman?: number;
+  /** +0.10 welcome bonus for referred users on their first 3 nights */
+  newUserBonus?: number;
 }
 
 export interface NightReward {
@@ -55,4 +57,5 @@ export interface NightReward {
   totalMultiplier: number;
   finalNp: number;
   sleepTokens: number;
+  newUserBonus: number;
 }

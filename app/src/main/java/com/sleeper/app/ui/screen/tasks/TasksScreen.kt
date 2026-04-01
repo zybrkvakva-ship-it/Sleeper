@@ -124,7 +124,15 @@ fun TasksScreen(
                             context.startActivity(Intent.createChooser(shareIntent, "Invite a Friend"))
                         }
                     )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                // ── Welcome bonus (referred users only) ──────────────────────
+                if (uiState.bonusNightsRemaining > 0) {
+                    item {
+                        WelcomeBonusCard(uiState.bonusNightsRemaining)
+                        Spacer(Modifier.height(8.dp))
+                    }
                 }
 
                 // ── Daily tasks ──────────────────────────────────────────────
@@ -414,6 +422,33 @@ private fun TaskCard(
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+        }
+    }
+}
+
+// ─── WelcomeBonusCard ─────────────────────────────────────────────────────────
+@Composable
+private fun WelcomeBonusCard(nightsRemaining: Int) {
+    CyberCard(strokeColor = accentGreen, glowColor = GreenGlow) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("🎁", style = MaterialTheme.typography.titleLarge)
+            Column {
+                Text(
+                    text = "Welcome Bonus Active",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = CyberGreen
+                )
+                Text(
+                    text = "+10% mining boost · $nightsRemaining night${if (nightsRemaining != 1) "s" else ""} remaining",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CyberGray
+                )
             }
         }
     }

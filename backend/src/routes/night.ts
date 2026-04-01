@@ -209,6 +209,14 @@ router.post('/end', async (req, res, next) => {
 
     const dailyTasksPercent = Math.min(dailyBonus + specialBonus, 0.30); // hard cap 30%
 
+    // New-user welcome bonus: +10% for referred users on their first 3 nights
+    const completedNightsRows = await query<{ count: string }>(
+      'SELECT COUNT(*) AS count FROM night_sessions WHERE wallet_address = $1',
+      [walletAddress]
+    );
+    const completedNights = parseInt(completedNightsRows[0]?.count ?? '0', 10);
+    const newUserBonus = (user.referred_by !== null && completedNights < 3) ? 0.10 : 0;
+
     // Active SKR boost
     const boosts = await query<{ boost_level: string }>(
       `SELECT boost_level FROM payments
@@ -233,6 +241,7 @@ router.post('/end', async (req, res, next) => {
       skrBoostLevel,
       hasGenesisNft: user.has_genesis_nft,
       stakedSkrHuman,
+      newUserBonus,
     });
 
     // Persist atomically: consume token + insert session + update NP
@@ -282,6 +291,9 @@ router.post('/end', async (req, res, next) => {
       success: true,
       reward: {
         ...reward,
+        bonusNightsRemaining: (user.referred_by !== null && completedNights < 3)
+          ? (2 - completedNights)   // after this session: remaining = 3 - (completedNights+1)
+          : 0,
         message: 'Night session completed! SLEEP tokens will be distributed at 9 AM.',
       },
     });

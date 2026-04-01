@@ -33,6 +33,8 @@ data class TasksUiState(
     val showReferralOnboarding: Boolean = false,
     val referralOnboardingPreFill: String = "",
     val referralOnboardingError: String? = null,
+    /** Ночей с welcome-бонусом +10% (для приглашённых пользователей). 0 = нет бонуса */
+    val bonusNightsRemaining: Int = 0,
 )
 
 class TasksViewModel(application: Application) : AndroidViewModel(application) {
@@ -64,6 +66,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
             walletAddress = savedWallet,
             referralCode = savedCode,
             referralCount = walletManager.getSavedReferralCount(),
+            bonusNightsRemaining = walletManager.getBonusNightsRemaining(),
             showReferralOnboarding = shouldAsk,
             referralOnboardingPreFill = pendingCode
         ) }
@@ -109,6 +112,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
                 ?: walletManager.getSavedReferralCode()
                 ?: walletAddress.take(8)
             val referralCount = profile?.referralCount ?: walletManager.getSavedReferralCount()
+            val bonusNights = profile?.bonusNightsRemaining ?: walletManager.getBonusNightsRemaining()
 
             // Load tasks
             val tasksOk = repository.syncTasksFromServer(walletAddress, authToken)
@@ -121,6 +125,7 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
                     walletAddress = walletAddress,
                     referralCode = referralCode,
                     referralCount = referralCount,
+                    bonusNightsRemaining = bonusNights,
                     totalBonusPercent = refreshed?.dailySocialBonusPercent ?: it.totalBonusPercent
                 )
             }

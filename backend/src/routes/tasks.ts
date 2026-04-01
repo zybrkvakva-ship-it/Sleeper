@@ -24,6 +24,7 @@ interface TaskDef {
   actionType: TaskActionType;
   actionUrl?: string;
   requiresReferral?: boolean;
+  requiresReferralCount?: number; // minimum referral count to complete
   requiresStreak?: number;
 }
 
@@ -106,6 +107,37 @@ export const TASK_CATALOG: TaskDef[] = [
     bonusPercent: 0.10,
     actionType: 'AUTO',
     requiresStreak: 7,
+  },
+  // ── Referral tier rewards ──────────────────────────────────────────────────
+  {
+    id: 'referral_tier_1',
+    type: 'SPECIAL',
+    title: 'First Recruit',
+    description: 'Invite your first friend',
+    rewardPts: 500,
+    bonusPercent: 0.0,
+    actionType: 'AUTO',
+    requiresReferralCount: 1,
+  },
+  {
+    id: 'referral_tier_3',
+    type: 'SPECIAL',
+    title: 'Team Builder',
+    description: 'Invite 3 friends',
+    rewardPts: 2000,
+    bonusPercent: 0.0,
+    actionType: 'AUTO',
+    requiresReferralCount: 3,
+  },
+  {
+    id: 'referral_tier_5',
+    type: 'SPECIAL',
+    title: 'Community Leader',
+    description: 'Invite 5 friends — max boost unlocked',
+    rewardPts: 5000,
+    bonusPercent: 0.0,
+    actionType: 'AUTO',
+    requiresReferralCount: 5,
   },
 ];
 
@@ -234,6 +266,7 @@ router.get('/', async (req, res, next) => {
       // canComplete: not already done + requirements met
       let canComplete = !isCompleted;
       if (def.requiresReferral && referralCount === 0) canComplete = false;
+      if (def.requiresReferralCount && referralCount < def.requiresReferralCount) canComplete = false;
       if (def.requiresStreak && nightStreak < def.requiresStreak) canComplete = false;
 
       return {
@@ -307,13 +340,15 @@ router.post('/complete', async (req, res, next) => {
     if (existingRows.length > 0) throw new AppError(409, 'Task already completed');
 
     // ── Verify task-specific conditions ────────────────────────────────────
-    if (def.requiresReferral) {
+    if (def.requiresReferral || def.requiresReferralCount) {
+      const minCount = def.requiresReferralCount ?? 1;
       const refRows = await query<{ count: string }>(
         `SELECT COUNT(*) AS count FROM referrals WHERE referrer = $1 AND is_active = true`,
         [walletAddress],
       );
-      if (parseInt(refRows[0]?.count ?? '0', 10) === 0) {
-        throw new AppError(400, 'No active referrals — invite a friend first');
+      const actualCount = parseInt(refRows[0]?.count ?? '0', 10);
+      if (actualCount < minCount) {
+        throw new AppError(400, `Need ${minCount} referral(s) — you have ${actualCount}`);
       }
     }
 

@@ -28,6 +28,8 @@ class WalletManager(private val context: Context) {
         private const val KEY_REFERRAL_COUNT = "referral_count"
         /** true если пользователю уже показывали диалог ввода реферального кода */
         private const val KEY_REFERRAL_ASKED = "referral_onboarding_asked"
+        /** сколько ночей осталось с welcome-бонусом +10% (0 = нет бонуса) */
+        private const val KEY_BONUS_NIGHTS = "bonus_nights_remaining"
         /** код из deep link, ожидающий применения */
         private const val KEY_PENDING_REFERRAL_CODE = "pending_referral_code"
         /** Сообщение при временной недоступности MWA-сервера кошелька (ECONNREFUSED) */
@@ -420,8 +422,13 @@ class WalletManager(private val context: Context) {
     }
 
     fun savePendingReferralCode(code: String?) {
-        prefs
-            .edit().putString(KEY_PENDING_REFERRAL_CODE, code).apply()
+        prefs.edit().putString(KEY_PENDING_REFERRAL_CODE, code).apply()
+    }
+
+    fun getBonusNightsRemaining(): Int = prefs.getInt(KEY_BONUS_NIGHTS, 0)
+
+    fun saveBonusNightsRemaining(nights: Int) {
+        prefs.edit().putInt(KEY_BONUS_NIGHTS, nights).apply()
     }
 
     // Private helpers

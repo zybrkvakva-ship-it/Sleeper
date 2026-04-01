@@ -241,30 +241,40 @@ router.get('/:walletAddress', async (req, res, next) => {
   try {
     const { walletAddress } = req.params;
     
-    const users = await query(
-      `SELECT 
-        wallet_address,
-        skr_username,
-        has_genesis_nft,
-        genesis_nft_number,
-        total_np,
-        total_sleep_earned,
-        total_nights_mined,
-        referral_code,
-        referral_count,
-        created_at
+    const users = await query<{
+      wallet_address: string; skr_username: string | null;
+      has_genesis_nft: boolean; genesis_nft_number: number | null;
+      total_np: string; total_sleep_earned: string; total_nights_mined: number;
+      referral_code: string; referral_count: number; referred_by: string | null;
+      created_at: string;
+    }>(
+      `SELECT
+        wallet_address, skr_username, has_genesis_nft, genesis_nft_number,
+        total_np, total_sleep_earned, total_nights_mined,
+        referral_code, referral_count, referred_by, created_at
       FROM users
       WHERE wallet_address = $1`,
       [walletAddress]
     );
-    
+
     if (users.length === 0) {
       throw new AppError(404, 'User not found');
     }
-    
+
+    const user = users[0];
+
+    // Compute welcome bonus nights remaining for referred users
+    const nightRows = await query<{ count: string }>(
+      'SELECT COUNT(*) AS count FROM night_sessions WHERE wallet_address = $1',
+      [walletAddress]
+    );
+    const completedNights = parseInt(nightRows[0]?.count ?? '0', 10);
+    const bonusNightsRemaining = (user.referred_by !== null && completedNights < 3)
+      ? (3 - completedNights) : 0;
+
     res.json({
       success: true,
-      user: users[0]
+      user: { ...user, bonusNightsRemaining },
     });
     
   } catch (error) {
