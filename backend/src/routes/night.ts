@@ -258,9 +258,9 @@ router.post('/end', async (req, res, next) => {
     });
 
     // Persist atomically: insert session + update NP
+    // RETURNING id: if DO NOTHING fires (duplicate), no row returned → skip NP update
     await transaction(async (client) => {
-
-      await client.query(
+      const inserted = await client.query(
         `INSERT INTO night_sessions (
           wallet_address, night_date, week_index,
           minutes_slept, storage_mb, human_factor, movement_violations, screen_on_count,
@@ -268,7 +268,8 @@ router.post('/end', async (req, res, next) => {
           base_np, social_boost, skr_boost, nft_multiplier, total_multiplier, final_np,
           session_ended_at
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW())
-        ON CONFLICT (wallet_address, night_date) DO NOTHING`,
+        ON CONFLICT (wallet_address, night_date) DO NOTHING
+        RETURNING id`,
         [
           walletAddress, todayStr, weekIndex,
           minutesSlept, 0, humanFactor, movementViolations, screenOnCount,
@@ -278,14 +279,17 @@ router.post('/end', async (req, res, next) => {
         ]
       );
 
-      await client.query(
-        `UPDATE users
-         SET total_np = total_np + $1,
-             total_nights_mined = total_nights_mined + 1,
-             last_active_at = NOW()
-         WHERE wallet_address = $2`,
-        [reward.finalNp, walletAddress]
-      );
+      // Only credit NP if this was a new session (not a duplicate submission)
+      if (inserted.rowCount && inserted.rowCount > 0) {
+        await client.query(
+          `UPDATE users
+           SET total_np = total_np + $1,
+               total_nights_mined = total_nights_mined + 1,
+               last_active_at = NOW()
+           WHERE wallet_address = $2`,
+          [reward.finalNp, walletAddress]
+        );
+      }
     });
 
     logger.info(`Night session completed`, {
