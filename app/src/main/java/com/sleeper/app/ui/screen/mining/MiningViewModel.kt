@@ -61,6 +61,14 @@ data class MiningUiState(
     val seasonDaysRemaining: Int = 112,
     val nightPoolPerNight: Long = 0L,
     val seasonNumber: Int = 1,
+    val referralCode: String = "",
+    // Real-time tier-up notification
+    val showTierUpBanner: Boolean = false,
+    val tierUpFrom: String = "",
+    val tierUpTo: String = "",
+    // Season complete notification
+    val showSeasonCompleteBanner: Boolean = false,
+    val completedSeasonNumber: Int = 0,
 )
 
 class MiningViewModel(application: Application) : AndroidViewModel(application) {
@@ -100,6 +108,8 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
         observeUserStats()
         observePendingSessions()
         observeNetworkStats()
+        observeTierChanges()
+        observeSeasonComplete()
         startEnergyRestoration()
         startNightUpdateLoop()
         checkWalletConnection()
@@ -123,6 +133,47 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    private fun observeTierChanges() {
+        wsManager.tierChangeEvent
+            .onEach { event ->
+                _uiState.value = _uiState.value.copy(
+                    accelerationTier = event.to,
+                    seasonDays = event.seasonDays,
+                    nightPoolPerNight = event.poolPerNight,
+                    onlineUsers = if (event.activeDevices > 0) event.activeDevices else _uiState.value.onlineUsers,
+                    isDemoNetworkStats = false,
+                    showTierUpBanner = true,
+                    tierUpFrom = event.from,
+                    tierUpTo = event.to,
+                )
+                DevLog.i(TAG, "Tier up: ${event.from} → ${event.to}")
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeSeasonComplete() {
+        wsManager.seasonCompleteEvent
+            .onEach { event ->
+                _uiState.value = _uiState.value.copy(
+                    showSeasonCompleteBanner = true,
+                    completedSeasonNumber = event.completedSeason,
+                    seasonNumber = event.nextSeason,
+                )
+                // Refresh season data from server for new season
+                refreshSeasonTier()
+                DevLog.i(TAG, "Season ${event.completedSeason} complete → Season ${event.nextSeason}")
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun dismissTierUpBanner() {
+        _uiState.value = _uiState.value.copy(showTierUpBanner = false)
+    }
+
+    fun dismissSeasonCompleteBanner() {
+        _uiState.value = _uiState.value.copy(showSeasonCompleteBanner = false)
     }
 
     private fun observePendingSessions() {
@@ -545,6 +596,11 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
             } ?: DevLog.d(TAG, "syncWithBackend no wallet, skip balance sync")
             // Refresh acceleration tier (no auth required)
             refreshSeasonTier()
+            // Load referral code for Invite button
+            val code = walletManager.getSavedReferralCode()
+            if (!code.isNullOrBlank()) {
+                _uiState.value = _uiState.value.copy(referralCode = code)
+            }
         }
     }
 

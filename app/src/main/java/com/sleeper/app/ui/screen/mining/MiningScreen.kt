@@ -1,5 +1,6 @@
 package com.sleeper.app.ui.screen.mining
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -8,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +59,7 @@ fun MiningScreen(
     viewModel: MiningViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.refreshWalletAndSkr()
@@ -64,6 +69,22 @@ fun MiningScreen(
         while (true) {
             delay(5 * 60 * 1000L)
             viewModel.refreshStakeIfNeeded()
+        }
+    }
+
+    // Auto-dismiss tier-up banner after 5 seconds
+    LaunchedEffect(uiState.showTierUpBanner) {
+        if (uiState.showTierUpBanner) {
+            delay(5_000)
+            viewModel.dismissTierUpBanner()
+        }
+    }
+
+    // Auto-dismiss season-complete banner after 8 seconds
+    LaunchedEffect(uiState.showSeasonCompleteBanner) {
+        if (uiState.showSeasonCompleteBanner) {
+            delay(8_000)
+            viewModel.dismissSeasonCompleteBanner()
         }
     }
 
@@ -128,6 +149,84 @@ fun MiningScreen(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+
+            // ── Tier-up celebration banner ─────────────────────────────────────
+            item {
+                AnimatedVisibility(
+                    visible = uiState.showTierUpBanner,
+                    enter = fadeIn(tween(300)) + slideInVertically { -it },
+                    exit = fadeOut(tween(300)) + slideOutVertically { -it }
+                ) {
+                    CyberCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        strokeColor = CyberGreen,
+                        glowColor = accentGreen
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "🚀 TIER UP!  ${uiState.tierUpFrom} → ${uiState.tierUpTo}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CyberGreen
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Season is accelerating — invite more friends!",
+                                    fontSize = 12.sp,
+                                    color = CyberGray
+                                )
+                            }
+                            IconButton(onClick = { viewModel.dismissTierUpBanner() }) {
+                                Icon(Icons.Default.Close, null, tint = CyberGray, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Season complete banner ─────────────────────────────────────────
+            item {
+                AnimatedVisibility(
+                    visible = uiState.showSeasonCompleteBanner,
+                    enter = fadeIn(tween(300)) + slideInVertically { -it },
+                    exit = fadeOut(tween(300)) + slideOutVertically { -it }
+                ) {
+                    CyberCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        strokeColor = CyberYellow,
+                        glowColor = accentGold
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "🏁 Season ${uiState.completedSeasonNumber} Complete!",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CyberYellow
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Season ${uiState.seasonNumber} has started. Keep mining!",
+                                    fontSize = 12.sp,
+                                    color = CyberGray
+                                )
+                            }
+                            IconButton(onClick = { viewModel.dismissSeasonCompleteBanner() }) {
+                                Icon(Icons.Default.Close, null, tint = CyberGray, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+            }
 
             // Block + stats row — index 0
             item {
@@ -205,6 +304,18 @@ fun MiningScreen(
                         seasonDays = uiState.seasonDays,
                         daysRemaining = uiState.seasonDaysRemaining,
                         seasonNumber = uiState.seasonNumber,
+                        referralCode = uiState.referralCode,
+                        onInviteClick = {
+                            val text = if (uiState.referralCode.isNotBlank())
+                                "Join Seeker Mining — earn SPR tokens while you sleep! Use my code: ${uiState.referralCode}\nhttps://seekermining.com"
+                            else
+                                "Join Seeker Mining — earn SPR tokens while you sleep!\nhttps://seekermining.com"
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, text)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Invite friends"))
+                        }
                     )
                 }
             }
@@ -482,6 +593,8 @@ private fun AccelerationTierCard(
     seasonDays: Int,
     daysRemaining: Int,
     seasonNumber: Int,
+    referralCode: String = "",
+    onInviteClick: () -> Unit = {},
 ) {
     val (tierIcon, tierColor) = when (tier) {
         "Global"  -> "💫" to CyberGreen
@@ -511,6 +624,11 @@ private fun AccelerationTierCard(
         daysRemaining == 1 -> "~${daysRemaining * 24}h left"
         else               -> "$daysRemaining days left"
     }
+
+    // Season progress (0.0 → 1.0)
+    val progress = if (seasonDays > 0)
+        (1f - daysRemaining.toFloat() / seasonDays).coerceIn(0f, 1f)
+    else 0f
 
     CyberCard(modifier = Modifier.fillMaxWidth(), strokeColor = tierColor) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -546,15 +664,44 @@ private fun AccelerationTierCard(
                     }
                 }
             }
+
+            // Season progress bar
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = tierColor,
+                trackColor = tierColor.copy(alpha = 0.15f),
+            )
+
+            // Invite row (clickable)
             if (tier != "Global") {
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = CyberGray.copy(alpha = 0.15f), thickness = 0.5.dp)
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "⚡ Invite: $nextTierHint",
-                    fontSize = 11.sp,
-                    color = CyberGray,
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onInviteClick() },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = "Invite",
+                        tint = tierColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "Invite: $nextTierHint",
+                        fontSize = 11.sp,
+                        color = tierColor,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
         }
     }

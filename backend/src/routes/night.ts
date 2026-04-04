@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { query, transaction } from '../database';
 import { calculateNightReward, accelerationTier, currentSeasonDays, poolPerNight } from '../economy';
+import { broadcast } from '../websocket';
 import { SkrBoostLevel } from '../economy/constants';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -292,6 +293,7 @@ router.post('/end', async (req, res, next) => {
         );
 
         // Update active_devices count in season_stats (live counter for acceleration tier)
+        // RETURNING: get both old and new value to detect tier crossing
         await client.query(
           `UPDATE season_stats
            SET active_devices = (
@@ -302,6 +304,25 @@ router.post('/end', async (req, res, next) => {
         );
       }
     });
+
+    // Tier-change detection: broadcast if crossing a tier boundary
+    const prevTier = accelerationTier(season.active_devices);
+    const newDevicesRow = await query<{ active_devices: number }>(
+      `SELECT active_devices FROM season_stats WHERE status = 'ACTIVE' LIMIT 1`
+    );
+    const newDevices = newDevicesRow[0]?.active_devices ?? season.active_devices;
+    const newTier = accelerationTier(newDevices);
+    if (prevTier !== newTier) {
+      broadcast({
+        type: 'tier-change',
+        from: prevTier,
+        to: newTier,
+        activeDevices: newDevices,
+        seasonDays: currentSeasonDays(newDevices),
+        poolPerNight: poolPerNight(newDevices),
+      });
+      logger.info(`Tier changed: ${prevTier} → ${newTier} (${newDevices} active devices)`);
+    }
 
     logger.info(`Night session completed`, {
       wallet: walletAddress.slice(0, 8) + '...',

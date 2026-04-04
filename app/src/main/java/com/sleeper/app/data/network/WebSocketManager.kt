@@ -7,8 +7,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -23,6 +26,19 @@ data class NetworkStats(
     val onlineMiners: Int = 0,
     val pointsPerSecond: Double = 0.0,
     val effectiveMultiplier: Double = 1.0
+)
+
+data class TierChangeEvent(
+    val from: String,
+    val to: String,
+    val activeDevices: Int,
+    val seasonDays: Int,
+    val poolPerNight: Long,
+)
+
+data class SeasonCompleteEvent(
+    val completedSeason: Int,
+    val nextSeason: Int,
 )
 
 /** Клиент WebSocket для real-time связи с бэкендом майнинга. */
@@ -57,6 +73,13 @@ class WebSocketManager(private val wsUrl: String) {
     // Last NP score from server (populated after night:update)
     private val _lastNightScore = MutableStateFlow<NightScore?>(null)
     val lastNightScore: StateFlow<NightScore?> = _lastNightScore.asStateFlow()
+
+    // Acceleration Mining real-time events
+    private val _tierChangeEvent = MutableSharedFlow<TierChangeEvent>(extraBufferCapacity = 1)
+    val tierChangeEvent: SharedFlow<TierChangeEvent> = _tierChangeEvent.asSharedFlow()
+
+    private val _seasonCompleteEvent = MutableSharedFlow<SeasonCompleteEvent>(extraBufferCapacity = 1)
+    val seasonCompleteEvent: SharedFlow<SeasonCompleteEvent> = _seasonCompleteEvent.asSharedFlow()
 
     data class NightScore(
         val pointsEarned: Int,
@@ -172,6 +195,25 @@ class WebSocketManager(private val wsUrl: String) {
                         effectiveMultiplier = json.optDouble("effectiveMultiplier", 1.0),
                         uptimeSeconds = json.optInt("uptimeSeconds", 0)
                     )
+                }
+                "tier-change" -> {
+                    val event = TierChangeEvent(
+                        from = json.optString("from", ""),
+                        to = json.optString("to", ""),
+                        activeDevices = json.optInt("activeDevices", 0),
+                        seasonDays = json.optInt("seasonDays", 112),
+                        poolPerNight = json.optLong("poolPerNight", 0L),
+                    )
+                    _tierChangeEvent.tryEmit(event)
+                    DevLog.i(TAG, "Tier change: ${event.from} → ${event.to} (${event.activeDevices} miners)")
+                }
+                "season-complete" -> {
+                    val event = SeasonCompleteEvent(
+                        completedSeason = json.optInt("completedSeason", 0),
+                        nextSeason = json.optInt("nextSeason", 0),
+                    )
+                    _seasonCompleteEvent.tryEmit(event)
+                    DevLog.i(TAG, "Season ${event.completedSeason} complete → Season ${event.nextSeason} started")
                 }
                 else -> DevLog.d(TAG, "Unhandled WS message type=$type")
             }

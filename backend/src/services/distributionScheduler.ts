@@ -1,5 +1,6 @@
 import { query, transaction } from '../database';
-import { poolPerNight, distributeSleepTokens } from '../economy';
+import { poolPerNight, distributeSleepTokens, currentSeasonDays } from '../economy';
+import { SEASON_COUNT } from '../economy/constants';
 import { broadcast } from '../websocket';
 import { logger } from '../utils/logger';
 import { invalidateLeaderboardCache } from '../routes/leaderboard';
@@ -166,6 +167,41 @@ export async function runDailyDistribution(): Promise<void> {
     // Invalidate leaderboard cache so next request gets fresh data
     await invalidateLeaderboardCache();
 
+    // ── Season-end detection (Acceleration Mining) ──────────────────────────
+    // Season duration is dynamic (exponential: 112 → 1 day based on active_devices).
+    // After each distribution, check if the season has run its course.
+    const seasonForCheck = await query<{
+      season_number: number;
+      start_date: string;
+      active_devices: number;
+    }>(
+      `SELECT season_number, start_date, active_devices
+       FROM season_stats WHERE status = 'ACTIVE' LIMIT 1`
+    );
+
+    if (seasonForCheck.length > 0) {
+      const s = seasonForCheck[0];
+      const seasonDays = currentSeasonDays(s.active_devices);
+      const daysSinceStart = Math.floor(
+        (Date.now() - new Date(s.start_date).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      logger.info(`Season ${s.season_number}: day ${daysSinceStart}/${seasonDays} (${s.active_devices} active devices)`);
+
+      if (daysSinceStart >= seasonDays && s.season_number < SEASON_COUNT) {
+        await endSeasonAndStartNext(s.season_number);
+      } else if (s.season_number >= SEASON_COUNT && daysSinceStart >= seasonDays) {
+        // All 20 seasons mined — mark final season complete, no new season
+        await query(
+          `UPDATE season_stats SET status = 'COMPLETED', end_date = CURRENT_DATE
+           WHERE season_number = $1 AND status = 'ACTIVE'`,
+          [s.season_number]
+        );
+        broadcast({ type: 'all-seasons-complete', totalSeasons: SEASON_COUNT });
+        logger.info('🏁 All seasons complete — 10B SPR fully mined!');
+      }
+    }
+
     // Broadcast to connected clients
     broadcast({
       type: 'sleep-distributed',
@@ -188,4 +224,39 @@ export async function runDailyDistribution(): Promise<void> {
 export async function triggerDistribution(date?: string): Promise<void> {
   logger.info('Manual distribution triggered');
   await runDailyDistribution();
+}
+
+/**
+ * End current season and start the next one atomically.
+ * Called automatically by runDailyDistribution() when season duration is exceeded.
+ * Also exposed for admin manual trigger.
+ */
+export async function endSeasonAndStartNext(currentSeasonNumber: number): Promise<void> {
+  logger.info(`Ending season ${currentSeasonNumber}, starting season ${currentSeasonNumber + 1}...`);
+
+  await transaction(async (client) => {
+    // 1. Archive current season
+    await client.query(
+      `UPDATE season_stats
+       SET status = 'COMPLETED', end_date = CURRENT_DATE
+       WHERE season_number = $1 AND status = 'ACTIVE'`,
+      [currentSeasonNumber]
+    );
+
+    // 2. Start next season (active_devices resets to 0)
+    await client.query(
+      `INSERT INTO season_stats (season_number, start_date, total_weeks, status, active_devices, total_np, total_sleep_distributed)
+       VALUES ($1, CURRENT_DATE, 16, 'ACTIVE', 0, 0, 0)
+       ON CONFLICT (season_number) DO NOTHING`,
+      [currentSeasonNumber + 1]
+    );
+  });
+
+  broadcast({
+    type: 'season-complete',
+    completedSeason: currentSeasonNumber,
+    nextSeason: currentSeasonNumber + 1,
+  });
+
+  logger.info(`✅ Season ${currentSeasonNumber} → COMPLETED. Season ${currentSeasonNumber + 1} → ACTIVE`);
 }
