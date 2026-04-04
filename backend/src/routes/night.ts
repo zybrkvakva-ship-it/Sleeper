@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { query, transaction } from '../database';
-import { calculateNightReward } from '../economy';
+import { calculateNightReward, accelerationTier, currentWeeks, poolPerNight } from '../economy';
 import { SkrBoostLevel } from '../economy/constants';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -306,6 +306,11 @@ router.post('/end', async (req, res, next) => {
       .digest('hex')
       .slice(0, 16);
 
+    // Acceleration tier info for app display
+    const tier = accelerationTier(season.active_devices);
+    const seasonWeeks = currentWeeks(season.active_devices);
+    const nightPool = poolPerNight(season.active_devices);
+
     res.json({
       success: true,
       reward: {
@@ -315,6 +320,12 @@ router.post('/end', async (req, res, next) => {
           : 0,
         nightHash,
         message: 'Night session completed! SLEEP tokens will be distributed at 9 AM.',
+      },
+      season: {
+        tier,
+        seasonWeeks,
+        nightPool,
+        activeDevices: season.active_devices,
       },
     });
   } catch (error) {

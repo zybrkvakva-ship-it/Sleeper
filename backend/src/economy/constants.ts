@@ -5,13 +5,23 @@
  */
 
 /**
- * Total SPR supply allocated for sleep mining: 10% of 10B SKR-matched supply.
- * Remaining 90% = team, investors, liquidity, ecosystem.
+ * Acceleration Mining Model — 100% community supply
+ *
+ * Total SPR supply = 10B (matches SKR supply 1:1)
+ * All 10B mined by community via sleep mining + OTC purchases.
+ * No team/investor allocation from the mining pool.
+ *
+ * 20 seasons × 500M SPR = 10B total.
+ * Season duration shrinks as active miners grow (see currentWeeks()).
+ * More users → faster seasons → earlier liquidity → incentive to invite.
+ *
+ * Timeline:
+ *   < 500 active miners : ~6.1 years to complete all 20 seasons
+ *   > 150K active miners: ~1.2 years to complete all 20 seasons
  */
-export const TOTAL_MINING_SUPPLY = 1_000_000_000;
-/** 20 seasons × 50M SPR = 1B total mined over ~5 years */
+export const TOTAL_SPR_SUPPLY = 10_000_000_000;
 export const SEASON_COUNT = 20;
-export const SEASON_POOL = 50_000_000;
+export const SEASON_POOL = 500_000_000;
 export const MAX_DEVICES = 150_000;
 /** Social boost cap: referrals (up to +25%) + tasks (up to +30%) can stack, capped at 40% */
 export const MAX_SOCIAL_BOOST = 0.40;

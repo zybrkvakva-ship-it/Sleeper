@@ -26,15 +26,41 @@ export const SKR_STAKING_BOOST_TIERS = [
 ];
 
 /**
- * Calculate season duration in weeks based on active devices
+ * Acceleration tiers — season duration DECREASES as active miners grow.
+ * More users → faster seasons → earlier token liquidity → viral incentive.
+ *
+ * Tier     | Active miners  | Season  | Pool/night
+ * ---------|----------------|---------|------------
+ * Genesis  | < 500          | 16 wks  | 4.46M SPR
+ * Pioneer  | 500–2K         | 14 wks  | 5.10M SPR
+ * Growing  | 2K–5K          | 12 wks  | 5.95M SPR
+ * Active   | 5K–15K         | 10 wks  | 7.14M SPR
+ * Viral    | 15K–50K        | 7 wks   | 10.2M SPR
+ * Mass     | 50K–150K       | 5 wks   | 14.3M SPR
+ * Global   | > 150K         | 3 wks   | 23.8M SPR
  */
 export function currentWeeks(nActive: number): number {
-  if (nActive <= 1_000) return 16;
-  if (nActive <= 5_000) return 15;
-  if (nActive <= 10_000) return 14;
-  if (nActive <= 25_000) return 12;
-  if (nActive <= 50_000) return 10;
-  return 8;
+  if (nActive >= 150_000) return 3;
+  if (nActive >= 50_000)  return 5;
+  if (nActive >= 15_000)  return 7;
+  if (nActive >= 5_000)   return 10;
+  if (nActive >= 2_000)   return 12;
+  if (nActive >= 500)     return 14;
+  return 16;
+}
+
+/**
+ * Returns the current acceleration tier name based on active devices.
+ * Useful for display in the app ("You are in Viral tier — season ends in 7 weeks").
+ */
+export function accelerationTier(nActive: number): string {
+  if (nActive >= 150_000) return 'Global';
+  if (nActive >= 50_000)  return 'Mass';
+  if (nActive >= 15_000)  return 'Viral';
+  if (nActive >= 5_000)   return 'Active';
+  if (nActive >= 2_000)   return 'Growing';
+  if (nActive >= 500)     return 'Pioneer';
+  return 'Genesis';
 }
 
 /**
