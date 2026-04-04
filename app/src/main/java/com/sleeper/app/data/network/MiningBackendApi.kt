@@ -511,6 +511,37 @@ class MiningBackendApi {
     }
 
     /**
+     * Server-side .skr domain verification. POST /user/verify-skr
+     * Returns skrUsername on success, throws on failure.
+     */
+    suspend fun verifySkrOnServer(
+        walletAddress: String,
+        authToken: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        DevLog.d(TAG, "verifySkrOnServer ENTRY wallet=${DevLog.mask(walletAddress)}")
+        if (baseUrl.isEmpty()) return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        val body = JSONObject().apply {
+            put("walletAddress", walletAddress)
+            put("authToken", authToken)
+        }.toString()
+        val request = Request.Builder()
+            .url("$baseUrl/user/verify-skr")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val bodyStr = response.body?.string() ?: ""
+            DevLog.d(TAG, "verifySkrOnServer response code=${response.code} bodyLen=${bodyStr.length}")
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${bodyStr.take(400)}")
+            val json = JSONObject(bodyStr)
+            val username = json.optString("skrUsername").takeIf { it.isNotEmpty() }
+                ?: throw Exception("Missing skrUsername in response")
+            DevLog.i(TAG, "verifySkrOnServer SUCCESS username=$username")
+            username
+        }.onFailure { DevLog.e(TAG, "verifySkrOnServer error: ${it.message}", it) }
+    }
+
+    /**
      * Verify wallet signature and receive backend auth token.
      */
     suspend fun verifyAuthChallenge(

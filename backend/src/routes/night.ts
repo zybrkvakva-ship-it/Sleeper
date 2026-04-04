@@ -174,14 +174,21 @@ router.post('/end', async (req, res, next) => {
       has_genesis_nft: boolean;
       referred_by: string | null;
       staked_skr_raw: string | null;
+      skr_verified_at: string | null;
     }>(
       `SELECT wallet_address, has_genesis_nft, referred_by,
-              COALESCE(staked_skr_raw, 0)::text AS staked_skr_raw
+              COALESCE(staked_skr_raw, 0)::text AS staked_skr_raw,
+              skr_verified_at
        FROM users WHERE wallet_address = $1`,
       [walletAddress]
     );
     if (users.length === 0) throw new AppError(404, 'User not found');
     const user = users[0];
+
+    // .skr verification gate — only verified wallets can mine
+    if (!user.skr_verified_at) {
+      throw new AppError(403, 'Mining requires a verified .skr domain. Call POST /user/verify-skr first.');
+    }
 
     // Active season
     const seasons = await query<{
@@ -292,11 +299,11 @@ router.post('/end', async (req, res, next) => {
           [reward.finalNp, walletAddress]
         );
 
-        // Update registered_devices = total registered users (acceleration counter).
-        // Every new registration accelerates the season for everyone.
+        // Update active_devices = verified .skr users only (acceleration counter).
+        // Only wallets with verified .skr domain count toward season acceleration.
         await client.query(
           `UPDATE season_stats
-           SET active_devices = (SELECT COUNT(*)::int FROM users)
+           SET active_devices = (SELECT COUNT(*)::int FROM users WHERE skr_verified_at IS NOT NULL)
            WHERE status = 'ACTIVE'`
         );
       }

@@ -296,6 +296,21 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
             DevLog.d(TAG, "[VERIFY_MINING] verifySkrToken returned: isValid=${tokenResult.isValid} username=${tokenResult.username} reason=${tokenResult.reason}")
             
             if (tokenResult.isValid && tokenResult.username != null) {
+                val addr = walletManager.getSavedWalletAddress() ?: ""
+                val backendAuthToken = walletManager.getSavedBackendAuthToken()
+
+                // Server-side .skr verification (registers mint, enforces UNIQUE, counts toward acceleration)
+                if (addr.isNotBlank() && !backendAuthToken.isNullOrBlank()) {
+                    DevLog.d(TAG, "[VERIFY_MINING] Calling server-side verify-skr...")
+                    val serverResult = repository.getBackendApi().verifySkrOnServer(addr, backendAuthToken)
+                    serverResult.onFailure { e ->
+                        DevLog.w(TAG, "[VERIFY_MINING] Server verify failed: ${e.message} — proceeding with local result")
+                    }
+                    serverResult.onSuccess { serverUsername ->
+                        DevLog.i(TAG, "[VERIFY_MINING] Server confirmed .skr: $serverUsername")
+                    }
+                }
+
                 // Token verified - разрешаем майнинг, сохраняем реальный .skr для лидерборда
                 walletManager.saveSkrUsername(tokenResult.username)
                 _uiState.value = _uiState.value.copy(
@@ -305,16 +320,15 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 )
 
                 // Кэшируем результат — следующий запуск будет мгновенным
-                val addr = walletManager.getSavedWalletAddress()
-                if (addr != null) saveSkrVerificationCache(addr, tokenResult.username, tokenResult.tokenAddress)
+                if (addr.isNotBlank()) saveSkrVerificationCache(addr, tokenResult.username, tokenResult.tokenAddress)
 
                 // Сохраняем для аудита
                 tokenVerifier.saveVerifiedToken(
                     tokenResult.username,
                     tokenResult.tokenAddress ?: "",
-                    walletManager.getSavedWalletAddress() ?: ""
+                    addr
                 )
-                
+
                 DevLog.i(TAG, "✅ Mining authorized for: ${tokenResult.username}")
             } else {
                 walletManager.saveSkrUsername(null)

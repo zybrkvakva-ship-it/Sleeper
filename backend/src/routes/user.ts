@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 import { buildAuthMessage, verifySolanaSignatureHex } from '../utils/solanaAuth';
 import { isValidSolanaAddress, pickFirstString, pickWallet } from '../utils/solanaAddress';
 import { fetchStakingInfo } from '../utils/stakingInfo';
+import { verifySkrOwnership, invalidateSkrCache } from '../utils/verifySkrToken';
 
 const router = Router();
 const AUTH_CHALLENGE_TTL_SECONDS = parseInt(process.env.AUTH_CHALLENGE_TTL_SECONDS || '600', 10);
@@ -385,6 +386,143 @@ router.get('/staking-info/:walletAddress', async (req, res, next) => {
       stakedAmountRaw: info.stakedAmountRaw.toString(),
       accountsFound: info.accountsFound,
       fetchedAt: info.fetchedAt,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/v1/user/verify-skr
+ *
+ * Server-side .skr domain ownership verification.
+ * Requires: walletAddress + valid authToken (wallet must be authenticated first).
+ *
+ * Rules enforced:
+ *   1. Wallet must own a .skr domain NFT (verified on-chain via Solana RPC)
+ *   2. That specific token mint must not already be registered to another wallet
+ *      (UNIQUE constraint on users.skr_token_mint)
+ *   3. Once verified, the (wallet ↔ token_mint) binding is permanent
+ *      — if the .skr token is transferred, the wallet loses mining access on next re-verify
+ *
+ * On success:
+ *   - users.skr_username = domain name (e.g. "miha")
+ *   - users.skr_token_mint = on-chain mint address (unique index)
+ *   - users.skr_verified_at = NOW()
+ *   - users.skr_domain_verified = true
+ *   - season_stats.active_devices incremented (user enters acceleration counter)
+ */
+router.post('/verify-skr', async (req, res, next) => {
+  try {
+    const walletAddress = pickWallet(req.body);
+    const authToken = (req.headers['x-auth-token'] as string | undefined)
+      || (req.body?.authToken as string | undefined);
+
+    if (!walletAddress) throw new AppError(400, 'walletAddress (or wallet) is required');
+    if (!isValidSolanaAddress(walletAddress)) throw new AppError(400, 'invalid wallet format');
+    if (!authToken) throw new AppError(401, 'X-Auth-Token header required');
+
+    // Auth check
+    const tokenUuid = authToken.trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tokenUuid)) {
+      throw new AppError(401, 'Invalid auth token format');
+    }
+    const authRows = await query(
+      `SELECT 1 FROM wallet_auth_tokens
+       WHERE token = $1::uuid AND wallet_address = $2
+         AND revoked_at IS NULL AND expires_at > NOW()
+       LIMIT 1`,
+      [tokenUuid, walletAddress]
+    );
+    if (authRows.length === 0) throw new AppError(401, 'Invalid or expired auth token');
+
+    // Check if already verified (idempotent — return existing data)
+    const existing = await query<{
+      skr_username: string | null;
+      skr_token_mint: string | null;
+      skr_verified_at: string | null;
+    }>(
+      `SELECT skr_username, skr_token_mint, skr_verified_at FROM users WHERE wallet_address = $1`,
+      [walletAddress]
+    );
+
+    if (existing[0]?.skr_verified_at && existing[0]?.skr_token_mint) {
+      // Already verified — re-validate on-chain to confirm still owns the token
+      const recheck = await verifySkrOwnership(walletAddress);
+      if (!recheck.isValid || recheck.tokenMint !== existing[0].skr_token_mint) {
+        // Token transferred to another wallet — revoke verification
+        await query(
+          `UPDATE users
+           SET skr_domain_verified = false, skr_verified_at = NULL, skr_token_mint = NULL, skr_username = NULL
+           WHERE wallet_address = $1`,
+          [walletAddress]
+        );
+        await invalidateSkrCache(walletAddress);
+        throw new AppError(403, 'Your .skr domain is no longer in this wallet. Verification revoked.');
+      }
+      return res.json({
+        success: true,
+        alreadyVerified: true,
+        username: existing[0].skr_username,
+        tokenMint: existing[0].skr_token_mint,
+        verifiedAt: existing[0].skr_verified_at,
+      });
+    }
+
+    // On-chain verification
+    const result = await verifySkrOwnership(walletAddress);
+    if (!result.isValid || !result.tokenMint || !result.username) {
+      throw new AppError(403, result.reason || 'No .skr domain found in this wallet');
+    }
+
+    // Atomically: check uniqueness of token_mint + save
+    await transaction(async (client) => {
+      // Check if this token_mint is already claimed by another wallet
+      const clash = await client.query(
+        `SELECT wallet_address FROM users
+         WHERE skr_token_mint = $1 AND wallet_address != $2
+         LIMIT 1`,
+        [result.tokenMint, walletAddress]
+      );
+      if (clash.rows.length > 0) {
+        throw new AppError(409,
+          'This .skr domain is already registered to another account. ' +
+          'Each .skr token can only be used by one wallet.'
+        );
+      }
+
+      // Save verification
+      await client.query(
+        `UPDATE users
+         SET skr_username = $1,
+             skr_token_mint = $2,
+             skr_verified_at = NOW(),
+             skr_domain_verified = true
+         WHERE wallet_address = $3`,
+        [result.username, result.tokenMint, walletAddress]
+      );
+
+      // Add to acceleration counter — only verified .skr users count
+      await client.query(
+        `UPDATE season_stats
+         SET active_devices = (
+           SELECT COUNT(*)::int FROM users WHERE skr_verified_at IS NOT NULL
+         )
+         WHERE status = 'ACTIVE'`
+      );
+    });
+
+    logger.info('.skr verification success', {
+      wallet: walletAddress.slice(0, 8) + '...',
+      username: result.username,
+      mint: result.tokenMint.slice(0, 8) + '...',
+    });
+
+    res.json({
+      success: true,
+      username: result.username,
+      tokenMint: result.tokenMint,
+      message: `Welcome, ${result.username}.skr! You are now in the mining acceleration counter.`,
     });
   } catch (error) {
     next(error);
