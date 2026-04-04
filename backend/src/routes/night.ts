@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { query, transaction } from '../database';
-import { calculateNightReward, accelerationTier, currentWeeks, poolPerNight } from '../economy';
+import { calculateNightReward, accelerationTier, currentSeasonDays, poolPerNight } from '../economy';
 import { SkrBoostLevel } from '../economy/constants';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -318,7 +318,7 @@ router.post('/end', async (req, res, next) => {
 
     // Acceleration tier info for app display
     const tier = accelerationTier(season.active_devices);
-    const seasonWeeks = currentWeeks(season.active_devices);
+    const seasonDays = currentSeasonDays(season.active_devices);
     const nightPool = poolPerNight(season.active_devices);
 
     res.json({
@@ -333,7 +333,7 @@ router.post('/end', async (req, res, next) => {
       },
       season: {
         tier,
-        seasonWeeks,
+        seasonDays,
         nightPool,
         activeDevices: season.active_devices,
       },

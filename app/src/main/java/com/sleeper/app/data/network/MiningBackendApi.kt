@@ -80,10 +80,10 @@ data class ClaimResult(
 
 data class SeasonTierResponse(
     val tier: String,           // "Genesis" | "Pioneer" | "Growing" | "Active" | "Viral" | "Mass" | "Global"
-    val seasonWeeks: Int,       // current season duration in weeks
+    val seasonDays: Int,        // current season duration in days (exponential)
     val poolPerNight: Long,     // SPR distributed per night
     val activeDevices: Int,     // miners online today
-    val weeksRemaining: Int,
+    val daysRemaining: Int,
     val nightsRemaining: Int,
     val seasonNumber: Int
 )
@@ -482,13 +482,13 @@ class MiningBackendApi {
             val season = json.optJSONObject("season") ?: throw Exception("Missing 'season' in response")
             SeasonTierResponse(
                 tier            = season.optString("tier", "Genesis"),
-                seasonWeeks     = season.optInt("seasonWeeks", 16),
+                seasonDays      = season.optInt("seasonDays", 112),
                 poolPerNight    = season.optLong("poolPerNight", 0L),
                 activeDevices   = season.optInt("active_devices", 0),
-                weeksRemaining  = season.optInt("weeksRemaining", 0),
+                daysRemaining   = season.optInt("daysRemaining", 0),
                 nightsRemaining = season.optInt("nightsRemaining", 0),
                 seasonNumber    = season.optInt("season_number", 1)
-            ).also { DevLog.i(TAG, "getSeasonTier SUCCESS tier=${it.tier} active=${it.activeDevices} weeks=${it.seasonWeeks}") }
+            ).also { DevLog.i(TAG, "getSeasonTier SUCCESS tier=${it.tier} active=${it.activeDevices} days=${it.seasonDays}") }
         }.onFailure { DevLog.e(TAG, "getSeasonTier error: ${it.message}", it) }
     }
 

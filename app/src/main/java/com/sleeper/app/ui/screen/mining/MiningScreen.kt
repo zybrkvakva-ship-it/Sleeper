@@ -202,8 +202,8 @@ fun MiningScreen(
                     AccelerationTierCard(
                         tier = uiState.accelerationTier,
                         activeDevices = uiState.onlineUsers,
-                        seasonWeeks = uiState.seasonWeeks,
-                        weeksRemaining = uiState.seasonWeeksRemaining,
+                        seasonDays = uiState.seasonDays,
+                        daysRemaining = uiState.seasonDaysRemaining,
                         seasonNumber = uiState.seasonNumber,
                     )
                 }
@@ -470,12 +470,17 @@ fun MiningScreen(
  * Shows current Acceleration Mining tier and season speed info.
  * More active miners = shorter season = earlier token liquidity.
  */
+/**
+ * Shows current Acceleration Mining tier and season speed info.
+ * Season duration is exponential — the more miners, the faster it goes.
+ * 100K+ miners → ~1 week/season. 130K+ → exponential cliff. 150K → ~1 day.
+ */
 @Composable
 private fun AccelerationTierCard(
     tier: String,
     activeDevices: Int,
-    seasonWeeks: Int,
-    weeksRemaining: Int,
+    seasonDays: Int,
+    daysRemaining: Int,
     seasonNumber: Int,
 ) {
     val (tierIcon, tierColor) = when (tier) {
@@ -487,15 +492,24 @@ private fun AccelerationTierCard(
         "Pioneer" -> "🚶" to CyberGray
         else      -> "🐌" to CyberGray   // Genesis
     }
-    // Next tier threshold labels
     val nextTierHint = when (tier) {
-        "Genesis"  -> "500+ miners → Pioneer (14 weeks)"
-        "Pioneer"  -> "2K+ miners → Growing (12 weeks)"
-        "Growing"  -> "5K+ miners → Active (10 weeks)"
-        "Active"   -> "15K+ miners → Viral (7 weeks)"
-        "Viral"    -> "50K+ miners → Mass (5 weeks)"
-        "Mass"     -> "150K+ miners → Global (3 weeks)"
-        else       -> "Max speed reached!"
+        "Genesis"  -> "500 miners → ~90 days/season"
+        "Pioneer"  -> "5K miners → ~56 days/season"
+        "Growing"  -> "15K miners → ~28 days/season"
+        "Active"   -> "40K miners → ~14 days/season"
+        "Viral"    -> "80K miners → ~7 days/season"
+        "Mass"     -> "130K+ → exponential cliff ⚡"
+        else       -> "Max speed — all 10B SPR mining at full throttle!"
+    }
+    val durationLabel = when {
+        seasonDays >= 60 -> "${seasonDays / 7} weeks"
+        seasonDays >= 2  -> "$seasonDays days"
+        else             -> "~${seasonDays * 24}h"
+    }
+    val remainingLabel = when {
+        daysRemaining <= 0 -> null
+        daysRemaining == 1 -> "~${daysRemaining * 24}h left"
+        else               -> "$daysRemaining days left"
     }
 
     CyberCard(modifier = Modifier.fillMaxWidth(), strokeColor = tierColor) {
@@ -521,18 +535,14 @@ private fun AccelerationTierCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "$seasonWeeks wks/season",
+                        text = durationLabel,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = CyberWhite
                     )
-                    if (weeksRemaining > 0) {
+                    if (remainingLabel != null) {
                         Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = "$weeksRemaining wks left",
-                            fontSize = 12.sp,
-                            color = CyberGray
-                        )
+                        Text(text = remainingLabel, fontSize = 12.sp, color = CyberGray)
                     }
                 }
             }
@@ -541,7 +551,7 @@ private fun AccelerationTierCard(
                 HorizontalDivider(color = CyberGray.copy(alpha = 0.15f), thickness = 0.5.dp)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "⚡ Invite friends: $nextTierHint",
+                    text = "⚡ Invite: $nextTierHint",
                     fontSize = 11.sp,
                     color = CyberGray,
                 )

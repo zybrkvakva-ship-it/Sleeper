@@ -57,8 +57,8 @@ data class MiningUiState(
     val pendingSessionsCount: Int = 0,   // сессии ожидающие синхронизации с бэкендом
     // Acceleration Mining tier
     val accelerationTier: String = "Genesis",
-    val seasonWeeks: Int = 16,
-    val seasonWeeksRemaining: Int = 16,
+    val seasonDays: Int = 112,          // current season duration in days
+    val seasonDaysRemaining: Int = 112,
     val nightPoolPerNight: Long = 0L,
     val seasonNumber: Int = 1,
 )
@@ -554,8 +554,8 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 .onSuccess { tier ->
                     _uiState.value = _uiState.value.copy(
                         accelerationTier = tier.tier,
-                        seasonWeeks = tier.seasonWeeks,
-                        seasonWeeksRemaining = tier.weeksRemaining,
+                        seasonDays = tier.seasonDays,
+                        seasonDaysRemaining = tier.daysRemaining,
                         nightPoolPerNight = tier.poolPerNight,
                         onlineUsers = if (tier.activeDevices > 0) tier.activeDevices else _uiState.value.onlineUsers,
                         isDemoNetworkStats = false,
