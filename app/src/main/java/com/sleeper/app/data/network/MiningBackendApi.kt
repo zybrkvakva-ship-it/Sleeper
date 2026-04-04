@@ -72,6 +72,12 @@ data class UserProfileResponse(
     val bonusNightsRemaining: Int = 0
 )
 
+data class ClaimResult(
+    val amount: Long,
+    val txHash: String,
+    val message: String
+)
+
 data class TaskCompleteResponse(
     val taskId: String,
     val rewardPts: Int,
@@ -421,6 +427,35 @@ class MiningBackendApi {
                 newSpecialBonusPercent = json.optDouble("newSpecialBonusPercent", 0.0)
             ).also { DevLog.i(TAG, "completeTaskOnServer SUCCESS taskId=$taskId rewardPts=${it.rewardPts}") }
         }.onFailure { DevLog.e(TAG, "completeTaskOnServer error: ${it.message}", it) }
+    }
+
+    /**
+     * Claims SLEEP tokens post-TGE. POST /claim
+     * @return ClaimResult with amount + txHash on success.
+     */
+    suspend fun postClaim(walletAddress: String, authToken: String): Result<ClaimResult> = withContext(Dispatchers.IO) {
+        DevLog.d(TAG, "postClaim ENTRY wallet=${DevLog.mask(walletAddress)}")
+        if (baseUrl.isEmpty()) return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        val body = JSONObject().apply {
+            put("walletAddress", walletAddress)
+            put("authToken", authToken)
+        }.toString()
+        val request = Request.Builder()
+            .url("$baseUrl/claim")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val bodyStr = response.body?.string() ?: ""
+            DevLog.d(TAG, "postClaim response code=${response.code} bodyLen=${bodyStr.length}")
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${bodyStr.take(400)}")
+            val json = JSONObject(bodyStr)
+            ClaimResult(
+                amount  = json.optLong("amount", 0L),
+                txHash  = json.optString("txHash", ""),
+                message = json.optString("message", "Claimed successfully")
+            ).also { DevLog.i(TAG, "postClaim SUCCESS amount=${it.amount} txHash=${it.txHash.take(16)}...") }
+        }.onFailure { DevLog.e(TAG, "postClaim error: ${it.message}", it) }
     }
 
     /** Apply a referral code for the given wallet. Returns true on success. */

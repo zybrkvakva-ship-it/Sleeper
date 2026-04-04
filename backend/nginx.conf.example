@@ -1,0 +1,48 @@
+# Seeker Mining — nginx reverse proxy example
+# 1. Copy to /etc/nginx/sites-available/seekermining
+# 2. ln -s /etc/nginx/sites-available/seekermining /etc/nginx/sites-enabled/
+# 3. certbot --nginx -d api.seekermining.com
+# 4. nginx -t && systemctl reload nginx
+
+# Redirect HTTP → HTTPS
+server {
+    listen 80;
+    server_name api.seekermining.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name api.seekermining.com;
+
+    ssl_certificate     /etc/letsencrypt/live/api.seekermining.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.seekermining.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    # REST API (port 3000)
+    location /api/ {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        client_max_body_size 10k;
+    }
+
+    # Health check
+    location /health {
+        proxy_pass http://127.0.0.1:3000;
+    }
+
+    # WebSocket (port 3001)
+    location /ws {
+        proxy_pass          http://127.0.0.1:3001;
+        proxy_http_version  1.1;
+        proxy_set_header    Upgrade $http_upgrade;
+        proxy_set_header    Connection "upgrade";
+        proxy_set_header    Host $host;
+        proxy_read_timeout  3600s;
+    }
+}

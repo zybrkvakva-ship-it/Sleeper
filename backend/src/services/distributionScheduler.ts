@@ -92,11 +92,12 @@ export async function runDailyDistribution(): Promise<void> {
     const activeDevices = sessions.length;
     const basePoolNight = poolPerNight(activeDevices);
 
-    // Add uncarried dust from previous nights
+    // Carry dust only from yesterday's distribution (not cumulative total)
     const dustRow = await query<{ dust: string }>(
-      `SELECT COALESCE(SUM(dust_carried), 0) AS dust
+      `SELECT COALESCE(dust_carried, 0) AS dust
        FROM night_distributions
-       WHERE dust_carried > 0`
+       WHERE night_date = CURRENT_DATE - INTERVAL '1 day'
+       LIMIT 1`
     );
     const prevDust = parseInt(dustRow[0]?.dust ?? '0', 10);
     const poolNight = basePoolNight + prevDust;

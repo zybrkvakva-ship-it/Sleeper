@@ -164,6 +164,11 @@ async function requireAuth(walletAddress: string, authToken: string | undefined)
     [tokenUuid, walletAddress],
   );
   if (rows.length === 0) throw new AppError(401, 'Invalid or expired auth token');
+  const banned = await query<{ is_banned: boolean }>(
+    'SELECT COALESCE(is_banned, false) AS is_banned FROM users WHERE wallet_address = $1',
+    [walletAddress]
+  );
+  if (banned[0]?.is_banned) throw new AppError(403, 'Account suspended');
 }
 
 // ─── Streak calculator ────────────────────────────────────────────────────────
@@ -280,6 +285,7 @@ router.get('/', async (req, res, next) => {
         actionUrl: def.actionUrl ?? null,
         requiresReferral: def.requiresReferral ?? false,
         requiresStreak: def.requiresStreak ?? null,
+        requiresReferralCount: def.requiresReferralCount ?? null,
         isCompleted,
         canComplete,
         completedAt,

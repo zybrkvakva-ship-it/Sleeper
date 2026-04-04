@@ -150,29 +150,54 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
+            val walletAddress = walletManager.getSavedWalletAddress() ?: run {
+                _walletState.value = _walletState.value.copy(
+                    claimStatus = ClaimStatus.Error(getApplication<Application>().getString(com.sleeper.app.R.string.upgrade_wallet_not_found))
+                )
+                return@launch
+            }
+            val authToken = walletManager.getSavedBackendAuthToken()
+
             _walletState.value = _walletState.value.copy(claimStatus = ClaimStatus.Processing)
 
-            val claimMessage = "Claim $points Sleep Points from Sleeper"
+            // Sign claim message to prove wallet ownership
+            val claimMessage = "Claim $points Sleep Points from Seeker Mining"
             DevLog.d(TAG, "claimPoints signMessage points=$points")
-            val result = walletManager.signMessage(sender, claimMessage)
+            val signResult = walletManager.signMessage(sender, claimMessage)
+            if (signResult !is SignMessageResult.Success) {
+                _walletState.value = _walletState.value.copy(
+                    claimStatus = when (signResult) {
+                        is SignMessageResult.NoWalletFound -> ClaimStatus.Error(getApplication<Application>().getString(com.sleeper.app.R.string.upgrade_wallet_not_found))
+                        is SignMessageResult.Error -> ClaimStatus.Error(signResult.message)
+                        else -> ClaimStatus.Error("Signing failed")
+                    }
+                )
+                return@launch
+            }
 
-            DevLog.d(TAG, "claimPoints result: ${result::class.simpleName} ${if (result is SignMessageResult.Error) "message=${result.message}" else ""}")
-            _walletState.value = _walletState.value.copy(
-                claimStatus = when (result) {
-                    is SignMessageResult.Success -> {
-                        DevLog.i(TAG, "claimPoints SUCCESS signature=${result.signature.take(24)}...")
-                        ClaimStatus.Success(result.signature)
+            // Post claim to backend (signature proves intent; backend validates balance + sends tokens)
+            if (backendApi.isConfigured() && authToken != null) {
+                backendApi.postClaim(walletAddress, authToken)
+                    .onSuccess { claimResult ->
+                        DevLog.i(TAG, "claimPoints backend SUCCESS txHash=${claimResult.txHash.take(16)}...")
+                        _walletState.value = _walletState.value.copy(
+                            claimStatus = ClaimStatus.Success(claimResult.txHash)
+                        )
+                        repository.syncBalanceFromServer(walletAddress)
                     }
-                    is SignMessageResult.NoWalletFound -> {
-                        DevLog.w(TAG, "claimPoints NoWalletFound")
-                        ClaimStatus.Error(getApplication<Application>().getString(com.sleeper.app.R.string.upgrade_wallet_not_found))
+                    .onFailure { e ->
+                        DevLog.e(TAG, "claimPoints backend FAILED: ${e.message}")
+                        _walletState.value = _walletState.value.copy(
+                            claimStatus = ClaimStatus.Error(e.message ?: "Claim failed")
+                        )
                     }
-                    is SignMessageResult.Error -> {
-                        DevLog.e(TAG, "claimPoints Error: ${result.message}")
-                        ClaimStatus.Error(result.message)
-                    }
-                }
-            )
+            } else {
+                // Pre-TGE or API not configured: show signed confirmation
+                DevLog.i(TAG, "claimPoints offline/pre-TGE signature=${signResult.signature.take(24)}...")
+                _walletState.value = _walletState.value.copy(
+                    claimStatus = ClaimStatus.Success(signResult.signature)
+                )
+            }
         }
     }
     

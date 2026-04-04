@@ -43,6 +43,13 @@ async function requireAuth(walletAddress: string, authToken: string | undefined)
   if (rows.length === 0) {
     throw new AppError(401, 'Invalid or expired auth token');
   }
+  const banned = await query<{ is_banned: boolean }>(
+    'SELECT COALESCE(is_banned, false) AS is_banned FROM users WHERE wallet_address = $1',
+    [walletAddress]
+  );
+  if (banned[0]?.is_banned) {
+    throw new AppError(403, 'Account suspended');
+  }
 }
 
 /**
@@ -118,7 +125,6 @@ router.post('/end', async (req, res, next) => {
       throw new AppError(400, 'Missing required fields: walletAddress, minutesSlept');
     }
     if (!isValidSolanaAddress(walletAddress)) throw new AppError(400, 'invalid wallet format');
-    if (!sessionId) throw new AppError(400, 'sessionId is required (obtain from /night/start)');
 
     // Auth check
     await requireAuth(walletAddress, extractAuthToken(req as any));
@@ -130,19 +136,26 @@ router.post('/end', async (req, res, next) => {
     const movementViolations = Math.max(0, Math.floor(movementViolationsRaw));
     const screenOnCount = Math.max(0, Math.floor(screenOnCountRaw));
 
-    // Validate and consume session token (prevents /night/end without /night/start)
-    const tokenRows = await query<{ session_id: string; used_at: string | null }>(
-      `SELECT session_id, used_at
-       FROM night_session_tokens
-       WHERE session_id = $1::uuid AND wallet_address = $2
-       LIMIT 1`,
-      [sessionId, walletAddress]
-    );
-    if (tokenRows.length === 0) {
-      throw new AppError(403, 'Invalid session token — call /night/start first');
-    }
-    if (tokenRows[0].used_at !== null) {
-      throw new AppError(409, 'Session already submitted');
+    // Validate and consume session token if provided (optional — app may register via WebSocket only)
+    if (sessionId) {
+      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId);
+      if (isValidUuid) {
+        const tokenRows = await query<{ session_id: string; used_at: string | null }>(
+          `SELECT session_id, used_at
+           FROM night_session_tokens
+           WHERE session_id = $1::uuid AND wallet_address = $2
+           LIMIT 1`,
+          [sessionId, walletAddress]
+        );
+        if (tokenRows.length > 0) {
+          if (tokenRows[0].used_at !== null) {
+            throw new AppError(409, 'Session already submitted');
+          }
+          // Consume token
+          await query('UPDATE night_session_tokens SET used_at = NOW() WHERE session_id = $1::uuid', [sessionId]);
+        }
+        // Token not found: app registered via WebSocket — proceed without token validation
+      }
     }
 
     // Human factor from violations
@@ -244,26 +257,21 @@ router.post('/end', async (req, res, next) => {
       newUserBonus,
     });
 
-    // Persist atomically: consume token + insert session + update NP
+    // Persist atomically: insert session + update NP
     await transaction(async (client) => {
-      // Mark session token as used
-      await client.query(
-        'UPDATE night_session_tokens SET used_at = NOW() WHERE session_id = $1::uuid',
-        [sessionId]
-      );
 
       await client.query(
         `INSERT INTO night_sessions (
           wallet_address, night_date, week_index,
-          minutes_slept, human_factor, movement_violations, screen_on_count,
+          minutes_slept, storage_mb, human_factor, movement_violations, screen_on_count,
           referral_count, daily_tasks_percent, skr_boost_level, has_genesis_nft,
           base_np, social_boost, skr_boost, nft_multiplier, total_multiplier, final_np,
           session_ended_at
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW())
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW())
         ON CONFLICT (wallet_address, night_date) DO NOTHING`,
         [
           walletAddress, todayStr, weekIndex,
-          minutesSlept, humanFactor, movementViolations, screenOnCount,
+          minutesSlept, 0, humanFactor, movementViolations, screenOnCount,
           referralCount, dailyTasksPercent, skrBoostLevel, user.has_genesis_nft,
           reward.baseNp, reward.socialBoost, reward.skrBoost,
           reward.nftMultiplier, reward.totalMultiplier, reward.finalNp,

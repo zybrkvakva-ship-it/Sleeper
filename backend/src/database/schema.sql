@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS night_sessions (
     
     -- Sleep data
     minutes_slept INTEGER NOT NULL,
-    storage_mb INTEGER NOT NULL,
+    storage_mb INTEGER NOT NULL DEFAULT 0,
     human_factor DECIMAL(3, 2) NOT NULL,
     movement_violations INTEGER DEFAULT 0,
     screen_on_count INTEGER DEFAULT 0,
