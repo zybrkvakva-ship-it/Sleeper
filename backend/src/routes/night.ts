@@ -292,15 +292,12 @@ router.post('/end', async (req, res, next) => {
           [reward.finalNp, walletAddress]
         );
 
-        // Update active_devices count in season_stats (live counter for acceleration tier)
-        // RETURNING: get both old and new value to detect tier crossing
+        // Update registered_devices = total registered users (acceleration counter).
+        // Every new registration accelerates the season for everyone.
         await client.query(
           `UPDATE season_stats
-           SET active_devices = (
-             SELECT COUNT(DISTINCT wallet_address)::int FROM night_sessions WHERE night_date = $1
-           )
-           WHERE status = 'ACTIVE'`,
-          [todayStr]
+           SET active_devices = (SELECT COUNT(*)::int FROM users)
+           WHERE status = 'ACTIVE'`
         );
       }
     });

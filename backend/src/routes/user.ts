@@ -43,6 +43,13 @@ router.post('/register', async (req, res, next) => {
       [walletAddress, skrUsername, referralCode]
     );
     
+    // Every new registration accelerates the season for everyone
+    await query(
+      `UPDATE season_stats
+       SET active_devices = (SELECT COUNT(*)::int FROM users)
+       WHERE status = 'ACTIVE'`
+    );
+
     logger.info(`User registered: ${walletAddress}`);
     
     res.json({
