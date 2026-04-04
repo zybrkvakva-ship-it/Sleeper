@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { query } from '../database';
-import { poolPerNight } from '../economy';
+import { poolPerNight, accelerationTier, currentWeeks } from '../economy';
 
 const router = Router();
 
@@ -30,17 +30,21 @@ async function getActiveSeason(_req: Request, res: Response, next: NextFunction)
     
     const season = seasons[0];
     
-    // Calculate dynamic values
+    // Dynamic values based on current active miners (Acceleration Mining)
     const poolNight = poolPerNight(season.active_devices);
-    const weeksRemaining = season.total_weeks - season.current_week;
-    
+    const seasonWeeks = currentWeeks(season.active_devices);
+    const tier = accelerationTier(season.active_devices);
+    const weeksRemaining = Math.max(0, seasonWeeks - (season.current_week ?? 1));
+
     res.json({
       success: true,
       season: {
         ...season,
+        tier,
+        seasonWeeks,
         poolPerNight: poolNight,
         weeksRemaining,
-        nightsRemaining: weeksRemaining * 7
+        nightsRemaining: weeksRemaining * 7,
       }
     });
     

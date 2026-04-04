@@ -54,7 +54,13 @@ data class MiningUiState(
     val stakeMultiplier: Double = 1.0,    // +X% к награде за стейк
     val hasGenesisNft: Boolean = false,
     val genesisNftMultiplier: Double = 1.0,
-    val pendingSessionsCount: Int = 0    // сессии ожидающие синхронизации с бэкендом
+    val pendingSessionsCount: Int = 0,   // сессии ожидающие синхронизации с бэкендом
+    // Acceleration Mining tier
+    val accelerationTier: String = "Genesis",
+    val seasonWeeks: Int = 16,
+    val seasonWeeksRemaining: Int = 16,
+    val nightPoolPerNight: Long = 0L,
+    val seasonNumber: Int = 1,
 )
 
 class MiningViewModel(application: Application) : AndroidViewModel(application) {
@@ -535,9 +541,28 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
                 val balanceSynced = repository.syncBalanceFromServer(addr)
                 DevLog.d(TAG, "syncWithBackend syncBalanceFromServer addr=${DevLog.mask(addr)} ok=$balanceSynced")
                 if (balanceSynced) DevLog.d(TAG, "Backend: balance synced from server")
-                // Also refresh referral code/count (cheap GET, cached in SharedPreferences)
                 repository.syncUserProfile(addr, walletManager)
             } ?: DevLog.d(TAG, "syncWithBackend no wallet, skip balance sync")
+            // Refresh acceleration tier (no auth required)
+            refreshSeasonTier()
+        }
+    }
+
+    private fun refreshSeasonTier() {
+        viewModelScope.launch {
+            repository.getBackendApi().getSeasonTier()
+                .onSuccess { tier ->
+                    _uiState.value = _uiState.value.copy(
+                        accelerationTier = tier.tier,
+                        seasonWeeks = tier.seasonWeeks,
+                        seasonWeeksRemaining = tier.weeksRemaining,
+                        nightPoolPerNight = tier.poolPerNight,
+                        onlineUsers = if (tier.activeDevices > 0) tier.activeDevices else _uiState.value.onlineUsers,
+                        isDemoNetworkStats = false,
+                        seasonNumber = tier.seasonNumber,
+                    )
+                }
+                .onFailure { DevLog.w(TAG, "getSeasonTier failed: ${it.message}") }
         }
     }
 

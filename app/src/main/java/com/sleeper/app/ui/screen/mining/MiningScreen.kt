@@ -194,7 +194,22 @@ fun MiningScreen(
                 }
             }
 
-            // Energy + Stake — объединённая карточка (index 1)
+            // Acceleration Tier card — index 1
+            item {
+                var visible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) { visible = true }
+                AnimatedVisibility(visible = visible, enter = staggerEnter(1)) {
+                    AccelerationTierCard(
+                        tier = uiState.accelerationTier,
+                        activeDevices = uiState.onlineUsers,
+                        seasonWeeks = uiState.seasonWeeks,
+                        weeksRemaining = uiState.seasonWeeksRemaining,
+                        seasonNumber = uiState.seasonNumber,
+                    )
+                }
+            }
+
+            // Energy + Stake — объединённая карточка (index 2)
             item {
                 var visible by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) { visible = true }
@@ -447,6 +462,90 @@ fun MiningScreen(
             }
 
             item { Spacer(Modifier.height(8.dp)) }
+        }
+    }
+}
+
+/**
+ * Shows current Acceleration Mining tier and season speed info.
+ * More active miners = shorter season = earlier token liquidity.
+ */
+@Composable
+private fun AccelerationTierCard(
+    tier: String,
+    activeDevices: Int,
+    seasonWeeks: Int,
+    weeksRemaining: Int,
+    seasonNumber: Int,
+) {
+    val (tierIcon, tierColor) = when (tier) {
+        "Global"  -> "💫" to CyberGreen
+        "Mass"    -> "🚀" to CyberGreen
+        "Viral"   -> "⚡" to CyberYellow
+        "Active"  -> "🔥" to CyberYellow
+        "Growing" -> "🏃" to CyberWhite
+        "Pioneer" -> "🚶" to CyberGray
+        else      -> "🐌" to CyberGray   // Genesis
+    }
+    // Next tier threshold labels
+    val nextTierHint = when (tier) {
+        "Genesis"  -> "500+ miners → Pioneer (14 weeks)"
+        "Pioneer"  -> "2K+ miners → Growing (12 weeks)"
+        "Growing"  -> "5K+ miners → Active (10 weeks)"
+        "Active"   -> "15K+ miners → Viral (7 weeks)"
+        "Viral"    -> "50K+ miners → Mass (5 weeks)"
+        "Mass"     -> "150K+ miners → Global (3 weeks)"
+        else       -> "Max speed reached!"
+    }
+
+    CyberCard(modifier = Modifier.fillMaxWidth(), strokeColor = tierColor) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "$tierIcon $tier  •  Season $seasonNumber",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = tierColor
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "${String.format("%,d", activeDevices)} miners online",
+                        fontSize = 12.sp,
+                        color = CyberGray
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "$seasonWeeks wks/season",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = CyberWhite
+                    )
+                    if (weeksRemaining > 0) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "$weeksRemaining wks left",
+                            fontSize = 12.sp,
+                            color = CyberGray
+                        )
+                    }
+                }
+            }
+            if (tier != "Global") {
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = CyberGray.copy(alpha = 0.15f), thickness = 0.5.dp)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "⚡ Invite friends: $nextTierHint",
+                    fontSize = 11.sp,
+                    color = CyberGray,
+                )
+            }
         }
     }
 }

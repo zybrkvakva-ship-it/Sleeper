@@ -78,6 +78,16 @@ data class ClaimResult(
     val message: String
 )
 
+data class SeasonTierResponse(
+    val tier: String,           // "Genesis" | "Pioneer" | "Growing" | "Active" | "Viral" | "Mass" | "Global"
+    val seasonWeeks: Int,       // current season duration in weeks
+    val poolPerNight: Long,     // SPR distributed per night
+    val activeDevices: Int,     // miners online today
+    val weeksRemaining: Int,
+    val nightsRemaining: Int,
+    val seasonNumber: Int
+)
+
 data class TaskCompleteResponse(
     val taskId: String,
     val rewardPts: Int,
@@ -456,6 +466,30 @@ class MiningBackendApi {
                 message = json.optString("message", "Claimed successfully")
             ).also { DevLog.i(TAG, "postClaim SUCCESS amount=${it.amount} txHash=${it.txHash.take(16)}...") }
         }.onFailure { DevLog.e(TAG, "postClaim error: ${it.message}", it) }
+    }
+
+    /**
+     * Получает текущий тир ускорения сезона. GET /season/current
+     */
+    suspend fun getSeasonTier(): Result<SeasonTierResponse> = withContext(Dispatchers.IO) {
+        if (baseUrl.isEmpty()) return@withContext Result.failure(IllegalStateException("API_BASE_URL not set"))
+        val request = Request.Builder().url("$baseUrl/season/current").get().build()
+        runCatching {
+            val response = client.newCall(request).execute()
+            val bodyStr = response.body?.string() ?: ""
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${bodyStr.take(400)}")
+            val json = JSONObject(bodyStr)
+            val season = json.optJSONObject("season") ?: throw Exception("Missing 'season' in response")
+            SeasonTierResponse(
+                tier            = season.optString("tier", "Genesis"),
+                seasonWeeks     = season.optInt("seasonWeeks", 16),
+                poolPerNight    = season.optLong("poolPerNight", 0L),
+                activeDevices   = season.optInt("active_devices", 0),
+                weeksRemaining  = season.optInt("weeksRemaining", 0),
+                nightsRemaining = season.optInt("nightsRemaining", 0),
+                seasonNumber    = season.optInt("season_number", 1)
+            ).also { DevLog.i(TAG, "getSeasonTier SUCCESS tier=${it.tier} active=${it.activeDevices} weeks=${it.seasonWeeks}") }
+        }.onFailure { DevLog.e(TAG, "getSeasonTier error: ${it.message}", it) }
     }
 
     /** Apply a referral code for the given wallet. Returns true on success. */

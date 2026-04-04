@@ -20,6 +20,9 @@ class MiningRepository(private val database: AppDatabase) {
         private const val TAG = "MiningRepository"
     }
 
+    private val _backendApi by lazy { MiningBackendApi() }
+    fun getBackendApi(): MiningBackendApi = _backendApi
+
     val userStats: Flow<UserStatsEntity?> = database.userStatsDao().getUserStatsFlow()
     val tasks: Flow<List<TaskEntity>> = database.taskDao().getAllTasksFlow()
     

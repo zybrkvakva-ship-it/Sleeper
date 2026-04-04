@@ -290,6 +290,16 @@ router.post('/end', async (req, res, next) => {
            WHERE wallet_address = $2`,
           [reward.finalNp, walletAddress]
         );
+
+        // Update active_devices count in season_stats (live counter for acceleration tier)
+        await client.query(
+          `UPDATE season_stats
+           SET active_devices = (
+             SELECT COUNT(DISTINCT wallet_address)::int FROM night_sessions WHERE night_date = $1
+           )
+           WHERE status = 'ACTIVE'`,
+          [todayStr]
+        );
       }
     });
 
