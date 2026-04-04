@@ -4,7 +4,14 @@
  * No storage/Proof-of-Storage concept — that was a previous model.
  */
 
-export const SEASON_POOL = 5_000_000;
+/**
+ * Total SPR supply allocated for sleep mining: 10% of 10B SKR-matched supply.
+ * Remaining 90% = team, investors, liquidity, ecosystem.
+ */
+export const TOTAL_MINING_SUPPLY = 1_000_000_000;
+/** 20 seasons × 50M SPR = 1B total mined over ~5 years */
+export const SEASON_COUNT = 20;
+export const SEASON_POOL = 50_000_000;
 export const MAX_DEVICES = 150_000;
 /** Social boost cap: referrals (up to +25%) + tasks (up to +30%) can stack, capped at 40% */
 export const MAX_SOCIAL_BOOST = 0.40;

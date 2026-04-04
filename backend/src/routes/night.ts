@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { createHash } from 'crypto';
 import { query, transaction } from '../database';
 import { calculateNightReward } from '../economy';
 import { SkrBoostLevel } from '../economy/constants';
@@ -299,6 +300,12 @@ router.post('/end', async (req, res, next) => {
       stakedSkrHuman,
     });
 
+    // Night Hash — unique fingerprint per night session (UX + lightweight integrity)
+    const nightHash = createHash('sha256')
+      .update(`${walletAddress}:${todayStr}:${reward.finalNp}:${Date.now()}`)
+      .digest('hex')
+      .slice(0, 16);
+
     res.json({
       success: true,
       reward: {
@@ -306,6 +313,7 @@ router.post('/end', async (req, res, next) => {
         bonusNightsRemaining: (user.referred_by !== null && completedNights < 3)
           ? (2 - completedNights)   // after this session: remaining = 3 - (completedNights+1)
           : 0,
+        nightHash,
         message: 'Night session completed! SLEEP tokens will be distributed at 9 AM.',
       },
     });
