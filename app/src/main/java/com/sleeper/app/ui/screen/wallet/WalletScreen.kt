@@ -152,7 +152,7 @@ fun WalletScreen(
                     glowColor = accentGreen
                 ) {
                     Text(
-                        text = "Referral applied! +10% boost for 3 nights",
+                        text = stringResource(R.string.referral_applied_bonus),
                         style = MaterialTheme.typography.bodyMedium,
                         color = CyberGreen,
                         fontWeight = FontWeight.SemiBold,

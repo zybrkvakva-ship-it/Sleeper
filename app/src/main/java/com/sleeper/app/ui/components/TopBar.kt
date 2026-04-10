@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sleeper.app.ui.theme.accentGreen
 import com.sleeper.app.ui.theme.background
@@ -25,6 +26,7 @@ import com.sleeper.app.ui.theme.textMuted
 fun TopBar(
     modifier: Modifier = Modifier,
     statusCenter: String = "ONLINE",
+    statusCenterColor: Color = accentGreen,
     statusRight: String? = null,
     leftContent: @Composable (() -> Unit)? = null
 ) {
@@ -55,12 +57,12 @@ fun TopBar(
                 modifier = Modifier
                     .padding(end = 6.dp)
                     .size(8.dp)
-                    .background(accentGreen, CircleShape)
+                    .background(statusCenterColor, CircleShape)
             ) {}
             Text(
                 text = statusCenter.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = accentGreen
+                color = statusCenterColor
             )
         }
         if (statusRight != null) {

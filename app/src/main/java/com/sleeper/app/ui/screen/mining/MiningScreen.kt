@@ -169,14 +169,14 @@ fun MiningScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "🚀 TIER UP!  ${uiState.tierUpFrom} → ${uiState.tierUpTo}",
+                                    text = "${stringResource(R.string.tier_up_label)}  ${uiState.tierUpFrom} → ${uiState.tierUpTo}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = CyberGreen
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = "Season is accelerating — invite more friends!",
+                                    text = stringResource(R.string.tier_up_subtitle),
                                     fontSize = 12.sp,
                                     color = CyberGray
                                 )
@@ -208,14 +208,14 @@ fun MiningScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "🏁 Season ${uiState.completedSeasonNumber} Complete!",
+                                    text = stringResource(R.string.season_complete_label, uiState.completedSeasonNumber),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = CyberYellow
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = "Season ${uiState.seasonNumber} has started. Keep mining!",
+                                    text = stringResource(R.string.season_started_label, uiState.seasonNumber),
                                     fontSize = 12.sp,
                                     color = CyberGray
                                 )
@@ -471,6 +471,16 @@ fun MiningScreen(
                                 }
                             }
                             uiState.walletConnected -> {
+                                var showSkrOnboarding by remember { mutableStateOf(false) }
+                                if (showSkrOnboarding) {
+                                    SkrOnboardingDialog(
+                                        onConfirm = {
+                                            showSkrOnboarding = false
+                                            viewModel.verifyTokenForMining()
+                                        },
+                                        onDismiss = { showSkrOnboarding = false }
+                                    )
+                                }
                                 CyberCard(modifier = Modifier.fillMaxWidth(), strokeColor = CyberYellow) {
                                     Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                         Icon(Icons.Default.Lock, "Locked", tint = CyberYellow, modifier = Modifier.size(24.dp))
@@ -479,7 +489,11 @@ fun MiningScreen(
                                         Spacer(Modifier.height(4.dp))
                                         Text(stringResource(R.string.skr_required_hint), fontSize = 12.sp, color = CyberWhite.copy(alpha = 0.8f), textAlign = TextAlign.Center)
                                         Spacer(Modifier.height(8.dp))
-                                        CyberButton(text = stringResource(R.string.skr_verify_button), onClick = { viewModel.verifyTokenForMining() }, strokeColor = CyberYellow)
+                                        CyberButton(
+                                            text = stringResource(R.string.skr_verify_button),
+                                            onClick = { showSkrOnboarding = true },
+                                            strokeColor = CyberYellow
+                                        )
                                     }
                                 }
                             }
@@ -716,4 +730,45 @@ private fun formatUptime(minutes: Long): String {
     val hours = minutes / 60
     val mins = minutes % 60
     return if (hours > 0) "${hours}:${String.format("%02d", mins)}" else "${mins}m"
+}
+
+@Composable
+private fun SkrOnboardingDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = androidx.compose.ui.graphics.Color(0xFF1A1F2E),
+        titleContentColor = CyberWhite,
+        textContentColor = CyberWhite.copy(alpha = 0.85f),
+        title = {
+            Text(
+                text = stringResource(R.string.skr_onboarding_title),
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.skr_onboarding_body),
+                fontSize = 13.sp,
+                lineHeight = 20.sp
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = stringResource(R.string.skr_onboarding_confirm),
+                    color = CyberGreen,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Cancel", color = CyberGray)
+            }
+        }
+    )
 }

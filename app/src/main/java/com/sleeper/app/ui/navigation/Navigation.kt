@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,12 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.annotation.StringRes
 import androidx.navigation.NavController
+import com.sleeper.app.utils.ConnectivityObserver
 import com.sleeper.app.R
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -73,11 +76,18 @@ val bottomNavItems = listOf(
 @Composable
 fun MainNavigation() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val connectivityObserver = remember { ConnectivityObserver(context) }
+    val isOnline by connectivityObserver.isOnline.collectAsState()
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
-            TopBar(statusCenter = "ONLINE", statusRight = null)
+            TopBar(
+                statusCenter = if (isOnline) "ONLINE" else "OFFLINE",
+                statusCenterColor = if (isOnline) accentGreen else CyberRed,
+                statusRight = null
+            )
         },
         bottomBar = {
             BottomNavBar(navController = navController)

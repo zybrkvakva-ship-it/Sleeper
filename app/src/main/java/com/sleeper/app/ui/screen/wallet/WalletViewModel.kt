@@ -11,6 +11,7 @@ import com.sleeper.app.domain.manager.WalletConnectionResult
 import com.sleeper.app.domain.manager.SignMessageResult
 import com.sleeper.app.utils.DevLog
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -69,17 +70,13 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 is WalletConnectionResult.NoWalletFound -> {
                     DevLog.w(TAG, "connectWallet NoWalletFound")
-                    _walletState.value.copy(
-                        isConnecting = false,
-                        error = getApplication<Application>().getString(com.sleeper.app.R.string.wallet_install_solana_wallet)
-                    )
+                    setError(getApplication<Application>().getString(com.sleeper.app.R.string.wallet_install_solana_wallet))
+                    _walletState.value.copy(isConnecting = false)
                 }
                 is WalletConnectionResult.Error -> {
                     DevLog.e(TAG, "connectWallet Error: ${result.message}")
-                    _walletState.value.copy(
-                        isConnecting = false,
-                        error = result.message
-                    )
+                    setError(result.message)
+                    _walletState.value.copy(isConnecting = false)
                 }
             }
         }
@@ -104,17 +101,17 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                         .onFailure { e ->
                             walletManager.saveBackendAuthToken(null)
                             DevLog.e(TAG, "Backend auth verify failed: ${e.message}")
-                            _walletState.value = _walletState.value.copy(error = "Backend auth failed")
+                            setError("Backend auth failed")
                         }
                 } else if (signed is SignMessageResult.Error) {
                     walletManager.saveBackendAuthToken(null)
-                    _walletState.value = _walletState.value.copy(error = signed.message)
+                    setError(signed.message)
                 }
             }
             .onFailure { e ->
                 walletManager.saveBackendAuthToken(null)
                 DevLog.e(TAG, "Backend auth challenge failed: ${e.message}")
-                _walletState.value = _walletState.value.copy(error = "Backend auth unavailable")
+                setError("Backend auth unavailable")
             }
     }
     
@@ -136,6 +133,16 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
 
     fun clearReferralApplied() {
         _walletState.value = _walletState.value.copy(referralApplied = false)
+    }
+
+    private fun setError(msg: String) {
+        _walletState.value = _walletState.value.copy(error = msg)
+        viewModelScope.launch {
+            delay(5_000L)
+            if (_walletState.value.error == msg) {
+                _walletState.value = _walletState.value.copy(error = null)
+            }
+        }
     }
 
     fun claimPoints(sender: ActivityResultSender) {

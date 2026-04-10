@@ -158,4 +158,19 @@
     <!-- Wallet: errors -->
     <string name="wallet_install_solana_wallet">Установите Solana Mobile Wallet</string>
     <string name="wallet_no_points_claim">Нет поинтов для claim</string>
+    <string name="referral_applied_bonus">Реферал применён! +10%% буст на 3 ночи</string>
+
+    <!-- Acceleration / Season banners -->
+    <string name="tier_up_label">🚀 ТИР ВЫРОС!</string>
+    <string name="tier_up_subtitle">Сезон ускоряется — приглашай друзей!</string>
+    <string name="season_complete_label">🏁 Сезон %d завершён!</string>
+    <string name="season_started_label">Сезон %d начался. Продолжай майнить!</string>
+
+    <!-- Verification -->
+    <string name="verification_timeout">Верификация не прошла: проверь соединение и попробуй снова.</string>
+
+    <!-- .skr onboarding dialog -->
+    <string name="skr_onboarding_title">Что такое .skr домен?</string>
+    <string name="skr_onboarding_body">Домен .skr — это NFT на Solana, подтверждающий что ты настоящий Seeker.\n\nКак получить:\n1. Открой приложение или сайт AllDomains\n2. Зарегистрируй имя на .skr (например, yourname.skr)\n3. Вернись и нажми Верифицировать</string>
+    <string name="skr_onboarding_confirm">Понятно — верифицировать</string>
 </resources>

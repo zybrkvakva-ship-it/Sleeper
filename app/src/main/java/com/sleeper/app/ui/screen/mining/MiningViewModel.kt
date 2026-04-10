@@ -21,10 +21,12 @@ import com.sleeper.app.service.MiningService
 import com.sleeper.app.utils.DevLog
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
@@ -290,9 +292,19 @@ class MiningViewModel(application: Application) : AndroidViewModel(application) 
             DevLog.d(TAG, "[VERIFY_MINING] verifyTokenForMining ENTRY")
             DevLog.d(TAG, "[VERIFY_MINING] walletAddress=${walletAddr ?: "null"}")
             _uiState.value = _uiState.value.copy(isVerifying = true)
-            
-            DevLog.d(TAG, "[VERIFY_MINING] Calling tokenVerifier.verifySkrToken()...")
-            val tokenResult = tokenVerifier.verifySkrToken()
+
+            val tokenResult = try {
+                DevLog.d(TAG, "[VERIFY_MINING] Calling tokenVerifier.verifySkrToken()...")
+                withTimeout(15_000L) { tokenVerifier.verifySkrToken() }
+            } catch (e: TimeoutCancellationException) {
+                DevLog.w(TAG, "[VERIFY_MINING] Verification timed out")
+                _uiState.value = _uiState.value.copy(
+                    isVerifying = false,
+                    isTokenVerified = false,
+                    errorMessage = getApplication<Application>().getString(R.string.verification_timeout)
+                )
+                return@launch
+            }
             DevLog.d(TAG, "[VERIFY_MINING] verifySkrToken returned: isValid=${tokenResult.isValid} username=${tokenResult.username} reason=${tokenResult.reason}")
             
             if (tokenResult.isValid && tokenResult.username != null) {
