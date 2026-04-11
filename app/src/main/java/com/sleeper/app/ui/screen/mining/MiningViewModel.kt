@@ -11,6 +11,7 @@ import com.sleeper.app.data.network.SolanaRpcClient
 import com.sleeper.app.data.network.WebSocketManager
 import com.sleeper.app.data.network.deriveWsUrl
 import com.sleeper.app.BuildConfig
+import com.sleeper.app.R
 import com.sleeper.app.data.local.PendingSessionEntity
 import com.sleeper.app.data.repository.MiningRepository
 import com.sleeper.app.domain.manager.EnergyManager
