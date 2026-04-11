@@ -60,13 +60,13 @@ export const TASK_CATALOG: TaskDef[] = [
   },
   {
     id: 'invite_friend',
-    type: 'DAILY',
+    type: 'SPECIAL',
     title: 'Invite a Friend',
-    description: 'Invite someone using your referral link',
+    description: 'Someone joins using your referral link',
     rewardPts: 300,
     bonusPercent: 0.05,
-    actionType: 'REFERRAL',
-    requiresReferral: true,
+    actionType: 'AUTO',
+    requiresReferralCount: 1,
   },
   {
     id: 'subscribe_telegram',

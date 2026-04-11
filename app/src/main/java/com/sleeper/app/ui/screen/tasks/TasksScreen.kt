@@ -50,13 +50,28 @@ fun TasksScreen(
     val scope = rememberCoroutineScope()
 
     // Launcher used after returning from share/external link action
-    var pendingTaskId by remember { mutableStateOf<String?>(null) }
+    var pendingTaskId   by remember { mutableStateOf<String?>(null) }
+    var launchTimeMs    by remember { mutableStateOf(0L) }
+
+    // Minimum time the user must spend in the external app/browser to count as "done".
+    // SHARE: 3 s, STORY/OPEN_URL: 5 s — prevents instant back-tap abuse.
+    val minTimeMs = remember { mutableStateOf(3_000L) }
+
     val urlLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        // User returned from external app — claim completion
         pendingTaskId?.let { id ->
-            viewModel.completeTask(id)
+            val elapsed = System.currentTimeMillis() - launchTimeMs
+            if (elapsed >= minTimeMs.value) {
+                viewModel.completeTask(id)
+            } else {
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        "Please complete the action before returning",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
             pendingTaskId = null
         }
     }
@@ -154,7 +169,7 @@ fun TasksScreen(
                         TaskCard(
                             task = task,
                             isProcessing = uiState.isLoading,
-                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel, uiState.referralCode) { pendingTaskId = it } }
+                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel, uiState.referralCode, { pendingTaskId = it }, { launchTimeMs = it }, { minTimeMs.value = it }) }
                         )
                     }
                 }
@@ -179,7 +194,7 @@ fun TasksScreen(
                         TaskCard(
                             task = task,
                             isProcessing = uiState.isLoading,
-                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel, uiState.referralCode) { pendingTaskId = it } }
+                            onAction = { resolveTaskAction(context, task, urlLauncher, pendingTaskId, viewModel, uiState.referralCode, { pendingTaskId = it }, { launchTimeMs = it }, { minTimeMs.value = it }) }
                         )
                     }
                 }
@@ -538,9 +553,12 @@ private fun resolveTaskAction(
     viewModel: TasksViewModel,
     referralCode: String?,
     setPendingTaskId: (String?) -> Unit,
+    setLaunchTimeMs: (Long) -> Unit,
+    setMinTimeMs: (Long) -> Unit,
 ) {
     when (task.actionType) {
-        TaskActionType.CHECKIN -> {
+        TaskActionType.CHECKIN, TaskActionType.AUTO -> {
+            // Server validates streak/referral counts — no time gate needed
             viewModel.completeTask(task.id)
         }
         TaskActionType.SHARE -> {
@@ -549,6 +567,8 @@ private fun resolveTaskAction(
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, shareUrl)
             }
+            setMinTimeMs(3_000L)
+            setLaunchTimeMs(System.currentTimeMillis())
             setPendingTaskId(task.id)
             urlLauncher.launch(Intent.createChooser(shareIntent, "Share Seeker Mining"))
         }
@@ -556,10 +576,15 @@ private fun resolveTaskAction(
         TaskActionType.OPEN_URL -> {
             val url = task.actionUrl ?: return
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            // Require at least 5 s in browser/Telegram to watch the story
+            setMinTimeMs(5_000L)
+            setLaunchTimeMs(System.currentTimeMillis())
             setPendingTaskId(task.id)
             urlLauncher.launch(intent)
         }
         TaskActionType.REFERRAL -> {
+            // REFERRAL tasks are AUTO-completed server-side (requiresReferralCount check).
+            // The share sheet is shown as a helper, but completion is not tied to returning.
             val code = referralCode ?: "?"
             val shareText = "Join Seeker Mining — earn SLEEP tokens while you sleep!\n" +
                 "Use my referral code: $code\n" +
@@ -569,11 +594,8 @@ private fun resolveTaskAction(
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, shareText)
             }
-            setPendingTaskId(task.id)
+            // No pendingTaskId — server will auto-unlock this when referral is confirmed
             urlLauncher.launch(Intent.createChooser(shareIntent, "Invite a Friend"))
-        }
-        TaskActionType.AUTO -> {
-            viewModel.completeTask(task.id)
         }
     }
 }
