@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Sleeper theme colors (dark, green/orange accents) -->
+    <!-- Base palette -->
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
     <color name="neon_green">#00FF41</color>
@@ -8,5 +8,16 @@
     <color name="dark_gray">#1A1A1A</color>
     <color name="medium_gray">#2A2A2A</color>
     <color name="light_gray">#3A3A3A</color>
-    <color name="red">#FF4444</color>
+
+    <!-- Material3 dynamic colors -->
+    <color name="primary">#6200EE</color>
+    <color name="primary_variant">#3700B3</color>
+    <color name="primary_on">#FFFFFF</color>
+    <color name="secondary">#03DAC5</color>
+    <color name="secondary_variant">#018786</color>
+    <color name="secondary_on">#FFFFFF</color>
+
+    <!-- Splash screen colors -->
+    <color name="splash_background">#FFEA48</color>
+    <color name="splash_icon_bg">#FFFFFF</color>
 </resources>

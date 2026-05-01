@@ -1,98 +1,31 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp")
-    id("com.google.gms.google-services")
-    kotlin("plugin.serialization") version "1.9.22"
+    id("kotlin-kapt")
+    id("dagger.hilt.android.plugin")
 }
-
-// Читаем API_BASE_URL и BOOST_TREASURY из local.properties или gradle property (не хардкодим в коде)
-val localProperties = Properties()
-val localFile = rootProject.file("local.properties")
-if (localFile.exists()) {
-    localFile.reader(Charsets.UTF_8).use { localProperties.load(it) }
-}
-fun prop(key: String): String {
-    val fromProject = (project.findProperty(key) as? String)?.trim()?.takeIf { s -> s.isNotEmpty() }
-    val fromLocal = localProperties.getProperty(key)?.trim()?.takeIf { s -> s.isNotEmpty() }
-    return fromProject ?: fromLocal ?: ""
-}
-fun propQuoted(key: String): String = prop(key).let { v -> if (v.isEmpty()) "\"\"" else "\"$v\"" }
 
 android {
     namespace = "com.sleeper.app"
     compileSdk = 34
 
-    signingConfigs {
-        getByName("debug") {
-            enableV1Signing = true
-            enableV2Signing = true
-        }
-        create("release") {
-            val storeFileProp = prop("RELEASE_STORE_FILE")
-            if (storeFileProp.isNotEmpty()) {
-                storeFile = rootProject.file(storeFileProp)
-                storePassword = prop("RELEASE_STORE_PASSWORD")
-                keyAlias = prop("RELEASE_KEY_ALIAS")
-                keyPassword = prop("RELEASE_KEY_PASSWORD")
-            }
-            enableV1Signing = true
-            enableV2Signing = true
-        }
-    }
-
     defaultConfig {
         applicationId = "com.sleeper.app"
-        minSdk = 26
+        minSdk = 21
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
+        versionName = "1.0"
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
-        debug {
-            buildConfigField("boolean", "BYPASS_DEVICE_CHECK", "true")
-            buildConfigField("boolean", "USE_REAL_LEADERBOARD", "false")
-            buildConfigField("String", "API_BASE_URL", propQuoted("API_BASE_URL"))
-            buildConfigField("String", "BOOST_TREASURY", propQuoted("BOOST_TREASURY"))
-            buildConfigField("String", "HELIUS_API_KEY", propQuoted("HELIUS_API_KEY"))
-        }
         release {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            val releaseSigning = signingConfigs.findByName("release")
-            val isReleaseBuild = gradle.startParameter.taskNames.any {
-                it.contains("Release", ignoreCase = true) && !it.contains("Debug")
-            }
-            if (releaseSigning != null && releaseSigning.storeFile?.exists() == true) {
-                signingConfig = releaseSigning
-            } else if (isReleaseBuild) {
-                throw GradleException(
-                    "RELEASE_STORE_FILE is not set or keystore not found.\n" +
-                    "Add to local.properties:\n" +
-                    "  RELEASE_STORE_FILE=../keystore/seeker-release.jks\n" +
-                    "  RELEASE_KEY_ALIAS=seeker\n" +
-                    "  RELEASE_STORE_PASSWORD=<password>\n" +
-                    "  RELEASE_KEY_PASSWORD=<password>"
-                )
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
-            }
-            buildConfigField("boolean", "BYPASS_DEVICE_CHECK", "false")
-            buildConfigField("boolean", "USE_REAL_LEADERBOARD", "true")
-            buildConfigField("String", "API_BASE_URL", propQuoted("API_BASE_URL"))
-            buildConfigField("String", "BOOST_TREASURY", propQuoted("BOOST_TREASURY"))
-            buildConfigField("String", "HELIUS_API_KEY", propQuoted("HELIUS_API_KEY"))
+            signingConfig = signingConfigs.getByName("release")
+            // minifyEnabled true
+            // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        debug {
+            // debuggable true
         }
     }
 
@@ -100,91 +33,60 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
         jvmTarget = "17"
     }
 
-    buildFeatures {
-        compose = true
-        buildConfig = true  // Explicitly enable BuildConfig
-    }
-
-    ksp {
-        arg("room.schemaLocation", "$projectDir/schemas")
-    }
-
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
+        kotlinCompilerExtensionVersion = "1.6.4"
     }
 }
 
 dependencies {
-    // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2024.08.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.ui:ui-text-google-fonts")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    
-    // Security — encrypted storage for auth tokens
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    // Core module
+    implementation(project(":core"))
 
-    // Core Android
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
-    
-    // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.6")
-    
-    // ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
-    
-    // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-    
-    // WorkManager
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.51")
+    kapt("com.google.dagger:hilt-compiler:2.51")
+
+    // Lifecycle + Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+    implementation("androidx.activity:activity-compose:1.9.0")
+
+    // Compose
+    implementation("androidx.compose.ui:ui:1.6.4")
+    implementation("androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.6.4")
+
+    // OkHttp, Moshi
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.moshi:moshi:1.15.1")
+    kapt("com.squareup.moshi:moshi-kotlin:1.15.1")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-    
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
-    implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-analytics-ktx")
-    
-    // Datastore
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    
-    // Mobile Wallet Adapter (Solana)
-    implementation("com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.3")
-    
-    // Solana RPC (AllDomains .skr + SNS fallback)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.77") // PDA curve check for reverse lookup
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("org.json:json:20231013")
-    
-    // JSON Serialization (для парсинга RPC responses)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
-    
-    // Testing
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
+    // Debug UI testing
+    debugImplementation("androidx.compose.ui:ui-test-junit4:1.6.4")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.4")
+    androidTestImplementation("androidx.compose.material3:material3-testing:1.2.0")
+
+    // Lottie (placeholder)
+    implementation("com.airbnb.android:airlift:1.1.0")
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+signingConfigs {
+    create("release") {
+        storeFile = file("../keystore/release.keystore")
+        storePassword = ""   // TODO: replace with real password
+        keyAlias = ""        // TODO: replace with real alias
+        keyPassword = ""     // TODO: replace with real password
+    }
 }
